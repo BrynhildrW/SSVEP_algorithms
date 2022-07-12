@@ -34,13 +34,13 @@
 $
  \pmb{Y}_k = 
   \begin{pmatrix}
-   \sin(2 \pi fn)\\
-   \cos(2 \pi fn)\\
-   \sin(4 \pi fn)\\
-   \cos(4 \pi fn)\\
-   ...\\
-   \sin(2 N_h \pi fn)\\
-   \cos(2 N_h \pi fn)\\
+   \sin(2 \pi fn)  
+   \cos(2 \pi fn)  
+   \sin(4 \pi fn)  
+   \cos(4 \pi fn)  
+   ...  
+   \sin(2 N_h \pi fn)  
+   \cos(2 N_h \pi fn)  
   \end{pmatrix}
  , 
  n=[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s}]
