@@ -1,6 +1,6 @@
 # SSVEP_algorithms 
-更新进展：今天写了公式变量说明，代码更新了CCA、eCCA和msCCA部分（2022/7/12）<p>
-近期计划：编写eCCA、msCCA的说明内容。<p>
+更新进展：今天写了公式变量说明，代码更新了CCA、eCCA和msCCA部分（2022/7/12）
+近期计划：编写eCCA、msCCA的说明内容。
 **建议各位同僚读完硕士赶紧去就业吧，千万不要盲目投身火海。**
 
 ***
@@ -24,15 +24,16 @@
 | $f_s$ | EEG信号采样率 |
 | $\pmb{\omega}, \pmb{U}, \pmb{V}$ etc | 低维空间滤波器 |
 | $\pmb{W}$ | 高维空间滤波器，由低维空间滤波器集成而得 |
-
 （在无特殊说明的情况下，所有训练数据默认经过了零均值化处理）
+
 ***
 ## 常见SSVEP信号处理算法（空间滤波器）
 ### 1. 典型相关性分析 | Canonical correlation analysis, CCA
 #### 1.1 [标准CCA][CCA]
-> 对于第 $k$ 目标、第 $i$ 试次数据 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$，其对应频率的人工构建正余弦模板 $\pmb{Y}_k \in \mathbb{R}^{(2N_h) \times N_p}$ 可表示为： <p>
+对于第 $k$ 目标、第 $i$ 试次数据 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$，其对应频率的人工构建正余弦模板 $\pmb{Y}_k \in \mathbb{R}^{(2N_h) \times N_p}$ 可表示为：
+
 $
- \pmb{Y}_k = 
+  \pmb{Y}_k = 
   \begin{pmatrix}
    \sin(2 \pi fn)\\
    \cos(2 \pi fn)\\
@@ -41,24 +42,25 @@ $
    ...\\
    \sin(2 N_h \pi fn)\\
    \cos(2 N_h \pi fn)\\
-  \end{pmatrix}
- , 
+  \end{pmatrix} , 
  n=[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s}]
-$ <p>
-> CCA的优化目标为 $\hat{\pmb{U}}_k^i$ 和 $\hat{\pmb{V}}_k^i$，使得一维信号 $\hat{\pmb{U}}_k^i \pmb{X}_k^i$ 与 $\hat{\pmb{V}}_k^i \pmb{Y}_k$ 之间相关性最大化，其目标函数为： <p>
+$
+
+CCA的优化目标为 $\hat{\pmb{U}}_k^i$ 和 $\hat{\pmb{V}}_k^i$，使得一维信号 $\hat{\pmb{U}}_k^i \pmb{X}_k^i$ 与 $\hat{\pmb{V}}_k^i \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
+
 $
  \hat{\pmb{U}}_k^i, \hat{\pmb{V}}_k^i =
  \underset{\pmb{U}_k^i, \pmb{V}_k^i} \argmax 
   \dfrac{Cov(\pmb{U}_k^i \pmb{X}_k^i, \pmb{V}_k^i \pmb{Y}_k)}
         {\sqrt{Var(\pmb{U}_k^i \pmb{X}_k^i)}
-         \sqrt{Var(\pmb{V}_k^i \pmb{Y}_k)}}
- = 
+         \sqrt{Var(\pmb{V}_k^i \pmb{Y}_k)}} = 
  \underset{\pmb{U}_k^i, \pmb{V}_k^i} \argmax
   \dfrac{\pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T}
        {\sqrt{\pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T}
         \sqrt{\pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T}}
-$ <p>
-$ 
+$
+
+$
  \begin{cases}
   \pmb{C}_{\pmb{XX}} = \pmb{X}_k^i {\pmb{X}_k^i}^T
    \in \mathbb{R}^{N_c \times N_c}\\
@@ -69,8 +71,10 @@ $
   \pmb{C}_{\pmb{YX}} = \pmb{Y}_k {\pmb{X}_k}^T
    \in \mathbb{R}^{(2N_h) \times N_c}\\
  \end{cases}
-$ <p>
+$
+
 根据最优化理论，上述问题的等效形式为：
+
 $
  \begin{cases}
   \underset{\pmb{U}_k^i, \pmb{V}_k^i} \max \ 
@@ -78,14 +82,18 @@ $
   s.t.\  \pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T = 
        \pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 1
  \end{cases}
-$ <p>
-利用Lagrandian乘子法构建多元函数 $J(\pmb{U}_k^i, \pmb{V}_k^i, \lambda, \theta)$：<p>
+$
+
+利用Lagrandian乘子法构建多元函数 $J(\pmb{U}_k^i, \pmb{V}_k^i, \lambda, \theta)$：
+
 $
  J = \pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T - 
      \dfrac{1}{2} \lambda (\pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T - 1) - 
      \dfrac{1}{2} \theta (\pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T - 1)
-$ <p>
-对函数$J$求偏导数并置零、化简：<p>
+$
+
+对函数$J$求偏导数并置零、化简：
+
 $
  \begin{cases}
   \dfrac{\partial J}{\partial \pmb{{U}}_k^i} = 
@@ -95,7 +103,8 @@ $
    \pmb{C}_{\pmb{YX}} {\pmb{{U}}_k^i}^T - 
     \theta \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 0
  \end{cases}
-$ <p>
+$
+
 $
  \begin{cases}
   {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} 
@@ -105,9 +114,9 @@ $
   {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} \pmb{V}_k^i
    = {\theta}^2 \pmb{V}_k^i
  \end{cases}
-$ <p>
-对上式中的两个Hermitte矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
+$
 
+对上式中的两个Hermitte矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
 
 #### 1.2 [扩展CCA][eCCA] | Extended CCA, eCCA
 #### 1.3 [多重刺激CCA][msCCA] | Multi-stimulus CCA, msCCA
