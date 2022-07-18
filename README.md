@@ -1,15 +1,15 @@
 # SSVEP_algorithms 
-Github的Markdown公式编译有bug，想看公式过程的建议点开同名html文件查看
+Github的Markdown公式编译有bug，想看公式过程的建议点开同名html文件查看。由于部分公式推导步骤属于本人硕士学位论文内容，ctrl+C/V 请慎重。
 更新进展：今天写了TRCA部分的公式说明（2022/7/18）
 近期计划：编写eCCA、msCCA的说明内容。
 
-**建议各位同僚读完硕士赶紧去就业吧，千万不要盲目投身火海。**
+**建议各位同僚读完硕士赶紧去就业吧，千万不要盲目读博、投身火海。**
 
 ***
 ## 公式变量符号及说明
 | 符号名称 | 物理含义 |
 | --- | --- |
-| $\pmb{\chi}$ | 单个受试者的全体训练数据 |
+| $\pmb{\chi}$ | EEG测试数据矩阵 |
 | $\pmb{X}$ | EEG训练数据矩阵 |
 | $\pmb{x}$ | EEG训练数据序列 |
 | $\pmb{Y}$ | 人工构建正余弦模板 |
@@ -19,20 +19,20 @@ Github的Markdown公式编译有bug，想看公式过程的建议点开同名htm
 | $N_p$ | 单试次采样点数 |
 | $N_h$ | 正余弦信号谐波个数 |
 | $N_k$ | 保留子空间个数 |
-| $\pmb{X}^i, \pmb{x}^i$ | 第 $i$ 试次或第 $i$ 导联数据，详见各段说明|
+| $\pmb{X}^i, \pmb{x}^i$ | 第 $i$ 试次或第 $i$ 导联数据，详见各部分具体说明|
 | $\pmb{X}_k, \pmb{x}_k$ | 第 $k$ 类别数据 |
-| $\bar{\pmb{X}}_k$, $\bar{\pmb{x}}_k$ | 类别样本中心，由 $\pmb{X}_k$ 或 $\pmb{x}_k$ 按试次叠加平均得到 |
-| $\bar{\bar{\pmb{X}}}, \bar{\bar{\pmb{x}}}$ | 总体样本中心，由 $\bar{\pmb{X}}_k$ 或 $\bar{\pmb{x}}_k$ 按类别叠加平均得到 |
-| $f_s$ | EEG信号采样率 |
-| $\pmb{\omega}, \pmb{U}, \pmb{V}$ etc | 低维空间滤波器 |
-| $\pmb{W}$ | 高维空间滤波器，由低维空间滤波器集成而得 |
+| $\bar{\pmb{X}}_k$, $\bar{\pmb{x}}_k$ | 类别样本中心，由 $\pmb{X}_k$ 或 $\pmb{x}_k$ 按试次叠加平均获得 |
+| $\bar{\bar{\pmb{X}}}, \bar{\bar{\pmb{x}}}$ | 总体样本中心，由 $\bar{\pmb{X}}_k$ 或 $\bar{\pmb{x}}_k$ 按类别叠加平均获得 |
+| $f_s$ | EEG 信号采样率 |
+| $\pmb{\omega}, \pmb{U}, \pmb{V}$ ... | 低维空间滤波器 |
+| $\pmb{W}$ | 高维空间滤波器，由低维空间滤波器集成获得 |
 （在无特殊说明的情况下，所有训练数据默认经过了零均值化处理）
 
 ***
 ## 常见SSVEP信号处理算法（空间滤波器）
 ### 1. 典型相关性分析
 #### Canonical correlation analysis, CCA
-#### 1.1 [标准CCA][CCA]
+#### 1.1 [标准CCA][CCA]：[cca][cca(code)].cca()
 对于第 $k$ 类别、第 $i$ 试次数据 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$，其对应频率的人工构建正余弦模板 $\pmb{Y}_k \in \mathbb{R}^{(2N_h) \times N_p}$ 可表示为：
 
 $
@@ -106,10 +106,19 @@ $
 
 对上式中的两个*Hermitte*矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
 
-#### 1.2 [扩展CCA][eCCA] | Extended CCA, eCCA
-#### 1.3 [多重刺激CCA][msCCA] | Multi-stimulus CCA, msCCA
-#### 1.4 [跨个体空间滤波器迁移][CSSFT] | Cross-subject spatial filter transfer method, CSSFT
+#### 1.2 [扩展CCA][eCCA]：[cca][cca(code)].ecca()
+**Extended CCA, eCCA**
 
+
+#### 1.3 [多重刺激CCA][msCCA]：[cca][cca(code)].mscca()
+**Multi-stimulus CCA, msCCA**
+
+
+#### 1.4 [跨个体空间滤波器迁移][CSSFT]：[cca][cca(code)].cssft()
+**Cross-subject spatial filter transfer method, CSSFT**
+
+
+[cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
 [CCA]: http://ieeexplore.ieee.org/document/4203016/
 [eCCA]: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
 [msCCA]: https://ieeexplore.ieee.org/document/9006809/
@@ -118,20 +127,31 @@ $
 ***
 ### 2. 多变量同步化系数
 #### Multivariate synchronization index, MSI
-#### 2.1 [标准MSI][MSI]
-#### 2.2 [时域局部MSI][tMSI] | Temporally MSI, tMSI
-#### 2.3 [扩展MSI][eMSI] | Extended MSI, eMSI
+#### 2.1 [标准MSI][MSI]：[msi][msi(code)].msi()
 
+
+#### 2.2 [时域局部MSI][tMSI]：[msi][msi(code)].tmsi()
+**Temporally MSI, tMSI**
+
+
+#### 2.3 [扩展MSI][eMSI]：[msi][msi(code)].emsi()
+**Extended MSI, eMSI**
+
+
+[msi(code)]: temp
 [MSI]: https://linkinghub.elsevier.com/retrieve/pii/S0165027013002677
 [tMSI]: http://link.springer.com/10.1007/s11571-016-9398-9
 [eMSI]: https://linkinghub.elsevier.com/retrieve/pii/S0925231217309980
 
 ***
-### 3. 任务相关成分分析 | Task-related component analysis, TRCA
-#### 3.1 [（集成）TRCA][TRCA] | (Ensemble) TRCA, (e)TRCA
+### 3. 任务相关成分分析 
+#### Task-related component analysis, TRCA
+#### 3.1 [（集成）TRCA][TRCA]：[trca][trca(code)].etrca()
+**(Ensemble) TRCA, (e)TRCA**
+
 与此前基于CCA改进的SSVEP算法相比，TRCA在构建思路上存在较大差别，具体表现在其关注对象（即信号模板）不再限定为具有正余弦波动性质的传统模型，而是充分包含了个体信息的 “任务相关成分” (Task-related components, TRCs)。关于TRC可以简单理解为：当受试者在多次接受相同任务时，其EEG信号中应当包含具有相同性质的诱发成分。由此可见，TRCA在理论上适用于任何诱发信号具有稳定波形特征的BCI范式特征信号解码。
 
-*Nakanishi* 等人首次将TRCA应用至SSVEP信号解码上时，在公式推导部分使用了一个非常讨巧的办法：**跨试次信号相关性最大化**。之所以称其“讨巧”，是因为原版TRCA公式分子中强调的**跨试次协方差计算**操作，在实际编程过程中产生了大量冗余计算步骤；其分母的**矩阵拼接**操作也缺乏明确的物理意义对应说明。而上述“瑕疵”在后续算法改进工作中被不断研究透彻，学者们也得以逐渐揭开其强大性能的神秘面纱。本文不再按照原文思路推导算法，仅给出目前公认比较成熟的阐释：
+*Nakanishi* 等人首次将TRCA应用至SSVEP信号解码上时，在公式推导部分使用了一个非常讨巧的办法：**跨试次信号相关性最大化**。之所以称其“讨巧”，是因为原版TRCA公式分子中强调的**跨试次协方差计算**操作，在实际编程过程中产生了大量冗余计算步骤；其分母的**矩阵拼接**操作也缺乏明确的物理意义对应说明。而上述“瑕疵”在后续算法改进工作中被不断研究透彻。因此本文不再按照原文思路推导算法，仅给出相对成熟的阐释：
 
 对于第 $k$ 类别、第 $i$、$j$ 试次数据 $\pmb{X}_k^i,\pmb{X}_k^j \in \mathbb{R}^{N_c \times N_p}$ (假定 $i \ne j$)，其跨试次样本协方差以及单试次样本方差（自协方差）分别为：
 
@@ -145,34 +165,124 @@ $
 因此，TRCA的目标函数可写为：
 
 $
-  \hat{\pmb{\omega}_k} = 
+  \hat{\pmb{\omega}}_k = 
   \underset{\pmb{\omega}_k} \argmax 
-    \dfrac{\pmb{\omega}_k (\sum_{j=1,j \ne i}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T) {\pmb{\omega}_k}^T} {\pmb{\omega}_k (\sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T) {}^T} = 
+    \dfrac{\sum_{j=1, j \ne i}^{N_t} \sum_{i=1}^{N_t} Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j)} {\sum_{i=1}^{N_t} Var(\pmb{\omega}_k \pmb{X}_k^i)} = 
   \underset{\pmb{\omega}_k} \argmax 
     \dfrac{\pmb{\omega}_k \pmb{S}_k {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T}
 $
 
-接下来对TRCA的目标函数作进一步分析：
+$
+  \begin{cases}
+    \pmb{S}_k = \sum_{j=1,j \ne i}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T, i \ne j\\
+    \pmb{Q}_k = \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T
+  \end{cases}
+$
+
+根据广义瑞丽商 (Generalized Rayleigh quotient) 的结论，上述目标函数的单维度最优解即为方阵 ${\pmb{Q}_k}^{-1} \pmb{S}_k$ 的**最大特征值对应的特征向量**。接下来对TRCA的目标函数作进一步分析：
 
 $
-  \pmb{\omega}_k (\sum_{j=1,j \ne i}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T) {\pmb{\omega}_k}^T = 
-  \pmb{\omega}_k (\sum_{j=1}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T) {\pmb{\omega}_k}^T - \pmb{Q}_k
+  \pmb{S}_k = \sum_{j=1}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T - \pmb{Q}_k = 
+  {N_t}^2 \bar{X}_k {\bar{X}_k}^T - \pmb{Q}_k = 
+  \pmb{S}_k^{'} - \pmb{Q}_k
 $
 
-#### 3.2 [正余弦扩展TRCA][TRCA-R] | (e)TRCA-R
-#### 3.3 [多重刺激TRCA][ms-TRCA] | Multi-stimulus (e)TRCA, ms-(e)TRCA
-#### 3.4 [相似度约束TRCA][sc-TRCA] | Similarity-constrained (e)TRCA, sc-(e)TRCA
+$
+  \dfrac{\pmb{\omega}_k \pmb{S}_k {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T} = 
+  \dfrac{\pmb{\omega}_k \pmb{S}_k^{'} {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T} - 1
+$
 
+经实际验证，在试次数量较多时，使用 $\pmb{S}_k^{'}$ 替换 $\pmb{S}_k$ 并不会在计算结果上产生严重偏差，然而其运算速度却有了大幅提升。其原因如下：
+
+将单次浮点数相乘与相加设为两种单位操作，其耗时分别为 $T_{\times}$ 和 $T_+$，对应时间复杂度分别为 $O_{\times}$ 与 $O_+$。则针对 $\pmb{X}_k^i$ 执行一次矩阵乘法 $\pmb{X}_k^i {\pmb{X}_k^i}^T$ 或矩阵加法 $\pmb{X}_k^i + \pmb{X}_k^j$ 所需的理论运行时间 $T_{M \times}$、$T_{M+}$ 分别为：
+
+$
+  \begin{cases}
+    T_{M \times} = ({N_c}^2 N_p)T_+ + [{N_c}^2 (N_p-1)]T_{\times}\\
+    T_{M+} = (N_c N_p)T_+
+  \end{cases}
+$
+
+对于具有 $\mathbb{R}^{N_t \times N_c \times N_p}$ 维度的训练数据张量 $\pmb{X}_k$，求解 $\pmb{S}_k$ 的总计理论时间 $T_1$ 与时间复杂度 $O_1$ 分别为：
+
+$
+  \begin{cases}
+    T_1 = N_t(N_t-1)T_{M \times} + [N_t(N_t-1)-1]T_{M+}\\
+    O_1 = O_{\times}({N_t}^2 {N_c}^2 N_p) + O_+({N_t}^2 {N_c}^2 N_p)
+  \end{cases}
+$
+
+而使用 $\pmb{S}_k^{'}$ 时，首先计算按试次平均后的个体模板 $\bar{\pmb{X}}_k$，其理论运行时间 $T_0$ 为：
+
+$
+  T_0 = (N_c N_p)T_{\times} + (N_t-1)T_{M+}
+$
+
+$\pmb{S}_k^{'}$ 的总计理论计算时间 $T_2$ 与时间复杂度 $O_2$ 分别为：
+
+$
+  \begin{cases}
+    T_2 = T_0 + T_{M \times}\\
+    O_2 = O_{\times}({N_c}^2 N_p) + O_+(\max \{N_t N_c N_p, {N_c}^2 N_p \})
+  \end{cases}
+$
+
+对比 $O_1$ 与 $O_2$ 可见，样本数量越多，采用该种替换方法的误差越小、速度提升越大。
+
+综上所述，通过训练数据获取当前类别专属的空间滤波器 $\hat{\pmb{\omega}}_k$ 以及信号模板 $\hat{\pmb{\omega}}_k \bar{\pmb{X}}_k$，基于一维*Pearson*相关系数公式，对单试次测试数据 $\pmb{\chi}$ 应用空间滤波后与模板信号计算判别系数：
+
+$
+  \rho_k = corr(\hat{\pmb{\omega}}_k \bar{\pmb{X}}_k, \hat{\pmb{\omega}}_k \pmb{\chi})
+$
+
+eTRCA是基于TRCA的集成学习版本，它把各类别 $\hat{\pmb{\omega}}_k \in \mathbb{R}^{1 \times N_c}$ 按行拼接在一起，在空间维度上扩增了信号模板：
+
+$
+  \begin{cases}
+    \hat{\pmb{W}} = {[{\pmb{\omega}_1}^T, {\pmb{\omega}_2}^T,..., {\pmb{\omega}_{N_e}}^T]}^T \in \mathbb{R}^{N_e \times N_c}\\
+  \rho_k = corr2(\hat{\pmb{W}} \bar{\pmb{X}}_k, \hat{\pmb{W}} \pmb{\chi})
+  \end{cases}
+$
+
+笔者认为，eTRCA虽然性能更为强劲，但该算法可能存在原理性缺陷：容易产生冗余成分。在刺激目标较多时，全类别集成并无必要。具体研究工作正在进行中。
+
+至此我们有必要再回顾一下TRCA的目标函数：
+
+（1）分子中 $\pmb{\omega}_k \bar{X}_k {\bar{X}_k}^T {\pmb{\omega}_k}^T$ 的本质为“**滤波后特征信号的能量**”。训练样本数目越多，叠加平均操作获取的信号模板质量越高，即随机信号成分削减越充分。而且分子能够决定目标函数的最终优化上限。
+
+（2）分母 $\pmb{\omega}_k (\sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T) {\pmb{\omega}_k}^T$ 的本质为“**滤波后各试次信号能量之和**”。
+
+（3）结合上述两点可见，TRCA的性能优越是原理性的，其结构相当完善。唯一的缺陷在于训练样本数目：当 $N_t$ 较小时，由（1）可知优化目标将产生无法弥补的偏差。因此后续关于TRCA的改进，大多针对少样本下获取更稳健的信号模板估计入手，我们将在(e)TRCA-R、sc-(e)TRCA等算法中观察到这一倾向。
+
+#### 3.2 [正余弦扩展TRCA][TRCA-R]：[trca][trca(code)].etrca_r()
+**(e)TRCA-R**
+
+
+#### 3.3 [多重刺激TRCA][ms-TRCA]：[trca][trca(code)].ms_etrca()
+**Multi-stimulus (e)TRCA, ms-(e)TRCA**
+
+
+#### 3.4 [相似度约束TRCA][sc-TRCA]：[trca][trca(code)].sc_etrca()
+**Similarity-constrained (e)TRCA, sc-(e)TRCA**
+
+
+[trca(code)]: temp
 [TRCA]: https://ieeexplore.ieee.org/document/7904641/
 [TRCA-R]: https://ieeexplore.ieee.org/document/9006809/
-[ms-TRCA]: temp
-[sc-TRCA]: temp
+[ms-TRCA]: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
+[sc-TRCA]: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
 
 ***
 ### x. 其它早期算法
-#### x.1 [最小能量组合][MEC] | Minimun energy combination, MEC
-#### x.2 [最大对比度组合][MCC] | Maximun contrast combination, MCC
+#### x.1 [最小能量组合][MEC]：[other][other(code)].mec()
+**Minimun energy combination, MEC**
 
+
+#### x.2 [最大对比度组合][MCC]：[other][other(code)].mcc()
+**Maximun contrast combination, MCC**
+
+
+[other(code)]: temp
 [MEC]: http://ieeexplore.ieee.org/document/4132932/
 [MCC]: http://ieeexplore.ieee.org/document/4132932/
 
