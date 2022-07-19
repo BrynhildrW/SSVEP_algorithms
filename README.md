@@ -1,7 +1,15 @@
+---
+html:
+    toc: true
+print_background: true
+---
+
 # SSVEP_algorithms 
-Github的Markdown公式编译有bug，想看公式过程的建议点开同名html文件查看。由于部分公式推导步骤属于本人硕士学位论文内容，ctrl+C/V 请慎重。
+Github的Markdown公式编译有bug，想看公式过程的建议下载[README.html][readme]查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 更新进展：今天写了TRCA部分的公式说明（2022/7/18）
 近期计划：编写eCCA、msCCA的说明内容。
+
+[readme]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/README.html
 
 **建议各位同僚读完硕士赶紧去就业吧，千万不要盲目读博、投身火海。**
 
@@ -31,8 +39,11 @@ Github的Markdown公式编译有bug，想看公式过程的建议点开同名htm
 ***
 ## 常见SSVEP信号处理算法（空间滤波器）
 ### 1. 典型相关性分析
-#### Canonical correlation analysis, CCA
-#### 1.1 [标准CCA][CCA]：[cca][cca(code)].cca()
+**Canonical correlation analysis, CCA**
+
+#### 1.1 标准CCA：CCA
+**[论文链接][CCA] | 代码：[cca][cca(code)].cca()**
+
 对于第 $k$ 类别、第 $i$ 试次数据 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$，其对应频率的人工构建正余弦模板 $\pmb{Y}_k \in \mathbb{R}^{(2N_h) \times N_p}$ 可表示为：
 
 $
@@ -75,6 +86,7 @@ $
 $
   \begin{cases}
     \underset{\pmb{U}_k^i, \pmb{V}_k^i} \max \ \pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T\\
+    \\
     s.t.\ \pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T =
     \pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 1
   \end{cases}
@@ -92,6 +104,7 @@ $
   \begin{cases}
     \dfrac{\partial J}{\partial \pmb{{U}}_k^i} = 
     \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T - \lambda \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T = 0\\
+    \\
     \dfrac{\partial J}{\partial \pmb{{V}}_k^i} = 
     \pmb{C}_{\pmb{YX}} {\pmb{{U}}_k^i}^T - \theta \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 0
   \end{cases}
@@ -106,16 +119,22 @@ $
 
 对上式中的两个*Hermitte*矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
 
-#### 1.2 [扩展CCA][eCCA]：[cca][cca(code)].ecca()
-**Extended CCA, eCCA**
+#### 1.2 扩展CCA：eCCA
+**(Extended CCA)**
+
+**[论文链接][eCCA] | 代码：[cca][cca(code)].ecca()**
 
 
-#### 1.3 [多重刺激CCA][msCCA]：[cca][cca(code)].mscca()
-**Multi-stimulus CCA, msCCA**
+#### 1.3 多重刺激CCA：msCCA
+**(Multi-stimulus CCA)**
+
+**[论文链接][msCCA] | 代码：[cca][cca(code)].mscca()**
 
 
-#### 1.4 [跨个体空间滤波器迁移][CSSFT]：[cca][cca(code)].cssft()
-**Cross-subject spatial filter transfer method, CSSFT**
+#### 1.x 跨个体空间滤波器迁移：CSSFT
+**(Cross-subject spatial filter transfer method)**
+
+**[论文链接][CSSFT] | 代码：[cca][cca(code)].cssft()**
 
 
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
@@ -126,16 +145,22 @@ $
 
 ***
 ### 2. 多变量同步化系数
-#### Multivariate synchronization index, MSI
-#### 2.1 [标准MSI][MSI]：[msi][msi(code)].msi()
+**Multivariate synchronization index, MSI**
+
+#### 2.1 标准MSI：MSI
+**[论文链接][MSI] | 代码：[msi][msi(code)].msi()**
 
 
-#### 2.2 [时域局部MSI][tMSI]：[msi][msi(code)].tmsi()
-**Temporally MSI, tMSI**
+#### 2.2 时域局部MSI：tMSI
+**(Temporally MSI)**
+
+**[论文链接][tMSI] | 代码：[msi][msi(code)].tmsi()**
 
 
-#### 2.3 [扩展MSI][eMSI]：[msi][msi(code)].emsi()
-**Extended MSI, eMSI**
+#### 2.3 扩展MSI：eMSI
+**(Extended MSI)**
+
+**[论文链接][MSI] | 代码：[msi][msi(code)].emsi()**
 
 
 [msi(code)]: temp
@@ -144,10 +169,13 @@ $
 [eMSI]: https://linkinghub.elsevier.com/retrieve/pii/S0925231217309980
 
 ***
-### 3. 任务相关成分分析 
-#### Task-related component analysis, TRCA
-#### 3.1 [（集成）TRCA][TRCA]：[trca][trca(code)].etrca()
-**(Ensemble) TRCA, (e)TRCA**
+### 3. 任务相关成分分析
+**Task-related component analysis, TRCA**
+
+#### 3.1 普通/集成TRCA：(e)TRCA
+**( (Ensemble) TRCA, (e)TRCA）**
+
+**[论文链接][TRCA] | 代码：[trca][trca(code)].etrca()**
 
 与此前基于CCA改进的SSVEP算法相比，TRCA在构建思路上存在较大差别，具体表现在其关注对象（即信号模板）不再限定为具有正余弦波动性质的传统模型，而是充分包含了个体信息的 “任务相关成分” (Task-related components, TRCs)。关于TRC可以简单理解为：当受试者在多次接受相同任务时，其EEG信号中应当包含具有相同性质的诱发成分。由此可见，TRCA在理论上适用于任何诱发信号具有稳定波形特征的BCI范式特征信号解码。
 
@@ -157,7 +185,7 @@ $
 
 $
   \begin{cases}
-    Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1}{N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^j}^T {\pmb{\omega}_k}^T, i \ne j\\
+    Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1} {N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^j}^T {\pmb{\omega}_k}^T, i \ne j\\
     Var(\pmb{\omega}_k \pmb{X}_k^i) = Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1}{N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^i}^T {\pmb{\omega}_k}^T\\
   \end{cases}
 $
@@ -179,7 +207,7 @@ $
   \end{cases}
 $
 
-根据广义瑞丽商 (Generalized Rayleigh quotient) 的结论，上述目标函数的单维度最优解即为方阵 ${\pmb{Q}_k}^{-1} \pmb{S}_k$ 的**最大特征值对应的特征向量**。接下来对TRCA的目标函数作进一步分析：
+根据广义瑞丽商 (*Generalized Rayleigh quotient*) 的结论，上述目标函数的单维度最优解即为方阵 ${\pmb{Q}_k}^{-1} \pmb{S}_k$ 的**最大特征值对应的特征向量**。接下来对TRCA的目标函数作进一步分析：
 
 $
   \pmb{S}_k = \sum_{j=1}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T - \pmb{Q}_k = 
@@ -227,7 +255,7 @@ $
   \end{cases}
 $
 
-对比 $O_1$ 与 $O_2$ 可见，样本数量越多，采用该种替换方法的误差越小、速度提升越大。
+对比 $O_1$ 与 $O_2$ 可见，样本数量越多，采用该种替换方法与原始情况所产生的偏差越小、速度提升越大。
 
 综上所述，通过训练数据获取当前类别专属的空间滤波器 $\hat{\pmb{\omega}}_k$ 以及信号模板 $\hat{\pmb{\omega}}_k \bar{\pmb{X}}_k$，基于一维*Pearson*相关系数公式，对单试次测试数据 $\pmb{\chi}$ 应用空间滤波后与模板信号计算判别系数：
 
@@ -254,16 +282,33 @@ $
 
 （3）结合上述两点可见，TRCA的性能优越是原理性的，其结构相当完善。唯一的缺陷在于训练样本数目：当 $N_t$ 较小时，由（1）可知优化目标将产生无法弥补的偏差。因此后续关于TRCA的改进，大多针对少样本下获取更稳健的信号模板估计入手，我们将在(e)TRCA-R、sc-(e)TRCA等算法中观察到这一倾向。
 
-#### 3.2 [正余弦扩展TRCA][TRCA-R]：[trca][trca(code)].etrca_r()
-**(e)TRCA-R**
+#### 3.2 正余弦扩展TRCA：(e)TRCA-R
+**[论文链接][TRCA-R] | 代码：[trca][trca(code)].etrca_r()**
 
 
-#### 3.3 [多重刺激TRCA][ms-TRCA]：[trca][trca(code)].ms_etrca()
-**Multi-stimulus (e)TRCA, ms-(e)TRCA**
+#### 3.3 多重刺激TRCA：ms-(e)TRCA
+**(Multi-stimulus (e)TRCA)**
+
+**[论文链接][ms-TRCA] | 代码：[trca][trca(code)].ms_etrca()**
 
 
-#### 3.4 [相似度约束TRCA][sc-TRCA]：[trca][trca(code)].sc_etrca()
-**Similarity-constrained (e)TRCA, sc-(e)TRCA**
+#### 3.4 相似度约束TRCA：sc-(e)TRCA
+**(Similarity-constrained (e)TRCA)**
+
+**[论文链接][sc-TRCA] | 代码：[trca][trca(code)].sc_etrca()**
+
+
+#### 3.5 组TRCA：gTRCA
+**(Group TRCA)**
+
+**[论文链接][gTRCA] | 代码：[trca][trca(code)].gtrca()**
+
+
+#### 3.6 交叉相关性TRCA：xtrca
+**(Cross-correlation TRCA)**
+
+**[论文链接][xTRCA] | 代码：[trca][trca(code)].xtrca()**
+
 
 
 [trca(code)]: temp
@@ -271,6 +316,9 @@ $
 [TRCA-R]: https://ieeexplore.ieee.org/document/9006809/
 [ms-TRCA]: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
 [sc-TRCA]: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
+[gTRCA]: temp
+[xTRCA]: temp
+
 
 ***
 ### x. 其它早期算法
