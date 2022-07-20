@@ -45,8 +45,7 @@ Github的Markdown公式编译有bug，想看公式过程的建议下载[README.h
 **[论文链接][CCA] | 代码：[cca][cca(code)].cca()**
 
 对于第 $k$ 类别、第 $i$ 试次数据 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$，其对应频率的人工构建正余弦模板 $\pmb{Y}_k \in \mathbb{R}^{(2N_h) \times N_p}$ 可表示为：
-
-$
+$$
   \pmb{Y}_k = 
   \begin{pmatrix}
     \sin(2 \pi fn)\\
@@ -58,11 +57,10 @@ $
     \cos(2 N_h \pi fn)\\
   \end{pmatrix}, 
   n=[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s}]
-$
-
+  \tag{1-1}
+$$
 CCA的优化目标为 $\hat{\pmb{U}}_k^i$ 和 $\hat{\pmb{V}}_k^i$，使得一维信号 $\hat{\pmb{U}}_k^i \pmb{X}_k^i$ 与 $\hat{\pmb{V}}_k^i \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
-
-$
+$$
   \hat{\pmb{U}}_k^i, \hat{\pmb{V}}_k^i =
   \underset{\pmb{U}_k^i, \pmb{V}_k^i} \argmax 
     \dfrac{Cov(\pmb{U}_k^i \pmb{X}_k^i, \pmb{V}_k^i \pmb{Y}_k)}
@@ -70,37 +68,34 @@ $
     \underset{\pmb{U}_k^i, \pmb{V}_k^i} \argmax
       \dfrac{\pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T}
             {\sqrt{\pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T} \sqrt{\pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T}}
-$
-
-$
+  \tag {1-2}
+$$
+$$
   \begin{cases}
     \pmb{C}_{\pmb{XX}} = \dfrac{1}{N_p-1} \pmb{X}_k^i {\pmb{X}_k^i}^T \in \mathbb{R}^{N_c \times N_c}\\
     \pmb{C}_{\pmb{YY}} = \dfrac{1}{N_p-1} \pmb{Y}_k {\pmb{Y}_k}^T \in \mathbb{R}^{(2N_h) \times (2N_h)}\\
     \pmb{C}_{\pmb{XY}} = \dfrac{1}{N_p-1} \pmb{X}_k^i {\pmb{Y}_k}^T \in \mathbb{R}^{N_c \times (2N_h)}\\
     \pmb{C}_{\pmb{YX}} = \dfrac{1}{N_p-1} \pmb{Y}_k {\pmb{X}_k}^T \in \mathbb{R}^{(2N_h) \times N_c}\\
   \end{cases}
-$
-
-根据最优化理论，上述问题的等效形式为：
-
-$
+  \tag {1-3}
+$$
+根据最优化理论，函数 (1-2) 的等效形式为：
+$$
   \begin{cases}
     \underset{\pmb{U}_k^i, \pmb{V}_k^i} \max \ \pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T\\
     \\
     s.t.\ \pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T =
     \pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 1
   \end{cases}
-$
-
+  \tag {1-4}
+$$
 利用*Lagrandian*乘子法构建多元函数 $J(\pmb{U}_k^i, \pmb{V}_k^i, \lambda, \theta)$：
-
-$
+$$
   J = \pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T - \dfrac{1}{2} \lambda (\pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T - 1) - \dfrac{1}{2} \theta (\pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T - 1)
-$
-
-对函数$J$求偏导数并置零、化简：
-
-$
+  \tag {1-5}
+$$
+对函数 $J$ 求偏导数并置零、化简：
+$$
   \begin{cases}
     \dfrac{\partial J}{\partial \pmb{{U}}_k^i} = 
     \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T - \lambda \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T = 0\\
@@ -108,16 +103,16 @@ $
     \dfrac{\partial J}{\partial \pmb{{V}}_k^i} = 
     \pmb{C}_{\pmb{YX}} {\pmb{{U}}_k^i}^T - \theta \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T = 0
   \end{cases}
-$
-
-$
+  \tag {1-6}
+$$
+$$
   \begin{cases}
     {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} {\pmb{C}_{\pmb{YY}}}^{-1} \pmb{C}_{\pmb{YX}} \pmb{U}_k^i = {\lambda}^2 \pmb{U}_k^i\\
     {\pmb{C}_{\pmb{YY}}}^{-1} \pmb{C}_{\pmb{YX}} {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} \pmb{V}_k^i = {\theta}^2 \pmb{V}_k^i
  \end{cases}
-$
-
-对上式中的两个*Hermitte*矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
+ \tag {1-7}
+$$
+对式 (1-7) 中的两个*Hermitte*矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。
 
 #### 1.2 扩展CCA：eCCA
 **(Extended CCA)**
@@ -182,95 +177,86 @@ $
 *Nakanishi* 等人首次将TRCA应用至SSVEP信号解码上时，在公式推导部分使用了一个非常讨巧的办法：**跨试次信号相关性最大化**。之所以称其“讨巧”，是因为原版TRCA公式分子中强调的**跨试次协方差计算**操作，在实际编程过程中产生了大量冗余计算步骤；其分母的**矩阵拼接**操作也缺乏明确的物理意义对应说明。而上述“瑕疵”在后续算法改进工作中被不断研究透彻。因此本文不再按照原文思路推导算法，仅给出相对成熟的阐释：
 
 对于第 $k$ 类别、第 $i$、$j$ 试次数据 $\pmb{X}_k^i,\pmb{X}_k^j \in \mathbb{R}^{N_c \times N_p}$ (假定 $i \ne j$)，其跨试次样本协方差以及单试次样本方差（自协方差）分别为：
-
-$
+$$
   \begin{cases}
     Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1} {N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^j}^T {\pmb{\omega}_k}^T, i \ne j\\
     Var(\pmb{\omega}_k \pmb{X}_k^i) = Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1}{N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^i}^T {\pmb{\omega}_k}^T\\
   \end{cases}
-$
-
+  \tag {3-1}
+$$
 因此，TRCA的目标函数可写为：
-
-$
+$$
   \hat{\pmb{\omega}}_k = 
   \underset{\pmb{\omega}_k} \argmax 
     \dfrac{\sum_{j=1, j \ne i}^{N_t} \sum_{i=1}^{N_t} Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j)} {\sum_{i=1}^{N_t} Var(\pmb{\omega}_k \pmb{X}_k^i)} = 
   \underset{\pmb{\omega}_k} \argmax 
     \dfrac{\pmb{\omega}_k \pmb{S}_k {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T}
-$
-
-$
+  \tag {3-2}
+$$
+$$
   \begin{cases}
     \pmb{S}_k = \sum_{j=1,j \ne i}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T, i \ne j\\
     \pmb{Q}_k = \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T
   \end{cases}
-$
-
+  \tag {3-3}
+$$
 根据广义瑞丽商 (*Generalized Rayleigh quotient*) 的结论，上述目标函数的单维度最优解即为方阵 ${\pmb{Q}_k}^{-1} \pmb{S}_k$ 的**最大特征值对应的特征向量**。接下来对TRCA的目标函数作进一步分析：
-
-$
+$$
   \pmb{S}_k = \sum_{j=1}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T - \pmb{Q}_k = 
   {N_t}^2 \bar{X}_k {\bar{X}_k}^T - \pmb{Q}_k = 
   \pmb{S}_k^{'} - \pmb{Q}_k
-$
-
-$
+  \tag {3-4}
+$$
+$$
   \dfrac{\pmb{\omega}_k \pmb{S}_k {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T} = 
   \dfrac{\pmb{\omega}_k \pmb{S}_k^{'} {\pmb{\omega}_k}^T} {\pmb{\omega}_k \pmb{Q}_k {\pmb{\omega}_k}^T} - 1
-$
+  \tag {3-5}
+$$
 
-经实际验证，在试次数量较多时，使用 $\pmb{S}_k^{'}$ 替换 $\pmb{S}_k$ 并不会在计算结果上产生严重偏差，然而其运算速度却有了大幅提升。其原因如下：
-
-将单次浮点数相乘与相加设为两种单位操作，其耗时分别为 $T_{\times}$ 和 $T_+$，对应时间复杂度分别为 $O_{\times}$ 与 $O_+$。则针对 $\pmb{X}_k^i$ 执行一次矩阵乘法 $\pmb{X}_k^i {\pmb{X}_k^i}^T$ 或矩阵加法 $\pmb{X}_k^i + \pmb{X}_k^j$ 所需的理论运行时间 $T_{M \times}$、$T_{M+}$ 分别为：
-
-$
+相比于直接计算 $\pmb{S}_k$，经由 $\pmb{S}_k^{'}$ 替换或计算得到 $\pmb{S}_k$ 能够大幅提升运算速度。其原因如下：将单次浮点数相乘与相加设为两种单位操作，其耗时分别为 $T_{\times}$ 和 $T_+$，对应时间复杂度分别为 $O_{\times}$ 与 $O_+$。则针对 $\pmb{X}_k^i$ 执行一次矩阵乘法 $\pmb{X}_k^i {\pmb{X}_k^i}^T$ 或矩阵加法 $\pmb{X}_k^i + \pmb{X}_k^j$ 所需的理论运行时间 $T_{M \times}$、$T_{M+}$ 分别为：
+$$
   \begin{cases}
     T_{M \times} = ({N_c}^2 N_p)T_+ + [{N_c}^2 (N_p-1)]T_{\times}\\
     T_{M+} = (N_c N_p)T_+
   \end{cases}
-$
-
+  \tag {3-6}
+$$
 对于具有 $\mathbb{R}^{N_t \times N_c \times N_p}$ 维度的训练数据张量 $\pmb{X}_k$，求解 $\pmb{S}_k$ 的总计理论时间 $T_1$ 与时间复杂度 $O_1$ 分别为：
-
-$
+$$
   \begin{cases}
     T_1 = N_t(N_t-1)T_{M \times} + [N_t(N_t-1)-1]T_{M+}\\
     O_1 = O_{\times}({N_t}^2 {N_c}^2 N_p) + O_+({N_t}^2 {N_c}^2 N_p)
   \end{cases}
-$
-
+  \tag {3-7}
+$$
 而使用 $\pmb{S}_k^{'}$ 时，首先计算按试次平均后的个体模板 $\bar{\pmb{X}}_k$，其理论运行时间 $T_0$ 为：
-
-$
+$$
   T_0 = (N_c N_p)T_{\times} + (N_t-1)T_{M+}
-$
-
+  \tag {3-9}
+$$
 $\pmb{S}_k^{'}$ 的总计理论计算时间 $T_2$ 与时间复杂度 $O_2$ 分别为：
-
-$
+$$
   \begin{cases}
     T_2 = T_0 + T_{M \times}\\
     O_2 = O_{\times}({N_c}^2 N_p) + O_+(\max \{N_t N_c N_p, {N_c}^2 N_p \})
   \end{cases}
-$
-
+  \tag {3-10}
+$$
 对比 $O_1$ 与 $O_2$ 可见，样本数量越多，采用该种替换方法与原始情况所产生的偏差越小、速度提升越大。
 
 综上所述，通过训练数据获取当前类别专属的空间滤波器 $\hat{\pmb{\omega}}_k$ 以及信号模板 $\hat{\pmb{\omega}}_k \bar{\pmb{X}}_k$，基于一维*Pearson*相关系数公式，对单试次测试数据 $\pmb{\chi}$ 应用空间滤波后与模板信号计算判别系数：
-
-$
+$$
   \rho_k = corr(\hat{\pmb{\omega}}_k \bar{\pmb{X}}_k, \hat{\pmb{\omega}}_k \pmb{\chi})
-$
-
+  \tag {3-11}
+$$
 eTRCA是基于TRCA的集成学习版本，它把各类别 $\hat{\pmb{\omega}}_k \in \mathbb{R}^{1 \times N_c}$ 按行拼接在一起，在空间维度上扩增了信号模板：
-
-$
+$$
   \begin{cases}
     \hat{\pmb{W}} = {[{\pmb{\omega}_1}^T, {\pmb{\omega}_2}^T,..., {\pmb{\omega}_{N_e}}^T]}^T \in \mathbb{R}^{N_e \times N_c}\\
   \rho_k = corr2(\hat{\pmb{W}} \bar{\pmb{X}}_k, \hat{\pmb{W}} \pmb{\chi})
   \end{cases}
-$
+  \tag {3-12}
+$$
 
 笔者认为，eTRCA虽然性能更为强劲，但该算法可能存在原理性缺陷：容易产生冗余成分。在刺激目标较多时，全类别集成并无必要。具体研究工作正在进行中。
 

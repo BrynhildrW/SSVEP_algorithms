@@ -32,6 +32,7 @@ def zero_mean(X):
     X -= X.mean(axis=-1, keepdims=True)
     return X
 
+
 def sin_wave(freq, n_points, phase, sfreq=1000):
     """Construct sinusoidal wave manually.
 
@@ -47,6 +48,7 @@ def sin_wave(freq, n_points, phase, sfreq=1000):
     time_points = np.linspace(0, (n_points-1)/sfreq, n_points)
     wave = sin(2*pi*freq*time_points + pi*phase)
     return wave
+
 
 def time_shift(data, step, axis=None):
     """Cyclic shift data.
@@ -68,6 +70,7 @@ def time_shift(data, step, axis=None):
         tf_data[i+1,:] = np.roll(data[i+1,:], shift=round(step*(i+1)), axis=axis)
     return tf_data
 
+
 def Imn(m,n):
     """Make concatenated eye matrices.
 
@@ -83,6 +86,7 @@ def Imn(m,n):
         Z[i*n:(i+1)*n, :] = np.eye(n)
     return Z
 
+
 def combine_feature(X):
     """Two-level feature extraction.
     
@@ -97,6 +101,7 @@ def combine_feature(X):
         sign = abs(feature)/feature  # sign(*) function
         tl_feature += sign*(feature**2)
     return tl_feature
+
 
 def sign_sta(x):
     """Standardization of decision coefficient based on sign() function.
@@ -124,6 +129,7 @@ def corr_coef(X, y):
     corrcoef = cov_yX / (var_XX*var_yy)
     return corrcoef
 
+
 def corr2_coef(X, Y):
     """2-D Pearson correlation coefficient.
     Args:
@@ -138,6 +144,7 @@ def corr2_coef(X, Y):
     denominator_Y = einsum('ij->', (Y-mean_Y)**2)
     corrcoef = numerator / sqrt(denominator_X*denominator_Y)
     return corrcoef
+
 
 def fisher_score(X, Y, *args):
     """Fisher Score (sequence) in time domain.
@@ -159,6 +166,7 @@ def fisher_score(X, Y, *args):
     fs = ite_d / itr_d  # (1, Np)
     return fs
 
+
 def euclidean_dist(X, Y):
     """Euclidean distance.
     Args:
@@ -170,6 +178,7 @@ def euclidean_dist(X, Y):
     dist = sqrt(einsum('ij->',(X-Y)**2))
     return dist
 
+
 def cosine_sim(x, y):
     """Cosine similarity.
     Args:
@@ -180,6 +189,7 @@ def cosine_sim(x, y):
     """
     sim = einsum('i,i->',x,y)/sqrt(einsum('i,i->',x,x)*einsum('i,i->',y,y))
     return sim
+
 
 def minkowski_dist(x, y, p):
     """Minkowski distance.
@@ -193,6 +203,7 @@ def minkowski_dist(x, y, p):
     dist = einsum('i->',abs(x-y)**p)**(1/p)
     return dist
 
+
 def mahalanobis_dist(X, y):
     """Mahalanobis distance.
     Args:
@@ -205,3 +216,82 @@ def mahalanobis_dist(X, y):
     mean_X = X.mean(axis=0, keepdims=True)  # (1, Np)
     dist = sqrt((mean_X-y) @ LA.solve(cov_XX, (mean_X-y).T))
     return dist
+
+
+def nega_root(X):
+    """Compute the negative root of a square matrix.
+
+    Args:
+        X (ndarray): (m,m). Square matrix.
+
+    Returns:
+        nr_X (ndarray): (m,m). X^(-1/2).
+    """
+    e_val, e_vec = LA.eig(X)
+    nr_lambda = np.diag(1/sqrt(e_val))
+    nr_X = e_vec @ nr_lambda @ LA.inv(e_vec)
+    return nr_X
+
+
+def s_estimator(X):
+    """Construct s-estimator.
+
+    Args:
+        X (ndarray): (m,m). Square matrix.
+
+    Returns:
+        s_estimator (float)
+    """
+    e_val, _ = LA.eig(X)
+    norm_e_val = e_val/einsum('ii->', X)
+    numerator = np.sum([x*log(x) for x in norm_e_val])
+    s_estimator = 1 + numerator/X.shape[0]
+    return s_estimator
+
+
+# %% temporally smoothing functions
+def tukeys_kernel(x, r=3):
+    """Tukeys tri-cube kernel function.
+    Args:
+        x (float)
+        r (int, optional): Defaults to 3.
+
+    Returns:
+        value (float): Values after kernel function mapping.
+    """
+    if abs(x)>1:
+        return 0
+    else:
+        return (1-abs(x)**r)**r
+
+
+def weight_matrix(n_points, tao, r=3):
+    """Weighting matrix based on kernel function.
+
+    Args:
+        n_points (int): Parameters that determine the size of the matrix.
+        tao (int): Hyper-parameter for weighting matrix.
+        r (int): Hyper-parameter for kernel funtion.
+
+    Returns:
+        W (ndarray): (n_points, n_points). Weighting matrix.
+    """
+    W = np.eye(n_points)
+    for i in range(n_points):
+        for j in range(n_points):
+            W[i,j] = tukeys_kernel(x=(j-i)/tao, r=r)
+    return W
+
+
+def laplacian_matrix(W):
+    """Laplace matrix for time smoothing.
+
+    Args:
+        W (ndarray): (n_points, n_points). Weighting matrix.
+
+    Returns:
+        L (ndarray): (n_points, n_points). Laplace matrix.
+    """
+    D = np.diag(einsum('ij->i',W))
+    return D-W
+
