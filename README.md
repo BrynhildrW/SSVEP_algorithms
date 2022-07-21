@@ -108,6 +108,7 @@ $$
 $$
   \begin{cases}
     {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} {\pmb{C}_{\pmb{YY}}}^{-1} \pmb{C}_{\pmb{YX}} \pmb{U}_k^i = {\lambda}^2 \pmb{U}_k^i\\
+    \\
     {\pmb{C}_{\pmb{YY}}}^{-1} \pmb{C}_{\pmb{YX}} {\pmb{C}_{\pmb{XX}}}^{-1} \pmb{C}_{\pmb{XY}} \pmb{V}_k^i = {\theta}^2 \pmb{V}_k^i
  \end{cases}
  \tag {1-7}
@@ -180,6 +181,7 @@ $$
 $$
   \begin{cases}
     Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1} {N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^j}^T {\pmb{\omega}_k}^T, i \ne j\\
+    \\
     Var(\pmb{\omega}_k \pmb{X}_k^i) = Cov(\pmb{\omega}_k \pmb{X}_k^i, \pmb{\omega}_k \pmb{X}_k^j) = \dfrac{1}{N_p-1} \pmb{\omega}_k \pmb{X}_k^i {\pmb{X}_k^i}^T {\pmb{\omega}_k}^T\\
   \end{cases}
   \tag {3-1}
@@ -196,6 +198,7 @@ $$
 $$
   \begin{cases}
     \pmb{S}_k = \sum_{j=1,j \ne i}^{N_t} \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^j}^T, i \ne j\\
+    \\
     \pmb{Q}_k = \sum_{i=1}^{N_t} \pmb{X}_k^i {\pmb{X}_k^i}^T
   \end{cases}
   \tag {3-3}
@@ -217,6 +220,7 @@ $$
 $$
   \begin{cases}
     T_{M \times} = ({N_c}^2 N_p)T_+ + [{N_c}^2 (N_p-1)]T_{\times}\\
+    \\
     T_{M+} = (N_c N_p)T_+
   \end{cases}
   \tag {3-6}
@@ -225,6 +229,7 @@ $$
 $$
   \begin{cases}
     T_1 = N_t(N_t-1)T_{M \times} + [N_t(N_t-1)-1]T_{M+}\\
+    \\
     O_1 = O_{\times}({N_t}^2 {N_c}^2 N_p) + O_+({N_t}^2 {N_c}^2 N_p)
   \end{cases}
   \tag {3-7}
@@ -238,6 +243,7 @@ $\pmb{S}_k^{'}$ 的总计理论计算时间 $T_2$ 与时间复杂度 $O_2$ 分�
 $$
   \begin{cases}
     T_2 = T_0 + T_{M \times}\\
+    \\
     O_2 = O_{\times}({N_c}^2 N_p) + O_+(\max \{N_t N_c N_p, {N_c}^2 N_p \})
   \end{cases}
   \tag {3-10}
@@ -253,7 +259,8 @@ eTRCA是基于TRCA的集成学习版本，它把各类别 $\hat{\pmb{\omega}}_k 
 $$
   \begin{cases}
     \hat{\pmb{W}} = {[{\pmb{\omega}_1}^T, {\pmb{\omega}_2}^T,..., {\pmb{\omega}_{N_e}}^T]}^T \in \mathbb{R}^{N_e \times N_c}\\
-  \rho_k = corr2(\hat{\pmb{W}} \bar{\pmb{X}}_k, \hat{\pmb{W}} \pmb{\chi})
+    \\
+    \rho_k = corr2(\hat{\pmb{W}} \bar{\pmb{X}}_k, \hat{\pmb{W}} \pmb{\chi})
   \end{cases}
   \tag {3-12}
 $$
