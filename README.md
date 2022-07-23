@@ -5,11 +5,11 @@ print_background: true
 ---
 
 # SSVEP_algorithms 
-Github的Markdown公式编译有bug，想看公式过程的建议下载[README.html][readme]查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
+Github的Markdown公式编译有bug，想看公式过程的建议下载[算法说明.pdf][api]文件查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 更新进展：今天写了TRCA部分的公式说明（2022/7/18）
 近期计划：编写eCCA、msCCA的说明内容。
 
-[readme]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/README.html
+[api]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/算法说明.pdf
 
 **建议各位同僚读完硕士赶紧去就业吧，千万不要盲目读博、投身火海。**
 
@@ -68,6 +68,7 @@ $$
     \underset{\pmb{U}_k^i, \pmb{V}_k^i} \argmax
       \dfrac{\pmb{U}_k^i \pmb{C}_{\pmb{XY}} {\pmb{{V}}_k^i}^T}
             {\sqrt{\pmb{U}_k^i \pmb{C}_{\pmb{XX}} {\pmb{{U}}_k^i}^T} \sqrt{\pmb{V}_k^i \pmb{C}_{\pmb{YY}} {\pmb{{V}}_k^i}^T}}
+  \\
   \tag {1-2}
 $$
 $$
