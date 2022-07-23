@@ -8,11 +8,20 @@ print_background: true
 <script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
 
 # SSVEP_algorithms 
-Github的在线Markdown公式编译模块有bug，想看公式过程的建议下载**算法说明**或者**html**、**md**等文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
-更新进展：今天写了TRCA部分的公式说明（2022/7/18）
+Github的在线Markdown公式编译模块有bug，想看公式过程的建议下载**算法说明**文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
+
+**README.html**、**README.md**、**README.pdf** 以及 **算法说明.pdf** 内容都是一样的，我只是在测试导出文本文件的不同方法……
+
+目前发现在未安装 *Latex* 插件的平台上浏览 **html** 以及 **md** 文件会出现公式无法正常显示的问题，所以建议观看pdf文件。
+
+更新进展：今天写了msTRCA部分的公式说明（2022/7/23）
 近期计划：编写eCCA、msCCA的说明内容。
 
+教资科目二怎么这么难背的，吐了
+
 **建议各位同僚读完硕士赶紧去就业吧，千万不要盲目读博、投身火海。**
+
+[api]:https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/%E7%AE%97%E6%B3%95%E8%AF%B4%E6%98%8E.pdf
 
 ***
 ## 公式变量符号及说明
