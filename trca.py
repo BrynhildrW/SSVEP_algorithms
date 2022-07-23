@@ -10,7 +10,7 @@ update: 2022/7/20
 """
 
 # %% basic modules
-from .prefunction import *
+from prefunction import *
 
 # %% Task-related component analysis
 # (ensemble) TRCA | (e)TRCA

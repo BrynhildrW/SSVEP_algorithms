@@ -10,7 +10,7 @@ update: 2022/7/20
 """
 
 # %% basic modules
-from .prefunction import *
+from prefunction import *
 
 # %% Standard canonical correlation analysis | CCA
 def cca_model(base_freq, n_bands, n_points, phase=0, sfreq=1000):

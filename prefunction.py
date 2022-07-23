@@ -115,6 +115,51 @@ def sign_sta(x):
     return (abs(x)/x)*(x**2)
 
 
+def acc_compute(rou):
+    """Compute accuracy.
+
+    Args:
+        rou (ndarray): (n_events(real), n_test, n_events(models)). Decision coefficients.
+
+    Returns:
+        correct (list): (n_events,). Correct trials for each event.
+        acc (float)
+    """
+    n_events = rou.shape[0]
+    n_test = rou.shape[1]
+    correct = []
+    for netr in range(n_events):
+        temp = 0
+        for nte in range(n_test):
+            if np.argmax(rou[netr,nte,:])==netr:
+                temp += 1
+        correct.append(temp)
+    return correct, np.sum(correct)/(n_test*n_events)
+
+
+def itr(number, time, acc):
+    """Compute information transfer rate.
+
+    Args:
+        number (int): Number of targets.
+        time (float): (unit) second.
+        acc (float): 0-1
+
+    Returns:
+        correct (list): (n_events,). Correct trials for each event.
+        acc (float)
+    """
+    part_a = log(number,2)
+    if acc==1.0 or acc==100:  # avoid spectial situation
+        part_b, part_c = 0, 0
+    else:
+        part_b = acc*log(acc,2)
+        part_c = (1-acc)*log((1-acc)/(number-1),2)
+    result = 60 / time * (part_a+part_b+part_c)
+    return result
+
+
+
 # %% spatial distances
 def corr_coef(X, y):
     """Pearson's Correlation Coefficient.
