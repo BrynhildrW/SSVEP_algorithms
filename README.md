@@ -4,12 +4,13 @@ html:
 print_background: true
 ---
 
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
+
 # SSVEP_algorithms 
-Github的Markdown公式编译有bug，想看公式过程的建议下载[算法说明.pdf][api]文件查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
+Github的在线Markdown公式编译模块有bug，想看公式过程的建议下载**算法说明**或者**html**、**md**等文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 更新进展：今天写了TRCA部分的公式说明（2022/7/18）
 近期计划：编写eCCA、msCCA的说明内容。
-
-[api]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/算法说明.pdf
 
 **建议各位同僚读完硕士赶紧去就业吧，千万不要盲目读博、投身火海。**
 
