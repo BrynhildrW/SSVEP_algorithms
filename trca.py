@@ -30,8 +30,8 @@ def trca_compute(X):
     Q = einsum('tcp,thp->ch', X,X)
 
     # S: inter-channels' inter-trial covariance
-    Xmean = X.mean(axis=0)
-    S = Xmean @ Xmean.T
+    Xsum = np.sum(X, axis=0)  # (Nc,Np)
+    S = Xsum @ Xsum.T
 
     # GEPs
     e_val, e_vec = LA.eig(LA.solve(Q,S))
