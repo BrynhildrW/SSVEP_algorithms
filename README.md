@@ -13,15 +13,15 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建�
 **[论文链接][CCA] | 代码：[cca][cca(code)].cca()**
 
 ### 1.2 扩展 CCA：eCCA
-**(Extended CCA)**
+**(Extended CCA)** <br>
 **[论文链接][eCCA] | 代码：[cca][cca(code)].ecca()**
 
 ### 1.3 多重刺激 CCA：msCCA
-**(Multi-stimulus CCA)**
+**(Multi-stimulus CCA)** <br>
 **[论文链接][msCCA] | 代码：[cca][cca(code)].mscca()**
 
 ### 1.x 跨个体空间滤波器迁移：CSSFT
-**(Cross-subject spatial filter transfer method)**
+**(Cross-subject spatial filter transfer method)** <br>
 **[论文链接][CSSFT] | 代码：[cca][cca(code)].cssft()**
 
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
@@ -38,11 +38,11 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建�
 **[论文链接][MSI] | 代码：[msi][msi(code)].msi()**
 
 ### 2.2 时域局部 MSI：tMSI
-**(Temporally MSI)**
+**(Temporally MSI)** <br>
 **[论文链接][tMSI] | 代码：[msi][msi(code)].tmsi()**
 
 ### 2.3 扩展 MSI：eMSI
-**(Extended MSI)**
+**(Extended MSI)** <br>
 **[论文链接][MSI] | 代码：[msi][msi(code)].emsi()**
 
 [msi(code)]: temp
@@ -55,26 +55,26 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建�
 **Task-related component analysis, TRCA**
 
 ### 3.1 普通/集成 TRCA：(e)TRCA
-**( (Ensemble) TRCA, (e)TRCA）**
+**( (Ensemble) TRCA, (e)TRCA）** <br>
 **[论文链接][TRCA] | 代码：[trca][trca(code)].etrca()**
 
 ### 3.2 正余弦扩展 TRCA：(e)TRCA-R
 **[论文链接][TRCA-R] | 代码：[trca][trca(code)].etrca_r()**
 
 ### 3.3 多重刺激 TRCA：ms-(e)TRCA
-**(Multi-stimulus (e)TRCA)**
+**(Multi-stimulus (e)TRCA)** <br>
 **[论文链接][ms-TRCA] | 代码：[trca][trca(code)].ms_etrca()**
 
 ### 3.4 相似度约束 TRCA：sc-(e)TRCA
-**(Similarity-constrained (e)TRCA)**
+**(Similarity-constrained (e)TRCA)** <br>
 **[论文链接][sc-TRCA] | 代码：[trca][trca(code)].sc_etrca()**
 
 ### 3.5 组 TRCA：gTRCA
-**(Group TRCA)**
+**(Group TRCA)** <br>
 **[论文链接][gTRCA] | 代码：[trca][trca(code)].gtrca()**
 
 ### 3.6 交叉相关性 TRCA：xTRCA
-**(Cross-correlation TRCA)**
+**(Cross-correlation TRCA)** <br>
 **[论文链接][xTRCA] | 代码：[trca][trca(code)].xtrca()**
 
 [trca(code)]: temp
@@ -90,11 +90,11 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建�
 ## x. 其它早期算法
 
 ### x.1 最小能量组合：MEC
-**(Minimun energy combination)**
+**(Minimun energy combination)** <br>
 **[论文链接][MEC] | 代码：[other][other(code)].mec()**
 
 ### x.2 最大对比度组合：MCC
-**Maximun contrast combination, MCC**
+**Maximun contrast combination, MCC** <br>
 **[论文链接][MCC] | 代码：[other][other(code)].mcc()**
 
 [other(code)]: temp
