@@ -25,19 +25,13 @@ def trca_compute(X):
     """
     # basic information
     X = zero_mean(X)
-    n_train= X.shape[0]
-    n_chans = X.shape[1]
 
     # Q: inter-channel covariance
-    Q = np.zeros((n_chans, n_chans))
-    for ntr in range(n_train):
-        Q += X[ntr,...] @ X[ntr,...].T
-    # einsum() is not suitable for its redundant operations along the same axis
-    # i.e. Q = einsum('tcp,thp->ch', X,X)
+    Q = einsum('tcp,thp->ch', X,X)
 
     # S: inter-channels' inter-trial covariance
-    S = X.mean(axis=0) @ X.mean(axis=0).T
-    S = n_train**2*S + Q  # (could be deleted) more accurate while Nt is small
+    Xmean = X.mean(axis=0)
+    S = Xmean @ Xmean.T
 
     # GEPs
     e_val, e_vec = LA.eig(LA.solve(Q,S))
