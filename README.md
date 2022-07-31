@@ -2,10 +2,6 @@
 
 Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建议下载**算法说明.pdf**文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 
-更新进展：今天写了 msCCA 的部分说明（2022/7/27
-近期计划：更新 msCCA、ms-eCCA、ms-(e)TRCA、(e)TRCA-R的算法程序。
-真·近期计划：混过小组会先
-
 ***
 ## 1. 典型相关性分析
 **Canonical correlation analysis, CCA**
