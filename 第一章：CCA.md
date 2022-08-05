@@ -427,7 +427,7 @@ $$
 
 因此我们有必要讲解（~~插播~~）一下何为 QR 分解 ( *QR decomposition* )。QR 分解又称正交三角分解，通常用于求解矩阵的特征值与特征向量。QR 分解的作用是将实（复）非奇异矩阵 $\pmb{A}$ 转化为正交（酉）矩阵 $\pmb{Q}$ 与实（复）非奇异上三角矩阵 $\pmb{R}$ 的乘积。从操作结果来看，QR 矩阵分为全分解 ( *full decomposition* ) 与约化分解 ( *reduced decomposition* ) 两种，二者的差异见下图：
 
-![QR分解示意图](QR_decomposition.png)
+![QR分解示意图](figures/QR_decomposition.png)
 
 一般情况下，我们需要的是约化 QR 分解结果。计算方法有很多，这里给出其中一种方便理解与实操的方法—— *Gram-Schmidt* 正交化。首先我们获取矩阵 $\pmb{A} \in \mathbb{R}^{m \times n}$ 的列向量组 $\pmb{A}(:,j)$，之后单位化 $\pmb{A}(:,0)$，并将其作为第一个正交基，对后续列向量依次进行投影分解：
 $$
