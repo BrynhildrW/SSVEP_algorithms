@@ -2,12 +2,14 @@
 
 Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建议下载各章节PDF文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 
+目前我会以算法公式推导工作为主，大概频率是一周一个算法。后续会依次补上代码部分。凡标注（已完成）的算法，表示其说明文档与程序均已完成。
+
 ***
 ## 1. 典型相关性分析
 **Canonical correlation analysis, CCA**
 
 ### 1.1 标准 CCA：CCA
-**[论文链接][CCA] | 代码：[cca][cca(code)].cca()**
+**[论文链接][CCA] | 代码：[cca][cca(code)].cca()** （已完成）
 
 ### 1.2 扩展 CCA：eCCA
 **(Extended CCA)** <br>
@@ -57,7 +59,7 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建�
 
 ### 3.1 普通/集成 TRCA：(e)TRCA
 **( (Ensemble) TRCA, (e)TRCA）** <br>
-**[论文链接][TRCA] | 代码：[trca][trca(code)].etrca()**
+**[论文链接][TRCA] | 代码：[trca][trca(code)].etrca()** （已完成）
 
 ### 3.2 多重刺激 TRCA：ms-(e)TRCA
 **(Multi-stimulus (e)TRCA)** <br>

@@ -15,28 +15,20 @@ print_background: true
 
 对于具有 $N_e$ 个不同频率刺激的 SSVEP-BCI 系统，频率索引 $k$ 的人工构建正余弦模板 $\pmb{Y}_k$ 可表示为：
 $$
-    \pmb{Y}_k = 
-    \begin{bmatrix}
+    \pmb{Y}_k = \begin{bmatrix} 
         \sin \left(2 \pi f_k n \right)\\
         \cos \left(2 \pi f_k n \right)\\
         \sin \left(4 \pi f_k n \right)\\
         \cos \left(4 \pi f_k n \right)\\
-        ...\\
+        \vdots\\
         \sin \left(2 N_h \pi f_k n \right)\\
         \cos \left(2 N_h \pi f_k n \right)\\
-    \end{bmatrix} \in \mathbb{R}^{\left(2N_h \right) \times N_p}, \ 
-    n=\left[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s} \right]
+    \end{bmatrix} \in \mathbb{R}^{\left(2N_h \right) \times N_p}, \ n=\left[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s} \right]
     \tag{1-1-1}
 $$
 对于单试次多导联 EEG 数据 $\pmb{X} \in \mathbb{R}^{N_c \times N_p}$ 以及假定的所属类别 $k$ ，CCA 的优化目标为一组投影向量 $\hat{\pmb{U}}_k$ 和 $\hat{\pmb{V}}_k$，使得一维信号 $\hat{\pmb{U}}_k \pmb{X}$ 与 $\hat{\pmb{V}}_k \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
 $$
-    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k =
-    \underset{\pmb{U}_k, \pmb{V}_k} \argmax 
-        \dfrac{Cov \left(\pmb{U}_k \pmb{X}, \pmb{V}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{X} \right)} \sqrt{Var \left(\pmb{V}_k \pmb{Y}_k \right)}} = 
-    \underset{\pmb{U}_k, \pmb{V}_k} \argmax
-        \dfrac{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T}}
-    \\
-    \tag{1-1-2}
+    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{X}, \pmb{V}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{X} \right)} \sqrt{Var \left(\pmb{V}_k \pmb{Y}_k \right)}}} = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T}}} \tag{1-1-2}
 $$
 $$
     \begin{cases}

@@ -11,7 +11,7 @@ update: 2022/7/12
 
 # %% basic moduls
 import numpy as np
-from numpy import (ndarray, sin, sqrt, diagonal, einsum)
+from numpy import (sin, sqrt, diagonal, einsum)
 
 from scipy import linalg as LA
 
@@ -164,10 +164,11 @@ def itr(number, time, acc):
 def corr_coef(X, y):
     """Pearson's Correlation Coefficient.
     Args:
-        X (ndarray): (m, n_points)
-        y (ndarray): (1, n_points)
+        X (ndarray): (m, n_points). Multi-pieces of data.
+            m could be 1 but the shape of X must be (1, n_points) then.
+        y (ndarray): (1, n_points) or (n_points,)
     Returns:
-        corrcoef (ndarray): (1,m) 
+        corrcoef (ndarray): (1,m) or (m,)
     """
     cov_yX = y @ X.T
     var_XX, var_yy = sqrt(diagonal(X @ X.T)), sqrt(y @ y.T)
@@ -178,8 +179,8 @@ def corr_coef(X, y):
 def corr2_coef(X, Y):
     """2-D Pearson correlation coefficient.
     Args:
-        X (ndarray): (n_chans, n_points)
-        Y (ndarray): (n_chans, n_points)
+        X (ndarray): (m, n_points)
+        Y (ndarray): (m, n_points)
     Returns:
         corrcoef (float)
     """
@@ -187,28 +188,46 @@ def corr2_coef(X, Y):
     numerator = einsum('ij->', (X-mean_X)*(Y-mean_Y))
     denominator_X = einsum('ij->', (X-mean_X)**2)
     denominator_Y = einsum('ij->', (Y-mean_Y)**2)
+    # using np.einsum() here is nearly 10% faster than np.sum(), i.e.
+    # numerator = np.sum((X-mean_X)*(Y-mean_Y))
+    # denominator_X = np.sum((X-mean_X)**2)
+    # denominator_Y = np.sum((Y-mean_Y)**2)
     corrcoef = numerator / sqrt(denominator_X*denominator_Y)
     return corrcoef
 
 
-def fisher_score(X, Y, *args):
+def fisher_score(dataset=(), *args):
     """Fisher Score (sequence) in time domain.
     Args:
-        X (ndarray): (n_trials_X, n_points).
-        Y (ndarray): (n_trials_Y, n_points).
+        dataset (tuple of ndarray): (event1, event2, ...).
+            The shape of each data matrix must be (n_trials, n_features).
+            n_features must be the same (n_trials could be various).
     Returns:
-        fs (ndarray): (1, n_points). Fisher-Score sequence.
+        fs (ndarray): (1, n_features). Fisher-Score sequence.
     """
-    # data initialization
-    mean_X = X.mean(axis=0, keepdims=True)  # (1, Np)
-    mean_Y = Y.mean(axis=0, keepdims=True)  # (1, Np)
-    mean_total = 0.5* (mean_X + mean_Y)  # (1, Np)
+    # data information
+    n_events = len(dataset)
+    trials = np.array([x.shape[0] for x in dataset])  # (Ne,)
+    n_features = dataset[0].shape[-1]
+    
+    # class center & total center
+    class_center = np.zeros((n_events, n_features))
+    for ne in range(n_events):
+        class_center[ne,:] = dataset[ne].mean(axis=0)
+    total_center = class_center.mean(axis=0)
+    # total_center = (trials @ class_center)/trials.sum()
+    
     # inter-class divergence
-    ite_d = X.shape[0]*((mean_X-mean_total)**2) + Y.shape[0]*((mean_Y-mean_total)**2)
+    decenter = class_center - total_center
+    ite_d = trials @ decenter**2
+    
     # intra-class divergence
-    itr_d = X.shape[0]*np.sum((X-mean_X)**2, axis=0) + Y.shape[0]*np.sum((Y-mean_Y)**2, axis=0)
+    itr_d = np.zeros((n_features))
+    for ne in range(n_events):
+        itr_d += np.sum((dataset[ne] - class_center[ne,:])**2, axis=0)
+    
     # fisher-score
-    fs = ite_d / itr_d  # (1, Np)
+    fs = ite_d / itr_d
     return fs
 
 
@@ -340,3 +359,5 @@ def laplacian_matrix(W):
     D = np.diag(einsum('ij->i',W))
     return D-W
 
+# %% (future)
+# %%
