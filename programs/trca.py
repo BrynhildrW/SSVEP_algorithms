@@ -200,6 +200,3 @@ def mstrca_compute(X):
     pass
 
 
-# %% test
-
-
