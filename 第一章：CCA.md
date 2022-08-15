@@ -9,6 +9,7 @@ print_background: true
 
 # 1. 典型相关性分析
 **Canonical correlation analysis, CCA**
+***
 
 ## 1.1 标准 CCA：CCA
 **[论文链接][CCA] | 代码：[cca][cca(code)].cca()**
@@ -26,45 +27,49 @@ $$
     \end{bmatrix} \in \mathbb{R}^{\left(2N_h \right) \times N_p}, \ n=\left[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s} \right]
     \tag{1-1-1}
 $$
-对于单试次多导联 EEG 数据 $\pmb{X} \in \mathbb{R}^{N_c \times N_p}$ 以及假定的所属类别 $k$ ，CCA 的优化目标为一组投影向量 $\hat{\pmb{U}}_k$ 和 $\hat{\pmb{V}}_k$，使得一维信号 $\hat{\pmb{U}}_k \pmb{X}$ 与 $\hat{\pmb{V}}_k \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
+对于单试次多导联 EEG 测试数据 $\pmb{\mathcal{X}} \in \mathbb{R}^{N_c \times N_p}$ 以及假定的所属类别 $k$ ，CCA 的优化目标为一组投影向量 $\hat{\pmb{U}}_k$ 和 $\hat{\pmb{V}}_k$，使得一维信号 $\hat{\pmb{U}}_k \pmb{\mathcal{X}}$ 与 $\hat{\pmb{V}}_k \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
 $$
-    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{X}, \pmb{V}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{X} \right)} \sqrt{Var \left(\pmb{V}_k \pmb{Y}_k \right)}}} = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T}}} \tag{1-1-2}
+    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k 
+    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{V}_k \pmb{Y}_k \right)}}} \\
+    \ \\
+    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T}}} 
+    \tag{1-1-2}
 $$
 $$
     \begin{cases}
-        \pmb{C}_{\pmb{X} \pmb{X}} = \dfrac{1}{N_p-1} \pmb{X} {\pmb{X}}^T \in \mathbb{R}^{N_c \times N_c}\\
+        \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} = \dfrac{1}{N_p-1} \pmb{\mathcal{X}} {\pmb{\mathcal{X}}}^T \in \mathbb{R}^{N_c \times N_c}\\
         \\
         \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} = \dfrac{1}{N_p-1} \pmb{Y}_k {\pmb{Y}_k}^T \in \mathbb{R}^{\left(2N_h \right) \times \left(2N_h \right)}\\
         \\
-        \pmb{C}_{\pmb{X} \pmb{Y}_k} = \dfrac{1}{N_p-1} \pmb{X} {\pmb{Y}_k}^T \in \mathbb{R}^{N_c \times \left(2N_h \right)}\\
+        \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} = \dfrac{1}{N_p-1} \pmb{\mathcal{X}} {\pmb{Y}_k}^T \in \mathbb{R}^{N_c \times \left(2N_h \right)}\\
         \\
-        \pmb{C}_{\pmb{Y}_k \pmb{X}} = \dfrac{1}{N_p-1} \pmb{Y}_k {\pmb{X}}^T \in \mathbb{R}^{\left(2N_h \right) \times N_c}\\
+        \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} = \dfrac{1}{N_p-1} \pmb{Y}_k {\pmb{\mathcal{X}}}^T \in \mathbb{R}^{\left(2N_h \right) \times N_c}\\
     \end{cases}
     \tag{1-1-3}
 $$
-根据最优化理论，函数 (1-2) 的等效形式为：
+根据最优化理论，函数（1-2）的等效形式为：
 $$
     \begin{cases}
-        \underset{\pmb{U}_k, \pmb{V}_k} \max \ \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T\\
+        \underset{\pmb{U}_k, \pmb{V}_k} \max \ \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T\\
         \\
-        s.t.\ \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T =
+        s.t.\ \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T =
         \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 1
     \end{cases}
     \tag{1-1-4}
 $$
 利用 *Lagrandian* 乘子法构建多元函数 $J(\pmb{U}_k, \pmb{V}_k, \lambda, \theta)$：
 $$
-    J = \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T - \dfrac{1}{2} \lambda \left(\pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T - 1 \right) - \dfrac{1}{2} \theta \left(\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T - 1 \right)
+    J = \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \dfrac{1}{2} \lambda \left(\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - 1 \right) - \dfrac{1}{2} \theta \left(\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T - 1 \right)
     \tag{1-1-5}
 $$
 对函数 $J$ 求偏导数并置零：
 $$
     \begin{cases}
         \dfrac{\partial J} {\partial \pmb{{U}}_k} = 
-        \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T = 0 \ \ (I)\\
+        \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T = 0 \ \ (I)\\
         \\
         \dfrac{\partial J} {\partial \pmb{{V}}_k} = 
-        \pmb{C}_{\pmb{Y}_k \pmb{X}} {\pmb{{U}}_k}^T - \theta \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0 \ \ (II)
+        \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - \theta \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0 \ \ (II)
     \end{cases}
     \tag{1-1-6}
 $$
@@ -72,40 +77,127 @@ $$
 $$
     \begin{cases}
         \pmb{U}_k * (I) \to 
-        \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{X}} {\pmb{{U}}_k}^T = 0\\
+        \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T = 0\\
         \\
         \pmb{V}_k * (II) \to 
-        \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{X}} {\pmb{{U}}_k}^T - \theta \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0\\
+        \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - \theta \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0\\
     \end{cases}
     \tag{1-1-7}
 $$
-根据约束条件 (1-1-4) 可知：
+根据约束条件（1-1-4）可知：
 $$
-    \lambda = \pmb{U}_k \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{{V}}_k}^T, \ 
-    \theta = \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{X}} {\pmb{{U}}_k}^T
+    \lambda = \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T, \ 
+    \theta = \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T
     \tag{1-1-8}
 $$
-大家注意 $\lambda = {\theta}^T$，而当我们明确要求优化目标是**一维向量**的时候，这两位大哥其实都是实数，所以它们相等。之后就是大家在解二元一次方程组时常用的代换消元过程（ $\pmb{U}_k$ 与 $\pmb{V}_k$ 互相替换），我就不再演示了。最终应得到两个特征值方程：
+大家注意 $\lambda = {\theta}^T$，而当我们明确要求优化目标是**一维向量**的时候，这两位大哥其实都是实数，所以它们相等。之后就是大家在解二元一次方程组时常用的代换消元过程（$\pmb{U}_k$ 与 $\pmb{V}_k$ 互相替换），我就不再演示了。最终应得到两个特征值方程：
 $$
     \begin{cases}
-        {\pmb{C}_{\pmb{X} \pmb{X}}}^{-1} \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{X}} {\pmb{U}_k}^T = {\lambda}^2 {\pmb{U}_k}^T\\
+        {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{U}_k}^T = {\lambda}^2 {\pmb{U}_k}^T\\
         \\
-        {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{X}} {\pmb{C}_{\pmb{X} \pmb{X}}}^{-1} \pmb{C}_{\pmb{X} \pmb{Y}_k} {\pmb{V}_k}^T = {\theta}^2 {\pmb{V}_k}^T
+        {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{V}_k}^T = {\theta}^2 {\pmb{V}_k}^T
     \end{cases}
     \tag{1-1-9}
 $$
-对式 (1-1-9) 中的两个 *Hermitte* 矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。对所有的假定类别遍历上述过程，基于一维 *Pearson* 相关系数分别计算判别系数并比较大小，确定最终的结果输出 $\hat{k}$：
+对式（1-1-9）中的两个 *Hermitte* 矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。对所有的假定类别遍历上述过程，基于一维 *Pearson* 相关系数分别计算判别系数并比较大小，确定最终的结果输出 $\hat{k}$：
 $$
-    \rho_k = corr \left(\hat{\pmb{U}}_k \pmb{X}, \hat{\pmb{V}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
+    \rho_k = corr \left(\hat{\pmb{U}}_k \pmb{\mathcal{X}}, \hat{\pmb{V}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
     \tag{1-1-10}
 $$
-式 (1-1-2) 与 (1-1-9) 请各位务必熟悉，之后部分算法的推导过程中我可能直接从类似前者的形式眺至后者，不再进行中间步骤的详细解说。
+式（1-1-2）与（1-1-9）请各位务必熟悉。在之后部分算法的推导过程中，我可能不再进行中间步骤的详细解说。
+***
 
-## 1.2 扩展 CCA：eCCA
+## 1.2 个体 CCA：itCCA
+**(Individual template based CCA)**
+
+**[论文链接][itCCA] | 代码：[cca][cca(code)].itcca()**
+
+据现业界大牛 *Nakanishi* 在一篇因“年少不懂事”发的[论文][ex1]（*PLOS ONE*）里说，IT-CCA 最早用于一种 c-VEP 信号（code modulated VEP）的解码，是 *Bin* 等人完成的研究。考虑到这个算法的思路实在过于简单，我还一度怀疑过他们是不是第一个提出该算法的团队。
+
+不同于 SSVEP，c-VEP 信号的特征难以用正余弦波动性质描述，但确实存在稳定的类间差异性与类内统一性。因此基于正余弦信号的标准 CCA 算法并不适用于这种情况，*Bin* 等人在此基础上修改目标函数，把正余弦模板 $\pmb{Y}_k$ 替换成训练数据的叠加平均 $\bar{\pmb{X}}_k$。ok 没了，简单吧。后边 *GEP* 方程和判别系数我就不写了哈：
+$$
+    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k 
+    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \bar{\pmb{X}}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{V}_k \bar{\pmb{X}}_k \right)}}} \\
+    \ \\
+    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \bar{\pmb{X}}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\bar{\pmb{X}}_k \bar{\pmb{X}}_k} {\pmb{{V}}_k}^T}}}\
+    \tag{1-2-1}
+$$
+***
+
+## 1.3 扩展 CCA：eCCA
 **(Extended CCA)**
 
 **[论文链接][eCCA] | 代码：[cca][cca(code)].ecca()**
 
+扩展扩展，顾名思义就是个缝合怪（~~不是~~）。根据 CCA 与 itCCA，大伙不难发现，只要替换一下送进目标函数的数据矩阵，就能“创造”出一种新的 CCA 算法。把常用的 $\pmb{\mathcal{X}}$、$\pmb{Y}_k$、$\bar{\pmb{X}}_k$ 都往里套，在滤波器计算以及后端模板匹配上进行各种组合，最终就形成了 eCCA。
+
+这个算法说起来也算是劳模了（~~颇有一稿多投之嫌~~），我给大家缕一缕这个感情线。*Nakanishi* 以一作身份在 2014 年发表的[文章][ex2] 中提出了名为 “CCA with SSVEP training data” 的算法，使用了 4 种判别系数，还给出了一张我认为目前逻辑最清楚的示意图（~~俺就是认为比 *PNAS* 那篇画得还好看~~）：
+
+![eCCA示意图](figures/eCCA.png)
+
+同年 *EMBC* [会议][ex3]上，*Yijun Wang* 等人炒了一遍冷饭，算法细节一模一样；
+
+下一年（2015），*Xiaogang Chen* 等人大招 cd 转好，在顶刊 *PNAS* 上发了一篇[文章][eCCA]，提出名为“CCA with individual calibration data”的算法，使用了 5 种判别系数。虽然没有明确使用“eCCA”这个名称，但是自此之后，大家提到 eCCA 时，默认使用的都是发表在 *PNAS* 上的这个版本。
+
+尽管前后三篇文章一作不同，但兜兜转转总是那么几个人，真可谓“肥水不流外人田”了。言归正传，我们来看看算法。之前也有提到，eCCA 是各种单体 CCA 的集合，因此具体目标函数我就不再赘述了，以 $CCA(*)$ 表示滤波器的相应计算过程：
+$$
+    \begin{cases}
+        \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k} = CCA(\pmb{\mathcal{X}},\pmb{Y}_k)\\
+        \ \\
+        \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k} = CCA(\pmb{\mathcal{X}},\bar{\pmb{X}}_k)\\
+        \ \\
+        \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k}, \hat{\pmb{V}}_{\bar{\pmb{X}} \pmb{Y},k} = CCA(\bar{\pmb{X}}_k,\pmb{Y}_k)\\
+    \end{cases}
+    \tag{1-3-1}
+$$
+三种数据，六个滤波器，除了正余弦模板的维度比较特殊以外，剩下的任意“数据 + 滤波器”都能获得一种投影序列，彼此之间又能计算相关系数：
+$$
+    \begin{cases}
+        \pmb{\mathcal{X}}: \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \ \rightarrow (4)\\
+        \ \\
+        \bar{\pmb{X}}_k: \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (4)\\
+        \ \\
+        \pmb{Y}_k: \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{V}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (2)\\
+    \end{cases}
+    \tag{1-3-2}
+$$
+由上可知，共有 $4 \times 4 + 4 \times 2 \times 2 = 32$ 种组合。你说把这些相关系数都加起来……也不是不行。单从编程角度来看是不复杂的，无非是写几个循环罢了。但是不同系数所代表的物理含义、作用大小必然是各不一样。是否分配相等的权重？如何分配权重等等诸如此类的问题很难进行有价值的深入探讨，因此我们通常需要对其进行筛选。先来说说**最好予以剔除**的组合：
+
+（1）经过不同滤波器处理后的**相同数据**：我们很难仅凭滤波器的信号质量优化差异判断出所属类别；
+
+（2）**叠加平均信号**与**人工正余弦模板**：道理与（1）类似。除此之外，$\pmb{Y}_k$、$\bar{\pmb{X}}_k$ 作为模板，在实际测试过程中需要控制类别相同，进一步说明这类系数不具备类别筛选的作用。
+
+再来看看可以保留的部分：
+
+（3）根据（1-3-1）的前两个 CCA 模型可以直接确定两个判别系数（由（2）可知，第三个模型不以这种形式使用）：
+$$
+    \begin{cases}
+        \rho_{k1} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{Y}_k \right)\\
+        \ \\
+        \rho_{k2} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \pmb{\mathcal{X}}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right)\\
+    \end{cases}
+    \tag{1-3-3}
+$$
+（4）式（1-3-1）的第一个 CCA 模型强化的是测试数据与某频率人工正余弦模板的相似度，第三个模型强化的是该频率训练数据与对应正余弦模板的相似度。而模板匹配的原则就是假设测试数据与匹配对象具有**统一性**，之后再去设法考察统一性的大小水平。基于这种假设，$\bar{\pmb{X}}$ 与 $\pmb{\mathcal{X}}$ 的 CCA 滤波器是可以通用的：
+$$
+    \begin{cases}
+        \rho_{k3} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \bar{\pmb{X}}_k \right)\\
+        \ \\
+        \rho_{k4} = corr \left( \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \pmb{\mathcal{X}}, \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \bar{\pmb{X}}_k \right)\\
+    \end{cases}
+    \tag{1-3-4}
+$$
+（5）这篇 *PNAS* 的作者团队硬是打破了（1）的界限，强行加上了一个系数用来比较**滤波器之间的相似性**。目前没有明确证据表明，增加这个系数有助于提高分类器性能（~~都发顶刊了一般人也不会想着去质疑他们吧~~）。我 CCA 算法用得比较少，因此不做定性判断：
+$$
+    \rho_{k5} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right)
+    \tag{1-3-5}
+$$
+按理来说，（1-3-5）能用，剩下那些组合都有登场的潜力，感兴趣的朋友可以自行测试。综上所述，目前一般语义下的 eCCA 包含五种判别系数：
+$$
+    \hat{k} = \underset{k} \argmax{\{\sum_{i=1}^5{\rho_{ki}} \ | \ k=1,2,\cdots,N_e \}}
+    \tag{1-3-6}
+$$
+***
 
 ## 1.3 多重刺激 CCA：msCCA
 **(Multi-stimulus CCA)**
@@ -114,7 +206,7 @@ $$
 
 **<font color="#dd0000">（大量数学前置知识警告）</font>**
 
-朋友们我们今天来膜拜 (~~gank~~) 澳门大学的内卷发动机 *Chi Man Wong* 和 *Feng Wan* 老师团队。之所以对他们“赞誉有加”，主要有三方面原因：
+朋友们我们今天来膜拜（~~gank~~）澳门大学的内卷发动机 *Chi Man Wong* 和 *Feng Wan* 老师团队。之所以对他们“赞誉有加”，主要有三方面原因：
 
 （1）**算法有用，但只有一点用**：他们提出的一系列 SSVEP 算法在公开数据集与竞赛数据集中具有极大优势（即样本量不足的情况）。不过在数据样本量充足的情况下，与传统的 (e)TRCA 算法难以拉开差距；
 
@@ -276,7 +368,7 @@ $$
     \pmb{\mathcal{Z}} \pmb{\mathcal{D}} \pmb{\mathcal{P}} = 
     \underbrace{
         \begin{bmatrix}
-            \sum_{k=1}^{N_e}{\bar{\pmb{X}}_k \pmb{Q}_{\pmb{Y}_k} {\pmb{Q}_{\pmb{Y}_1}}^T} & \cdots & \sum_{k=1}^{N_e}{\bar{\pmb{X}}_k \pmb{Q}_{\pmb{Y}_k} {\pmb{Q}_{\pmb{Y}_{N_e}}}^T}\\
+            \sum_k{\bar{\pmb{X}}_k \pmb{Q}_{\pmb{Y}_k} {\pmb{Q}_{\pmb{Y}_1}}^T} & \sum_k{\bar{\pmb{X}}_k \pmb{Q}_{\pmb{Y}_k} {\pmb{Q}_{\pmb{Y}_2}}^T} & \cdots & \sum_k{\bar{\pmb{X}}_k \pmb{Q}_{\pmb{Y}_k} {\pmb{Q}_{\pmb{Y}_{N_e}}}^T}\\
         \end{bmatrix}}_{\mathbb{R}^{N_c \times \left(N_e N_p \right)}}
     \tag{1-3-15}
 $$
@@ -309,13 +401,18 @@ $$
     \lambda \left(\sum_{k=1}^{N_e} \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) \pmb{\omega}^T
     \tag{1-3-18}
 $$
+判别过程为：
+$$
+    \rho_k = corr \left(\hat{\pmb{U}}_k \pmb{\mathcal{X}}, \hat{\pmb{V}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
+    \tag{1-1-10}
+$$
 相信各位很快就会发现，这个公式没有为我们提供任何直白的、一般人能阅读的有效信息。坦白地说，仅靠式 (1-3-18) 设计的滤波器以及相应的模板匹配方法是不完整的，具体原因请各位移步下一节 ms-eCCA，我们将从另一个更合理的角度审视这个算法。
 
 不得不说 *Wong* 这一手阉割刀法堪比老黄，先在 *JNE* 上发表精心推导设计的两大 ms- 算法，再在 *IEEE TBME* 上发表统一框架，顺带蜻蜓点水一般地，用框架小增小改就套出了这个丐版 msCCA，还比老旧的 itCCA 强上一截，以此彰显框架的“易用性”，其实根本没这么浅显，套模型套框架也并非研学之道。
-
+***
 
 ## 1.4 多重刺激扩展 CCA：ms-eCCA
-**(Multi-stimulus CCA)**
+**(Multi-stimulus extened CCA)**
 
 **[论文链接][ms-TRCA] | 代码：[cca][cca(code)].msecca()**
 
@@ -534,11 +631,12 @@ $$
 $$
     \rho_k = \sum_{i=1}^2 sign \left(\rho_{k,i} \right) \times \rho_{k,i}^2, \ 
     \begin{cases}
-        \rho_{k,1} = corr \left(\pmb{U}_k \pmb{\chi}, \pmb{V}_k \pmb{Y}_k \right)\\
-        \rho_{k,2} = corr \left(\pmb{U}_k \pmb{\chi}, \pmb{U}_k \bar{\pmb{X}}_k \right)\\
+        \rho_{k,1} = corr \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \pmb{Y}_k \right)\\
+        \rho_{k,2} = corr \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{U}_k \bar{\pmb{X}}_k \right)\\
     \end{cases}
     \tag{1-4-18}
 $$
+***
 
 ## 1.x 跨个体空间滤波器迁移：CSSFT
 **(Cross-subject spatial filter transfer method)**
@@ -546,8 +644,15 @@ $$
 **[论文链接][CSSFT] | 代码：[cca][cca(code)].cssft()**
 
 
+***
+
+
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
 [CCA]: http://ieeexplore.ieee.org/document/4203016/
+[itCCA]:https://iopscience.iop.org/article/10.1088/1741-2560/8/2/025015
+[ex1]:https://dx.plos.org/10.1371/journal.pone.0140703
+[ex2]:https://www.worldscientific.com/doi/abs/10.1142/S0129065714500191
+[ex3]:http://ieeexplore.ieee.org/document/6944263/
 [eCCA]: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
 [msCCA]: https://ieeexplore.ieee.org/document/9006809/
 [CSSFT]: http://iopscience.iop.org/article/10.1088/1741-2552/ac6b57

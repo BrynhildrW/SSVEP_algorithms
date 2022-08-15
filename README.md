@@ -1,15 +1,17 @@
 # 常见 SSVEP 信号处理算法（空间滤波器）
 
-Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的建议下载各章节PDF文件本地查看。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
+Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的欢迎移步我的[FlowUs页面][flowus]。鉴于部分公式推导步骤属于本人硕士学位论文内容，在此提醒各位，ctrl+C/V 请慎重。
 
 目前我会以算法公式推导工作为主，大概频率是一周一个算法。后续会依次补上代码部分。凡标注（已完成）的算法，表示其说明文档与程序均已完成。
+
+[flowus]: https://flowus.cn/brynhildrw/share/9ac9da41-2fd4-4263-a66f-7eb252e97d33
 
 ***
 ## 1. 典型相关性分析
 **Canonical correlation analysis, CCA**
 
 ### 1.1 标准 CCA：CCA
-**[论文链接][CCA] | 代码：[cca][cca(code)].cca()** （已完成）
+**[论文链接][CCA] | 代码：[cca][cca(code)].cca()**（已完成）
 
 ### 1.2 扩展 CCA：eCCA
 **(Extended CCA)** <br>
