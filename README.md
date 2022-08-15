@@ -15,15 +15,31 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的欢�
 
 ### 1.2 扩展 CCA：eCCA
 **(Extended CCA)** <br>
+**[论文链接][itCCA] | 代码：[cca][cca(code)].itcca()**
+
+### 1.3 扩展 CCA：eCCA
+**(Extended CCA)** <br>
 **[论文链接][eCCA] | 代码：[cca][cca(code)].ecca()**
 
-### 1.3 多重刺激 CCA：msCCA
+### 1.4 多重刺激 CCA：msCCA
 **(Multi-stimulus CCA)** <br>
 **[论文链接][msCCA] | 代码：[cca][cca(code)].mscca()**
 
-### 1.4 多重刺激扩展 CCA：ms-eCCA
+### 1.5 多重刺激扩展 CCA：ms-eCCA
 **(Multi-stimulus CCA)** <br>
-**[论文链接][ms-eTRCA] | 代码：[cca][cca(code)].msecca()**
+**[论文链接][ms-TRCA] | 代码：[cca][cca(code)].msecca()**
+
+### 1.x 多重通道CCA：MwayCCA
+**(Multiway CCA)** <br>
+**[论文链接][mwaycca] | 代码：[cca][cca(code)].mwaycca()**
+
+### 1.x L1正则化多重通道CCA：L1-MCCA
+**(L1-regulated Multiway CCA)** <br>
+**[论文链接][l1mwaycca] | 代码：[cca][cca(code)].mwaycca()**
+
+### 1.x 多重数据集CCA：MsetCCA
+**(Multiset CCA)** <br>
+**[论文链接][msetcca] | 代码：[cca][cca(code)].msetcca()**
 
 ### 1.x 跨个体空间滤波器迁移：CSSFT
 **(Cross-subject spatial filter transfer method)** <br>
@@ -31,8 +47,12 @@ Github 的在线 Markdown 公式编译模块有 bug，想看公式过程的欢�
 
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
 [CCA]: http://ieeexplore.ieee.org/document/4203016/
+[itCCA]:https://iopscience.iop.org/article/10.1088/1741-2560/8/2/025015
 [eCCA]: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
 [msCCA]: https://ieeexplore.ieee.org/document/9006809/
+[mwaycca]: http://link.springer.com/10.1007/978-3-642-24955-6_35
+[l1mwaycca]: https://ieeexplore.ieee.org/document/6623176/
+[msetcca]: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
 [CSSFT]: http://iopscience.iop.org/article/10.1088/1741-2552/ac6b57
 ***
 
