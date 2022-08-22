@@ -10,7 +10,7 @@ update: 2022/7/20
 """
 
 # %% basic modules
-from prefunction import *
+from utils import *
 
 # %% Task-related component analysis
 # (ensemble) TRCA | (e)TRCA
@@ -64,7 +64,7 @@ def trca_compute_V2(X):
     S = einsum('ecp,ehp->ech', Xsum,Xsum)
 
     # GEPs with symbol verification
-    temp_w = np.zeros((n_events, n_chans))  # (nrep,Ne,Nc)
+    w = np.zeros((n_events, n_chans))  # (nrep,Ne,Nc)
     for ne in range(n_events):
         e_val, e_vec = LA.eig(LA.solve(Q[ne,...],S[ne,...]))
         w[ne,:] = e_vec[:,[np.argmax(e_val)]].T
@@ -163,9 +163,9 @@ def etrca_V2(train_data, test_data):
                 rou[ner,nte,nem] = corr_coef(w[[nem],:]@temp, model[[nem],:])[0,0]
                 erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
     return rou, erou
-    
 
-# multi-stimulus eTRCA | ms-eTRCA
+
+# multi-stimulus (e)TRCA | ms-(e)TRCA
 def augmented_events(n_events, d):
     """Generate indices for merged events for each target event.
     
@@ -200,3 +200,13 @@ def mstrca_compute(X):
     pass
 
 
+# (e)TRCA-R
+
+
+
+
+# similarity constrained (e)TRCA | sc-(e)TRCA
+
+
+
+# group TRCA | gTRCA

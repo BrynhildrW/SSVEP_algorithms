@@ -159,7 +159,6 @@ def itr(number, time, acc):
     return result
 
 
-
 # %% spatial distances
 def corr_coef(X, y):
     """Pearson's Correlation Coefficient.
@@ -359,5 +358,37 @@ def laplacian_matrix(W):
     D = np.diag(einsum('ij->i',W))
     return D-W
 
-# %% (future)
-# %%
+
+# %% reduced QR decomposition
+def sine_template(freq, phase, n_points, n_harmonics, sfreq):
+    """Create sine-cosine template for SSVEP signals.
+
+    Args:
+        freq (float or int): Basic frequency.
+        phase (float or int): Initial phase.
+        n_points (int): Sampling points.
+        n_harmonics (int): Number of harmonics.
+        sfreq (float or int): Sampling frequency.
+
+    Returns:
+        Y (ndarray): (n_points, 2*n_harmonics).
+    """
+    Y = np.zeros((n_points, 2*n_harmonics))  # (Np, 2Nh)
+    for nh in range(n_harmonics):
+        Y[:,2*nh] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
+        Y[:,2*nh+1] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
+    return Y
+
+
+def qr_projection(X):
+    """Orthogonal projection based on QR decomposition of X.
+
+    Args:
+        X (ndarray): (n_points, m).
+
+    Return:
+        P (ndarray): (n_points, n_points).
+    """
+    Q,_ = LA.qr(X, mode='economic')
+    P = Q @ Q.T  # (Np,Np)
+    return P

@@ -10,9 +10,10 @@ update: 2022/7/20
 """
 
 # %% basic modules
-from prefunction import *
+from utils import *
 
-# %% Standard canonical correlation analysis | CCA
+# %% Canonical correlation analysis
+# standard CCA | CCA
 def cca_model(base_freq, n_bands, n_points, phase=0, sfreq=1000):
     """Sinusoidal models used in CCA.
 
@@ -31,6 +32,7 @@ def cca_model(base_freq, n_bands, n_points, phase=0, sfreq=1000):
         Y[nb*2, :] = sin_wave((nb+1)*base_freq, n_points, 0+phase, sfreq)
         Y[nb*2+1, :] = sin_wave((nb+1)*base_freq, n_points, 0.5+phase, sfreq)
     return Y
+
 
 def cca_compute(X, Y):
     """Canonical correlation analysis.
@@ -60,6 +62,7 @@ def cca_compute(X, Y):
     V = e_vec[:,[np.argmax(e_val)]].T  # (1,2Nh)
     return U, V
 
+
 def cca(template, test_data):
     """Using CCA to compute decision coefficients.
     
@@ -83,6 +86,7 @@ def cca(template, test_data):
                 U, V = cca_compute(temp, template[nem,...])
                 rou[ner,nte,nem] = corr_coef(U@temp, V@template[nem,...])[0,0]
     return rou
+
 
 # Extended CCA | eCCA
 def ecca_compute(Xmean, Y, data):
@@ -118,6 +122,7 @@ def ecca_compute(Xmean, Y, data):
     rou = combine_feature([r1, r2, r3, r4, r5])
     return rou
 
+
 def ecca(train_data, test_data, Y):
     """Use eCCA to compute decision coefficient.
 
@@ -142,6 +147,7 @@ def ecca(train_data, test_data, Y):
                 Xmean = train_data[nem,...].mean(axis=0)  # (Nc,Np)
                 rou[ner,nte,nem] = ecca_compute(Xmean, Y[nem,...], temp)
     return rou
+
 
 # Multi-stimulus CCA | msCCA
 def mscca_compute(Xmean, Qy):
@@ -177,6 +183,7 @@ def mscca_compute(Xmean, Qy):
     w = e_vec[:,[w_index]].T
     return w
 
+
 def mscca(train_data, test_data, Qy):
     """Use msCCA to compute decision coefficients.
     
@@ -210,11 +217,11 @@ def mscca(train_data, test_data, Qy):
                 rou[ner,nte,nem] = corr_coef(w@temp, model[[nem],:])[0,0]
     return rou
 
+
 # Cross-subject spatial filter transfer method | CSSFT
 def cssft_compute():
-    
     pass
 
+
 def cssft():
-    
     pass

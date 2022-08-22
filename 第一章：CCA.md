@@ -512,7 +512,7 @@ $$
     {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T
     \tag{1-5-6}
 $$
-到这一步我们不难发现，其结果已经与上一节末尾的式 (1-3-18) 形式非常相似，仅剩的问题在于正交投影 $\pmb{Q}_k {\pmb{Q}_k}^T$ 与正余弦矩阵 $\pmb{Y}_k$ 之间的关系。
+到这一步我们不难发现，其结果已经与上一节末尾的式 (1-4-18) 形式非常相似，仅剩的问题在于正交投影 $\pmb{Q}_k {\pmb{Q}_k}^T$ 与正余弦矩阵 $\pmb{Y}_k$ 之间的关系。
 
 因此我们有必要讲解（~~插播~~）一下何为 QR 分解 ( *QR decomposition* )。QR 分解又称正交三角分解，通常用于求解矩阵的特征值与特征向量。QR 分解的作用是将实（复）非奇异矩阵 $\pmb{A}$ 转化为正交（酉）矩阵 $\pmb{Q}$ 与实（复）非奇异上三角矩阵 $\pmb{R}$ 的乘积。从操作结果来看，QR 矩阵分为全分解 ( *full decomposition* ) 与约化分解 ( *reduced decomposition* ) 两种，二者的差异见下图：
 
@@ -551,7 +551,7 @@ $$
     \tag{1-5-9}
 $$
 
-又因为式 (1-3-4) 指出，$\pmb{\mathcal{P}} = \pmb{T}^T \left(\pmb{T} \pmb{T}^T \right)^{-1} \pmb{T} = \pmb{Q}_{\pmb{T}} {\pmb{Q}_{\pmb{T}}}^T$，我们知道 $\pmb{Q}_k {\pmb{Q}_k}^T = {\pmb{Y}_k}^T \left(\pmb{Y}_k {\pmb{Y}_k}^T \right)^{-1} \pmb{Y}_k$，接下来我们证明这个矩阵能够起到正交投影的作用。
+又因为式 (1-4-4) 指出，$\pmb{\mathcal{P}} = \pmb{T}^T \left(\pmb{T} \pmb{T}^T \right)^{-1} \pmb{T} = \pmb{Q}_{\pmb{T}} {\pmb{Q}_{\pmb{T}}}^T$，我们知道 $\pmb{Q}_k {\pmb{Q}_k}^T = {\pmb{Y}_k}^T \left(\pmb{Y}_k {\pmb{Y}_k}^T \right)^{-1} \pmb{Y}_k$，接下来我们证明这个矩阵能够起到正交投影的作用。
 
 关于正交投影，从泛函的角度而言可以给出如下定义：令 $\pmb{H}$ 为向量空间，$\pmb{M}$ 是 $\pmb{H}$ 内的 $n$ 维子空间。若对于 $\pmb{H}$ 中的向量 $\pmb{x}$：
 $$
@@ -595,7 +595,7 @@ $$
     {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T
     \tag{1-5-14}
 $$
-这样我们就来到了式 (1-3-18)。条条大路通罗马，不是吗？但比起式 (1-5-14) 这种惊险刺激的过山车，我个人还是更喜欢式 (1-5-5) 这种平静祥和的旅途。
+这样我们就来到了式 (1-4-18)。条条大路通罗马，不是吗？但比起式 (1-5-14) 这种惊险刺激的过山车，我个人还是更喜欢式 (1-5-5) 这种平静祥和的旅途。
 
 对比可知，上一节中提到的 msCCA 只是式 (1-5-5) 中的 $(I)$。尽管它可以进行模板匹配，但是其背后的设计思维显然不止于此，这也是我们通过统一框架无法了解到的信息。式 (1-5-1) 指出，msCCA 的训练目标应当是为训练数据与正余弦信号（二者均为合并样本）各自寻找一组投影向量以满足后续需求，而不是单方面优化 EEG 数据。
 
@@ -642,17 +642,17 @@ $$
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
 [CCA]: http://ieeexplore.ieee.org/document/4203016/
 
-[itCCA]:https://iopscience.iop.org/article/10.1088/1741-2560/8/2/025015
-[ex1]:https://dx.plos.org/10.1371/journal.pone.0140703
+[itCCA]: https://iopscience.iop.org/article/10.1088/1741-2560/8/2/025015
+[ex1]: https://dx.plos.org/10.1371/journal.pone.0140703
 
-[ex2]:https://www.worldscientific.com/doi/abs/10.1142/S0129065714500191
-[ex3]:http://ieeexplore.ieee.org/document/6944263/
+[ex2]: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500191
+[ex3]: http://ieeexplore.ieee.org/document/6944263/
 [eCCA]: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
 
 [msCCA]: https://ieeexplore.ieee.org/document/9006809/
-[Benchmark]:https://ieeexplore.ieee.org/document/7740878/
-[UCSD]:https://dx.plos.org/10.1371/journal.pone.0140703
-[BETA]:https://www.frontiersin.org/article/10.3389/fnins.2020.00627/full
+[Benchmark]: https://ieeexplore.ieee.org/document/7740878/
+[UCSD]: https://dx.plos.org/10.1371/journal.pone.0140703
+[BETA]: https://www.frontiersin.org/article/10.3389/fnins.2020.00627/full
 
 [CSSFT]: http://iopscience.iop.org/article/10.1088/1741-2552/ac6b57
 
