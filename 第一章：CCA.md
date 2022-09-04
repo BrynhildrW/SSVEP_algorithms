@@ -27,12 +27,11 @@ $$
     \end{bmatrix} \in \mathbb{R}^{\left(2N_h \right) \times N_p}, \ n=\left[\dfrac{1}{f_s}, \dfrac{2}{f_s}, ..., \dfrac{N_p}{f_s} \right]
     \tag{1-1-1}
 $$
-对于单试次多导联 EEG 测试数据 $\pmb{\mathcal{X}} \in \mathbb{R}^{N_c \times N_p}$ 以及假定的所属类别 $k$ ，CCA 的优化目标为一组投影向量 $\hat{\pmb{U}}_k$ 和 $\hat{\pmb{V}}_k$，使得一维信号 $\hat{\pmb{U}}_k \pmb{\mathcal{X}}$ 与 $\hat{\pmb{V}}_k \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
+对于单试次多导联 EEG 测试数据 $\pmb{\mathcal{X}} \in \mathbb{R}^{N_c \times N_p}$ 以及假定的所属类别 $k$ ，CCA 的优化目标为一组投影向量 $\hat{\pmb{u}}_k$ 和 $\hat{\pmb{v}}_k$，使得一维信号 $\hat{\pmb{u}}_k \pmb{\mathcal{X}}$ 与 $\hat{\pmb{v}}_k \pmb{Y}_k$ 之间相关性最大化，其目标函数为：
 $$
-    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k 
-    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{V}_k \pmb{Y}_k \right)}}} \\
-    \ \\
-    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T}}} 
+    \hat{\pmb{u}}_k, \hat{\pmb{v}}_k 
+    = \underset{\pmb{u}_k, \pmb{v}_k} \argmax {\dfrac{Cov \left(\pmb{u}_k \pmb{\mathcal{X}}, \pmb{v}_k \pmb{Y}_k \right)} {\sqrt{Var \left(\pmb{u}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{v}_k \pmb{Y}_k \right)}}} 
+    = \underset{\pmb{u}_k, \pmb{v}_k} \argmax {\dfrac{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T} {\sqrt{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{u}_k}^T} \sqrt{\pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{v}_k}^T}}}
     \tag{1-1-2}
 $$
 $$
@@ -47,61 +46,61 @@ $$
     \end{cases}
     \tag{1-1-3}
 $$
-根据最优化理论，函数（1-2）的等效形式为：
+根据最优化理论，函数（1-1-2）的等效形式为：
 $$
     \begin{cases}
-        \underset{\pmb{U}_k, \pmb{V}_k} \max \ \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T\\
+        \underset{\pmb{u}_k, \pmb{v}_k} \max \ \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T\\
         \\
-        s.t.\ \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T =
-        \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 1
+        s.t.\ \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{u}}_k}^T =
+        \pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{v}_k}^T = 1
     \end{cases}
     \tag{1-1-4}
 $$
-利用 *Lagrandian* 乘子法构建多元函数 $J(\pmb{U}_k, \pmb{V}_k, \lambda, \theta)$：
+利用 *Lagrandian* 乘子法构建多元函数 $J(\pmb{u}_k, \pmb{v}_k, \lambda, \theta)$：
 $$
-    J = \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \dfrac{1}{2} \lambda \left(\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - 1 \right) - \dfrac{1}{2} \theta \left(\pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T - 1 \right)
+    J = \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T - \dfrac{1}{2} \lambda \left(\pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{u}_k}^T - 1 \right) - \dfrac{1}{2} \theta \left(\pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{v}_k}^T - 1 \right)
     \tag{1-1-5}
 $$
 对函数 $J$ 求偏导数并置零：
 $$
     \begin{cases}
-        \dfrac{\partial J} {\partial \pmb{{U}}_k} = 
-        \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T = 0 \ \ (I)\\
+        \dfrac{\partial J} {\partial \pmb{u}_k} = 
+        \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T - \lambda \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{u}_k}^T = 0 \ \ (I)\\
         \\
-        \dfrac{\partial J} {\partial \pmb{{V}}_k} = 
-        \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - \theta \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0 \ \ (II)
+        \dfrac{\partial J} {\partial \pmb{v}_k} = 
+        \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{u}_k}^T - \theta \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{v}_k}^T = 0 \ \ (II)
     \end{cases}
     \tag{1-1-6}
 $$
 消元化简后可知 $\lambda = \theta$。送佛送到西，咱们来看看到底怎么消元：
 $$
     \begin{cases}
-        \pmb{U}_k * (I) \to 
-        \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T - \lambda \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T = 0\\
+        \pmb{u}_k * (I) \to 
+        \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T - \lambda \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{u}_k}^T = 0\\
         \\
-        \pmb{V}_k * (II) \to 
-        \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T - \theta \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{{V}}_k}^T = 0\\
+        \pmb{v}_k * (II) \to 
+        \pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{u}_k}^T - \theta \pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{Y}_k} {\pmb{v}_k}^T = 0\\
     \end{cases}
     \tag{1-1-7}
 $$
 根据约束条件（1-1-4）可知：
 $$
-    \lambda = \pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{{V}}_k}^T, \ 
-    \theta = \pmb{V}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T
+    \lambda = \pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T, \ 
+    \theta = \pmb{v}_k \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{u}_k}^T
     \tag{1-1-8}
 $$
-大家注意 $\lambda = {\theta}^T$，而当我们明确要求优化目标是**一维向量**的时候，这两位大哥其实都是实数，所以它们相等。之后就是大家在解二元一次方程组时常用的代换消元过程（$\pmb{U}_k$ 与 $\pmb{V}_k$ 互相替换），我就不再演示了。最终应得到两个特征值方程：
+大家注意 $\lambda = {\theta}^T$，而当我们明确要求优化目标是**一维向量**的时候，这两位大哥其实都是实数，所以它们相等。之后就是大家在解二元一次方程组时常用的代换消元过程（$\pmb{u}_k$ 与 $\pmb{v}_k$ 互相替换），我就不再演示了。最终应得到两个特征值方程：
 $$
     \begin{cases}
-        {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{U}_k}^T = {\lambda}^2 {\pmb{U}_k}^T\\
+        {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{u}_k}^T = {\lambda}^2 {\pmb{u}_k}^T\\
         \\
-        {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{V}_k}^T = {\theta}^2 {\pmb{V}_k}^T
+        {\pmb{C}_{\pmb{Y}_k \pmb{Y}_k}}^{-1} \pmb{C}_{\pmb{Y}_k \pmb{\mathcal{X}}} {\pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}}}^{-1} \pmb{C}_{\pmb{\mathcal{X}} \pmb{Y}_k} {\pmb{v}_k}^T = {\theta}^2 {\pmb{v}_k}^T
     \end{cases}
     \tag{1-1-9}
 $$
 对式（1-1-9）中的两个 *Hermitte* 矩阵分别进行特征值分解，取最大特征值对应的特征向量作为投影向量，即为所求。对所有的假定类别遍历上述过程，基于一维 *Pearson* 相关系数分别计算判别系数并比较大小，确定最终的结果输出 $\hat{k}$：
 $$
-    \rho_k = corr \left(\hat{\pmb{U}}_k \pmb{\mathcal{X}}, \hat{\pmb{V}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
+    \rho_k = corr \left(\hat{\pmb{u}}_k \pmb{\mathcal{X}}, \hat{\pmb{v}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
     \tag{1-1-10}
 $$
 式（1-1-2）与（1-1-9）请各位务必熟悉。在之后部分算法的推导过程中，我可能不再进行中间步骤的详细解说。
@@ -116,10 +115,9 @@ $$
 
 不同于 SSVEP，c-VEP 信号的特征难以用正余弦波动性质描述，但确实存在稳定的类间差异性与类内统一性。因此基于正余弦信号的标准 CCA 算法并不适用于这种情况，*Bin* 等人在此基础上修改目标函数，把正余弦模板 $\pmb{Y}_k$ 替换成训练数据的叠加平均 $\bar{\pmb{X}}_k$。ok 没了，简单吧。后边 *GEP* 方程和判别系数我就不写了哈：
 $$
-    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k 
-    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{Cov \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \bar{\pmb{X}}_k \right)} {\sqrt{Var \left(\pmb{U}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{V}_k \bar{\pmb{X}}_k \right)}}} \\
-    \ \\
-    = \underset{\pmb{U}_k, \pmb{V}_k} \argmax {\dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \bar{\pmb{X}}_k} {\pmb{{V}}_k}^T} {\sqrt{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{{U}}_k}^T} \sqrt{\pmb{V}_k \pmb{C}_{\bar{\pmb{X}}_k \bar{\pmb{X}}_k} {\pmb{{V}}_k}^T}}}\
+    \hat{\pmb{u}}_k, \hat{\pmb{v}}_k 
+    = \underset{\pmb{u}_k, \pmb{v}_k} \argmax {\dfrac{Cov \left(\pmb{u}_k \pmb{\mathcal{X}}, \pmb{v}_k \bar{\pmb{X}}_k \right)} {\sqrt{Var \left(\pmb{u}_k \pmb{\mathcal{X}} \right)} \sqrt{Var \left(\pmb{v}_k \bar{\pmb{X}}_k \right)}}}
+    = \underset{\pmb{u}_k, \pmb{v}_k} \argmax {\dfrac{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \bar{\pmb{X}}_k} {\pmb{v}_k}^T} {\sqrt{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{X}} \pmb{\mathcal{X}}} {\pmb{u}_k}^T} \sqrt{\pmb{v}_k \pmb{C}_{\bar{\pmb{X}}_k \bar{\pmb{X}}_k} {\pmb{v}_k}^T}}}\
     \tag{1-2-1}
 $$
 ***
@@ -142,22 +140,22 @@ $$
 尽管前后三篇文章一作不同，但兜兜转转总是那么几个人，真可谓“肥水不流外人田”了。言归正传，我们来看看算法。之前也有提到，eCCA 是各种单体 CCA 的集合，因此具体目标函数我就不再赘述了，以 $CCA(*)$ 表示滤波器的相应计算过程：
 $$
     \begin{cases}
-        \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k} = CCA(\pmb{\mathcal{X}},\pmb{Y}_k)\\
+        \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \hat{\pmb{v}}_{\pmb{\mathcal{X}} \pmb{Y}, k} = CCA(\pmb{\mathcal{X}},\pmb{Y}_k)\\
         \ \\
-        \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k} = CCA(\pmb{\mathcal{X}},\bar{\pmb{X}}_k)\\
+        \hat{\pmb{u}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \hat{\pmb{v}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k} = CCA(\pmb{\mathcal{X}},\bar{\pmb{X}}_k)\\
         \ \\
-        \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k}, \hat{\pmb{V}}_{\bar{\pmb{X}} \pmb{Y},k} = CCA(\bar{\pmb{X}}_k,\pmb{Y}_k)\\
+        \hat{\pmb{u}}_{\bar{\pmb{X}} \pmb{Y},k}, \hat{\pmb{v}}_{\bar{\pmb{X}} \pmb{Y},k} = CCA(\bar{\pmb{X}}_k,\pmb{Y}_k)\\
     \end{cases}
     \tag{1-3-1}
 $$
 三种数据，六个滤波器，除了正余弦模板的维度比较特殊以外，剩下的任意“数据 + 滤波器”都能获得一种投影序列，彼此之间又能计算相关系数：
 $$
     \begin{cases}
-        \pmb{\mathcal{X}}: \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \ \rightarrow (4)\\
+        \pmb{\mathcal{X}}: \ \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{u}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{v}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{u}}_{\bar{\pmb{X}} \pmb{Y},k} \ \rightarrow (4)\\
         \ \\
-        \bar{\pmb{X}}_k: \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (4)\\
+        \bar{\pmb{X}}_k: \ \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{u}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k}, \ \hat{\pmb{v}}_{\pmb{\mathcal{X}} \bar{\pmb{X}},k}, \ \hat{\pmb{u}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (4)\\
         \ \\
-        \pmb{Y}_k: \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{V}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (2)\\
+        \pmb{Y}_k: \ \hat{\pmb{v}}_{\pmb{\mathcal{X}} \pmb{Y}, k}, \ \hat{\pmb{v}}_{\bar{\pmb{X}} \pmb{Y},k} \ \ \rightarrow (2)\\
     \end{cases}
     \tag{1-3-2}
 $$
@@ -172,24 +170,24 @@ $$
 （3）根据（1-3-1）的前两个 CCA 模型可以直接确定两个判别系数（由（2）可知，第三个模型不以这种形式使用）：
 $$
     \begin{cases}
-        \rho_{k1} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{Y}_k \right) \ (CCA)\\
+        \rho_{k1} = corr \left( \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{v}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{Y}_k \right) \ (CCA)\\
         \ \\
-        \rho_{k2} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \pmb{\mathcal{X}}, \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right) \ (itCCA)\\
+        \rho_{k2} = corr \left( \hat{\pmb{u}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \pmb{\mathcal{X}}, \hat{\pmb{v}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right) \ (itCCA)\\
     \end{cases}
     \tag{1-3-3}
 $$
 （4）式（1-3-1）的第一个 CCA 模型强化的是测试数据与某频率人工正余弦模板的相似度，第三个模型强化的是该频率训练数据与对应正余弦模板的相似度。而模板匹配的原则就是假设测试数据与匹配对象具有**统一性**，之后再去设法考察统一性的大小水平。基于这种假设，$\bar{\pmb{X}}$ 与 $\pmb{\mathcal{X}}$ 的 CCA 滤波器是可以通用的：
 $$
     \begin{cases}
-        \rho_{k3} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{U}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \bar{\pmb{X}}_k \right)\\
+        \rho_{k3} = corr \left( \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \pmb{\mathcal{X}}, \ \hat{\pmb{u}}_{\pmb{\mathcal{X}} \pmb{Y}, k} \bar{\pmb{X}}_k \right)\\
         \ \\
-        \rho_{k4} = corr \left( \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \pmb{\mathcal{X}}, \hat{\pmb{U}}_{\bar{\pmb{X}} \pmb{Y},k} \bar{\pmb{X}}_k \right)\\
+        \rho_{k4} = corr \left( \hat{\pmb{u}}_{\bar{\pmb{X}} \pmb{Y},k} \pmb{\mathcal{X}}, \hat{\pmb{u}}_{\bar{\pmb{X}} \pmb{Y},k} \bar{\pmb{X}}_k \right)\\
     \end{cases} \ (CCA + itCCA)
     \tag{1-3-4}
 $$
 （5）这篇 *PNAS* 的作者团队硬是打破了（1）的界限，强行加上了一个系数用来比较**滤波器之间的相似性**。目前没有明确证据表明，增加这个系数有助于提高分类器性能（~~都发顶刊了一般人也不会想着去质疑他们吧~~）。我 CCA 算法用得比较少，因此不做定性判断：
 $$
-    \rho_{k5} = corr \left( \hat{\pmb{U}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k, \ \hat{\pmb{V}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right)
+    \rho_{k5} = corr \left( \hat{\pmb{u}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k, \ \hat{\pmb{v}}_{\pmb{\mathcal{X}} \bar{\pmb{X}}, k} \bar{\pmb{X}}_k \right)
     \tag{1-3-5}
 $$
 按理来说，（1-3-5）能用，剩下那些组合都有登场的潜力，感兴趣的朋友可以自行测试。综上所述，目前一般语义下的 eCCA 包含五种判别系数：
@@ -403,7 +401,7 @@ $$
 $$
 判别过程为：
 $$
-    \rho_k = corr \left(\hat{\pmb{U}}_k \pmb{\mathcal{X}}, \hat{\pmb{V}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
+    \rho_k = corr \left(\hat{\pmb{u}}_k \pmb{\mathcal{X}}, \hat{\pmb{v}}_k \pmb{Y}_k \right), \ \hat{k} = \underset{k} \argmax{\{\rho_k}\}
     \tag{1-4-19}
 $$
 相信各位很快就会发现，这个公式没有为我们提供任何直白的、一般人能阅读的有效信息。坦白地说，仅靠式 (1-3-18) 设计的滤波器以及相应的模板匹配方法是不完整的，具体原因请各位移步下一节 ms-eCCA，我们将从另一个更合理的角度审视这个算法。
@@ -420,13 +418,13 @@ $$
 
 “合并样本”的操作，既可以理解为**不同类别样本模板在时间顺序上的拼接**，见式(1-5-2)；也可以理解为**不同类别样本各自协方差矩阵的叠加**，见式 (1-5-4)。结合 3.2 节 ms-(e)TRCA 与 1.1 节 CCA 的相关内容，ms-eCCA 的目标函数可表示为：
 $$
-    \hat{\pmb{U}}_k, \hat{\pmb{V}}_k =
-    \underset{\pmb{U}_k, \pmb{V}_k} \argmax 
-    \dfrac{Cov \left(\pmb{U}_k \pmb{\mathcal{Z}}_k, \pmb{\mathcal{Y}}_k {\pmb{V}_k} \right)}
-          {\sqrt{Var \left(\pmb{U}_k \pmb{\mathcal{Z}}_k \right)} \sqrt{Var \left(\pmb{V}_k \pmb{\mathcal{Y}}_k \right)}} = 
-    \underset{\pmb{U}_k, \pmb{V}_k} \argmax 
-    \dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k} {\pmb{V}_k}^T}
-          {\sqrt{\left(\pmb{U}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k} {\pmb{U}_k}^T \right)} \sqrt{\left(\pmb{V}_k \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k} {\pmb{V}_k}^T \right)}}\\
+    \hat{\pmb{u}}_k, \hat{\pmb{v}}_k =
+    \underset{\pmb{u}_k, \pmb{v}_k} \argmax 
+    \dfrac{Cov \left(\pmb{u}_k \pmb{\mathcal{Z}}_k, \pmb{\mathcal{Y}}_k {\pmb{v}_k} \right)}
+          {\sqrt{Var \left(\pmb{u}_k \pmb{\mathcal{Z}}_k \right)} \sqrt{Var \left(\pmb{v}_k \pmb{\mathcal{Y}}_k \right)}} = 
+    \underset{\pmb{u}_k, \pmb{v}_k} \argmax 
+    \dfrac{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k} {\pmb{v}_k}^T}
+          {\sqrt{\left(\pmb{u}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k} {\pmb{u}_k}^T \right)} \sqrt{\left(\pmb{v}_k \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k} {\pmb{v}_k}^T \right)}}\\
     \tag{1-5-1}
 $$
 $$
@@ -485,31 +483,37 @@ $$
         \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}
         {\pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k}
-        \pmb{U}_k = {\lambda}^2 {\pmb{U}_k}^T \ \ (I)\\
+        \pmb{u}_k = {\lambda}^2 {\pmb{u}_k}^T \ \ (I)\\
         \\
         {\pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k}
         {\pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}
-        \pmb{V}_k = {\theta}^2 {\pmb{V}_k}^T \ \ (II)\\
+        \pmb{v}_k = {\theta}^2 {\pmb{v}_k}^T \ \ (II)\\
     \end{cases}
     \tag{1-5-5}
 $$
 首先来看方程组中的 $(I)$：
 $$
-    \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right)^{-1}
-    \left(\sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \right)
-    \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1}
-    \left(\sum_b \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right) {\pmb{U}_k}^T = 
-    {\lambda}^2 {\pmb{U}_k}^T\\ \ \\
-    \Longrightarrow \ 
-    \left(\sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \right)
-    \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1}
-    \left(\sum_b \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right) {\pmb{U}_k}^T = 
-    {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T\\ \ \\
-    \Longrightarrow \ 
-    \left[\sum_b \sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1} \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right] {\pmb{U}_k}^T = 
-    {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T
+    \begin{align}
+        \notag
+        \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right)^{-1}
+        \left(\sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \right)
+        \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1}
+        \left(\sum_b \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right) {\pmb{u}_k}^T &= 
+        {\lambda}^2 {\pmb{u}_k}^T\\ 
+        \notag
+        \ \\
+        \notag
+        \left(\sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \right)
+        \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1}
+        \left(\sum_b \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right) {\pmb{u}_k}^T &= 
+        {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{u}_k}^T\\
+        \notag
+        \ \\
+        \notag
+        \left[\sum_b \sum_a \bar{\pmb{X}}_a {\pmb{Y}_a}^T \left(\sum_c \pmb{Y}_c {\pmb{Y}_c}^T \right)^{-1} \pmb{Y}_b {\bar{\pmb{X}}_b}^T \right] {\pmb{u}_k}^T &= {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{u}_k}^T
+    \end{align}
     \tag{1-5-6}
 $$
 到这一步我们不难发现，其结果已经与上一节末尾的式 (1-4-18) 形式非常相似，仅剩的问题在于正交投影 $\pmb{Q}_k {\pmb{Q}_k}^T$ 与正余弦矩阵 $\pmb{Y}_k$ 之间的关系。
@@ -588,11 +592,12 @@ $$
 $$
 因此，式 (1-5-6) 可简化为：
 $$
-    \dfrac{1}{N_e} \left[\sum_b \sum_a \bar{\pmb{X}}_a \dfrac{{\pmb{Y}_a}^T} {\left\|\pmb{Y}_k(i,:) \right\|_2} \dfrac{\pmb{Y}_b} {\left\|\pmb{Y}_k(i,:) \right\|_2} {\bar{\pmb{X}}_b}^T \right] {\pmb{U}_k}^T = 
-    {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T\\
-    \ \\
-    \Longrightarrow \  \left(\dfrac{1}{N_e} \sum_b \sum_a \bar{\pmb{X}}_a \pmb{Q}_{\pmb{Y}_a} { \pmb{Q}_{\pmb{Y}_b}}^T {\bar{\pmb{X}}_b}^T \right) {\pmb{U}_k}^T = 
-    {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T
+    \begin{align}
+        \notag
+        \dfrac{1}{N_e} \left[\sum_b \sum_a \bar{\pmb{X}}_a \dfrac{{\pmb{Y}_a}^T} {\left\|\pmb{Y}_k(i,:) \right\|_2} \dfrac{\pmb{Y}_b} {\left\|\pmb{Y}_k(i,:) \right\|_2} {\bar{\pmb{X}}_b}^T \right] {\pmb{u}_k}^T &= {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{u}_k}^T\\
+        \notag \ \\
+        \left(\dfrac{1}{N_e} \sum_b \sum_a \bar{\pmb{X}}_a \pmb{Q}_{\pmb{Y}_a} { \pmb{Q}_{\pmb{Y}_b}}^T {\bar{\pmb{X}}_b}^T \right) {\pmb{u}_k}^T &= {\lambda}^2 \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{u}_k}^T
+    \end{align}
     \tag{1-5-14}
 $$
 这样我们就来到了式 (1-4-18)。条条大路通罗马，不是吗？但比起式 (1-5-14) 这种惊险刺激的过山车，我个人还是更喜欢式 (1-5-5) 这种平静祥和的旅途。
@@ -602,44 +607,134 @@ $$
 结合上述关于投影矩阵相关的说明，我们可以剔除 ${\pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k}}^{-1}$ 以进一步简化 $(I)$：
 $$
     {\pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k}}^{-1} \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}
-    \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k} \pmb{U}_k = 
-    {\lambda}^2 {\pmb{U}_k}^T
+    \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k} \pmb{u}_k = 
+    {\lambda}^2 {\pmb{u}_k}^T
     \tag{1-5-15}
 $$
 我们来看看这个 *GEP* 方程对应的广义瑞利商形式：
 $$
-    \hat{\pmb{U}}_k = \underset{\pmb{U}_k} \argmax
-    \dfrac{\pmb{U}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k} \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k} {\pmb{U}_k}^T} {\pmb{U}_k \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{U}_k}^T} 
+    \hat{\pmb{u}}_k = \underset{\pmb{u}_k} \argmax
+    \dfrac{\pmb{u}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k} \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k} {\pmb{u}_k}^T} {\pmb{u}_k \left(\sum_k \bar{\pmb{X}}_k {\bar{\pmb{X}}_k}^T \right) {\pmb{u}_k}^T} 
     \tag{1-5-16}
 $$
-这个方程的分母是**滤波后合并样本的能量**，但是分子就很有意思了，显然 $\pmb{U}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}$ 并不能表示某种信号，因为它的长度已经与采样信号不一样了，这一点在所有 CCA 系列算法中其实都存在。目前我还无法给它一个合理的物理解释，如果各位观众姥爷有高见，希望邮件联系我指点迷津。$(I)$ 的问题到此为止了，可 $(II)$ 真不是一位善茬，不论如何都无法缩减运算量，只得就此作罢。最后总结一下 ms-eCCA 的空间滤波器构建函数（*GEP* 方程）以及模板匹配所需的步骤：
+这个方程的分母是**滤波后合并样本的能量**，但是分子就很有意思了，显然 $\pmb{u}_k \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}$ 并不能表示某种信号，因为它的长度已经与采样信号不一样了，这一点在所有 CCA 系列算法中其实都存在。目前我还无法给它一个合理的物理解释，如果各位观众姥爷有高见，希望邮件联系我指点迷津。$(I)$ 的问题到此为止了，可 $(II)$ 真不是一位善茬，不论如何都无法缩减运算量，只得就此作罢。最后总结一下 ms-eCCA 的空间滤波器构建函数（*GEP* 方程）以及模板匹配所需的步骤：
 $$
     \begin{cases}
         {\pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}
         \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k}
-        \pmb{U}_k = {\lambda}^2 {\pmb{U}_k}^T \ \ (I)\\
+        \pmb{u}_k = {\lambda}^2 {\pmb{u}_k}^T \ \ (I)\\
         \\
         {\pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Y}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Y}}_k \pmb{\mathcal{Z}}_k}
         {\pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Z}}_k}}^{-1}
         \pmb{C}_{\pmb{\mathcal{Z}}_k \pmb{\mathcal{Y}}_k}
-        \pmb{V}_k = {\theta}^2 {\pmb{V}_k}^T \ \ (II)\\
+        \pmb{v}_k = {\theta}^2 {\pmb{v}_k}^T \ \ (II)\\
     \end{cases}
     \tag{1-5-17}
 $$
 $$
     \rho_k = \sum_{i=1}^2 sign \left(\rho_{k,i} \right) \times \rho_{k,i}^2, \ 
     \begin{cases}
-        \rho_{k,1} = corr \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{V}_k \pmb{Y}_k \right)\\
-        \rho_{k,2} = corr \left(\pmb{U}_k \pmb{\mathcal{X}}, \pmb{U}_k \bar{\pmb{X}}_k \right)\\
+        \rho_{k,1} = corr \left(\pmb{u}_k \pmb{\mathcal{X}}, \pmb{v}_k \pmb{Y}_k \right)\\
+        \rho_{k,2} = corr \left(\pmb{u}_k \pmb{\mathcal{X}}, \pmb{u}_k \bar{\pmb{X}}_k \right)\\
     \end{cases}
     \tag{1-5-18}
 $$
 ***
 
+## 1.6 多重数据集 CCA：MsetCCA
+**(Multi-set CCA)**
+
+**[论文链接][MsetCCA] | 代码：[cca][cca(code)].msetcca()**
+
+标准 CCA 算法使用人工构建的标准正余弦模板来描述 SSVEP 的正弦波动性质。在有条件（可接受训练校准）的情况下，这种设计无法充分利用受试者个体的差异性信息，因此性能受到了极大的限制。包括 it-CCA、eCCA 等多种基于 CCA 的改进算法都在尝试引入真实脑电数据以提高模型的有效性，MsetCCA 也是其中一种。该算法由 *Zhang* 等人于 2014 年提出，对标算法是标准 CCA 以及 MwayCCA，在实际分类性能上与 eCCA、TRCA 等后来者有一定的差距，但是算法设计思路依然值得参考。
+
+对于第 $k$ 类别、具有 $N_t$ 个试次的训练数据集 $\pmb{X}_k \in \mathbb{R}^{N_t \times N_c \times N_p}$，MsetCCA 为其中每一个试次 $\pmb{X}_k^i \in \mathbb{R}^{N_c \times N_p}$ 都训练一个滤波器 $\pmb{\omega}_k^i$，最终使得**滤波后信号**的叠加平均模板能量与原始信号能量的比值最大：
+$$
+    \begin{cases}
+        \underset{\pmb{\omega}_k^1, \pmb{\omega}_k^2, \cdots, \pmb{\omega}_k^{N_t}} \max \sum_{i \ne j, i=1}^{N_t} \sum_{j=1}^{N_t} \pmb{\omega}_k^i \pmb{X}_k^i {\pmb{X}_k^j}^T {\pmb{\omega}_k^j}^T\\
+        \\
+        s.t.\ \dfrac{1}{N_t} \sum_{i=1}^{N_t} \pmb{\omega}_k^i \pmb{X}_k^i {\pmb{X}_k^i}^T {\pmb{\omega}_k^i}^T = 1
+    \end{cases}
+    \tag{1-6-1}
+$$
+$$
+    \begin{align}
+        \notag
+        \sum_{i=1}^{N_t} \sum_{j=1}^{N_t} \pmb{\omega}_i \pmb{X}_i {\pmb{X}_j}^T {\pmb{\omega}_j}^T &=
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{\omega}_1 & \pmb{\omega}_2 & \cdots & \pmb{\omega}_{N_t}\\
+            \end{bmatrix}}_{\pmb{W}}
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{X}_1 \pmb{X}_1^T & \pmb{X}_1 \pmb{X}_2^T & \cdots & \pmb{X}_1 \pmb{X}_{N_t}^T\\
+                \pmb{X}_2 \pmb{X}_1^T & \pmb{X}_2 \pmb{X}_2^T & \cdots & \pmb{X}_2 \pmb{X}_{N_t}^T\\
+                \vdots & \vdots & \ddots & \vdots\\
+                \pmb{X}_{N_t} \pmb{X}_1^T & \pmb{X}_{N_t} \pmb{X}_2^T & \cdots & \pmb{X}_{N_t} \pmb{X}_{N_t}^T\\
+            \end{bmatrix}}_{\pmb{R}}
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{\omega}_1^T\\ \pmb{\omega}_2^T\\ \vdots\\ \pmb{\omega}_{N_t}^T\\
+            \end{bmatrix}}_{\pmb{W}^T} \tag{1-6-2}\\
+        \notag \ \\
+        \notag
+        \sum_{i=1}^{N_t}\pmb{\omega}_i \pmb{X}_i {\pmb{X}_i}^T {\pmb{\omega}_i}^T &=
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{\omega}_1 & \pmb{\omega}_2 & \cdots & \pmb{\omega}_{N_t}\\
+            \end{bmatrix}}_{\pmb{W}}
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{X}_1 \pmb{X}_2^T & 0 & \cdots & 0\\
+                0 & \pmb{X}_2 \pmb{X}_2^T & \cdots & 0\\
+                \vdots & \vdots & \ddots & \vdots\\
+                0 & 0 & \cdots & \pmb{X}_{N_t} \pmb{X}_{N_t}^T\\
+            \end{bmatrix}}_{\pmb{S}}
+        \underbrace{
+            \begin{bmatrix}
+                \pmb{\omega}_1^T\\ \pmb{\omega}_2^T\\ \vdots\\ \pmb{\omega}_{N_t}^T\\
+            \end{bmatrix}}_{\pmb{W}^T} \tag{1-6-3}
+        \end{align}
+$$
+$$
+    \hat{\pmb{W}} = \underset{\pmb{W}} \argmax \dfrac{\pmb{W} (\pmb{R}-\pmb{S}) \pmb{W}^T} {\pmb{W} \pmb{S} \pmb{W}^T} = \underset{\pmb{W}} \argmax \dfrac{\pmb{W} \pmb{R} \pmb{W}^T} {\pmb{W} \pmb{S} \pmb{W}^T}
+    \tag{1-6-4}
+$$
+
+![MsetCCA示意图](figures/MsetCCA.png)
+
+在获取联合滤波器 $\pmb{W}$ 之后，对各试次训练数据分别滤波获得联合模板 $\pmb{Y}_k$ ：
+$$
+    \pmb{Y}_k = 
+    \begin{bmatrix}
+        \pmb{\omega}_k^1 \pmb{X}_k^1\\
+        \pmb{\omega}_k^2 \pmb{X}_k^2\\
+        \vdots\\
+        \pmb{\omega}_k^{N_t} \pmb{X}_k^{N_t}\\
+    \end{bmatrix} \in \mathbb{R}^{N_t \times N_p}
+    \tag{1-6-5}
+$$
+由于 $\pmb{Y}_k$ 依然是多维数据，因此在分类过程中需要与测试数据 $\pmb{\mathcal{X}}$ 进行标准 CCA 过程的匹配。当然我们也可以使用二维 *Pearson* 相关系数，虽然可能不算一个很有创新点的 idea，但是林林总总的改进 tricks 凑个数攒一篇还是有可能的。具体流程见上图：
+$$
+    \hat{k} = \underset{k} \argmax{\{\rho_k \ | \ \rho_k = CCA\left(\pmb{\mathcal{X},\pmb{Y}_k}\right)\}}
+    \tag{1-6-6}
+$$
+***
+
+## 1.7 多重通道 CCA：MwayCCA
+**(Multiway CCA)**
+
+**[论文链接][MwayCCA] | 代码：[cca][cca(code)].mwaycca()**
+
+
+
+
+
 
 [cca(code)]: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/cca.py
+
 [CCA]: http://ieeexplore.ieee.org/document/4203016/
 
 [itCCA]: https://iopscience.iop.org/article/10.1088/1741-2560/8/2/025015
@@ -653,6 +748,10 @@ $$
 [Benchmark]: https://ieeexplore.ieee.org/document/7740878/
 [UCSD]: https://dx.plos.org/10.1371/journal.pone.0140703
 [BETA]: https://www.frontiersin.org/article/10.3389/fnins.2020.00627/full
+
+[MsetCCA]: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
+
+[MwayCCA]: http://link.springer.com/10.1007/978-3-642-24955-6_35
 
 [CSSFT]: http://iopscience.iop.org/article/10.1088/1741-2552/ac6b57
 

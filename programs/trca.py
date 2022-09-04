@@ -26,28 +26,29 @@ def trca_compute(X):
     # basic information
     X = zero_mean(X)
 
-    # Q: inter-channel covariance
+    # Q: covariance of original data | (Nc,Nc)
     Q = einsum('tcp,thp->ch', X,X)
 
-    # S: inter-channels' inter-trial covariance
-    Xsum = np.sum(X, axis=0)  # (Nc,Np)
+    # S: covariance of averaged data | (Nc,Nc)
+    Xsum = np.sum(X, axis=0)
     S = Xsum @ Xsum.T
 
     # GEPs
     e_val, e_vec = LA.eig(LA.solve(Q,S))
-    w_index = np.argmax(e_val)
-    w = e_vec[:,[w_index]].T
-    return w
+    ascend_order = sorted(enumerate(e_val), key=lambda x:x[1])
+    w_index = [ao[0] for ao in ascend_order]
+    w = e_vec[:,w_index].T
+    return w[[-1],:]
 
 
 def trca_compute_V2(X):
     """Another version of trca_compute().
 
     Args:
-        X (ndarray): (2, n_train, n_chans, n_points).
+        X (ndarray): (n_events, n_train, n_chans, n_points).
 
     Returns:
-        w (ndarray): (2, n_chans).
+        w (ndarray): (n_events, n_chans).
     """
     # preprocess
     X = zero_mean(X)
@@ -56,18 +57,20 @@ def trca_compute_V2(X):
     n_events = X.shape[0]
     n_chans = X.shape[2]
     
-    # Q: covariance of averaged data | (Ne,Nc,Nc)
+    # Q: variance of original data | (Ne,Nc,Nc)
     Q = einsum('etcp,ethp->ech', X,X)
 
-    # S: variance of original data | (Ne,Nc,Nc)
+    # S: covariance of averaged data | (Ne,Nc,Nc)
     Xsum = np.sum(X, axis=1)  # (Ne,Nc,Np)
     S = einsum('ecp,ehp->ech', Xsum,Xsum)
 
-    # GEPs with symbol verification
-    w = np.zeros((n_events, n_chans))  # (nrep,Ne,Nc)
+    # GEPs
+    w = np.zeros((n_events, n_chans))  # (Ne,Nc)
     for ne in range(n_events):
         e_val, e_vec = LA.eig(LA.solve(Q[ne,...],S[ne,...]))
-        w[ne,:] = e_vec[:,[np.argmax(e_val)]].T
+        ascend_order = sorted(enumerate(e_val), key=lambda x:x[1])
+        w_index = [ao[0] for ao in ascend_order]
+        w[ne,:] = e_vec[:,w_index][:,-1].T
     return w
 
 
@@ -113,6 +116,39 @@ def etrca(train_data, test_data):
     return rou, erou  # (*)
 
 
+def etrca_V1(train_data, test_data):
+    """Using TRCA & eTRCA to compute decision coefficients.
+
+    Args:
+        train_data (ndarray): (n_events, n_train, n_chans, n_points).
+        test_data (ndarray): (n_events, n_test, n_chans, n_points).
+
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+        erou (ndarray): (n_events, n_test, n_events).
+    """
+    # basic information
+    n_events = train_data.shape[0]
+    n_test = test_data.shape[1]
+
+    # training models & filters
+    w = trca_compute_V2(train_data)  # (Ne,Nc)
+    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
+    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
+    emodel = einsum('ec,vcp->evp', w,train_mean)  # (Ne real,Ne model,Np)
+
+    # pattern matching
+    rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
+    erou = np.zeros_like(rou)
+    for ner in range(n_events):
+        for nte in range(n_test):
+            temp = test_data[ner,nte,...]  # (Nc,Np)
+            for nem in range(n_events):
+                rou[ner,nte,nem] = corr_coef(w[[nem],:]@temp, model[[nem],:])[0,0]
+                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
+    return rou, erou
+
+
 def etrca_V2(train_data, test_data):
     """Another version for etrca().
        Because eigenvectors are not number-preserving, we cannot judge whether
@@ -140,11 +176,13 @@ def etrca_V2(train_data, test_data):
     # training models & filters
     w = trca_compute_V2(train_data)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = np.zeros((2, n_points))  # (Ne,Np)
-    emodel = np.zeros((2, 2, n_points))  # (Ne real, Ne model, Np)
-    for ne in range(2):
-        model[ne,:] = w[ne,:] @ train_mean[ne,...]  # (1,Np)
-        emodel[ne,...] = w @ train_mean[ne,...]  # (Ne,Np)
+    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
+    emodel = einsum('ec,vcp->evp', w,train_mean)  # (Ne real,Ne model,Np)
+    # model = np.zeros((2, n_points))  # (Ne,Np)
+    # emodel = np.zeros((2, 2, n_points))  # (Ne real, Ne model, Np)
+    # for ne in range(2):
+    #     model[ne,:] = w[ne,:] @ train_mean[ne,...]  # (1,Np)
+    #     emodel[ne,...] = w @ train_mean[ne,...]  # (Ne,Np)
     
     # sign check for filters & models
     coef = corr_coef(model[[0],:], model[[1],:])[0,0]
@@ -201,12 +239,151 @@ def mstrca_compute(X):
 
 
 # (e)TRCA-R
+def trcar_compute(X, Y):
+    """Using TRCA-R & eTRCA-R to compute decision coefficients.
+
+    Args:
+        X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset
+        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sine-cosine template.
+
+    Returns:
+        w (ndarray): (n_events, n_chans). Spatial filters.
+    """
+    # preprocess
+    X = zero_mean(X)
+
+    # basic information
+    n_events = X.shape[0]
+    n_chans = X.shape[2]
+
+    # Q: variance of original data | (Ne,Nc,Nc)
+    Q = einsum('etcp,ethp->ech', X,X)
+
+    # S: covariance of averaged data | (Ne,Nc,Nc)
+    Xsum = np.sum(X, axis=1)  # (Ne,Nc,Np)
+    pX = einsum('ecp,ehp->ech', Xsum, Y)  # (Ne,Nc,2Nh)
+    S = einsum('ech,eah->eca', pX,pX)  # (Ne,Nc,Nc)
+
+    # GEPs with symbol verification
+    w = np.zeros((n_events, n_chans))  # (Ne,Nc)
+    for ne in range(n_events):
+        e_val, e_vec = LA.eig(LA.solve(Q[ne,...],S[ne,...]))
+        ascend_order = sorted(enumerate(e_val), key=lambda x:x[1])
+        w_index = [ao[0] for ao in ascend_order]
+        w[ne,:] = e_vec[:,w_index][:,-1].T
+    return w
 
 
+def etrcar(train_data, test_data, Y):
+    """Use (e)TRCA-R to compute decision coefficients.
+    
+    Args:
+        train_data (ndarray): (n_events, n_train, n_chans, n_points).
+        test_data (ndarray): (n_events, n_test, n_chans, n_points).
+        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sine-cosine template.
+        
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+        erou (ndarray): (n_events, n_test, n_events).
+    """
+    # basic information
+    n_events = train_data.shape[0]
+    n_test = test_data.shape[1]
+
+    # training models & filters
+    w = trcar_compute(train_data, Y)  # (Ne,Nc)
+    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
+    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
+    emodel = einsum('ec,vcp->evp', w,train_mean)  # (Ne real,Ne model,Np)
+
+    # pattern matching
+    rou = np.zeros((n_events, n_test, n_events))  # (Ne real, Nt, Ne model)
+    erou = np.zeros_like(rou)
+    for ner in range(n_events):
+        for nte in range(n_test):
+            temp = test_data[ner,nte,...]  # (Nc,Np)
+            for nem in range(n_events):
+                rou[ner,nte,nem] = corr_coef(w[[nem],:]@temp, model[[nem],:])[0,0]
+                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
+    return rou, erou
 
 
 # similarity constrained (e)TRCA | sc-(e)TRCA
-
+def sctrca_compute(X, Y):
+    """Similarity-constrained TRCA.
+    
+    Args:
+        X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sine-cosine template.
+        
+    Return:
+        U (ndarray): (n_events, n_chans). Filters for EEG data.
+        V (ndarray): (n_events, 2*n_harmonics). Filters for artificial template.
+    """
+    # basic information
+    n_train = X.shape[0]
+    n_chans = X.shape[1]  # Nc
+    n_points = X.shape[-1]  # Np
+    n_harmonics = Y.shape[0]  # 2*Nh
+    
+    # block covariance matrix S: [[S11,S12],[S21,S22]]
+    Xmean = X.mean(axis=0)  # (Nc,Np)
+    
+    # S11: inter-trial covariance
+    S11 = Xmean @ Xmean.T  # (Nc,Nc)
+    coef = n_train/((n_train-1)*n_points)
+    S11 *= coef # could be ignored?
+    
+    # S12 & S21: covariance between EEG and sine-cosine template
+    S12 = Xmean @ Y.T  # (Nc,2*Nh)
+    S12 /= n_points
+    S21 = S12.T
+    
+    # S22: covariance within sine-cosine template
+    S22 = Y @ Y.T  # (2*Nh,2*Nh)
+    S22 /= n_points
+    
+    S = np.eye((n_chans+n_harmonics))  # (Nc+2Nh,Nc+2Nh)
+    S[:n_chans, :n_chans] = S11
+    S[:n_chans, n_chans:] = S12
+    S[n_chans:, :n_chans] = S21
+    S[n_chans:, n_chans:] = S22
+    
+    # block variance matrix Q: blkdiag(Q1,Q2)
+    # Q1: variace of EEG
+    Q1 = np.zeros((n_chans, n_chans))  # (Nc,Nc)
+    for ntr in range(n_train):
+        Q1 += X[ntr,...] @ X[ntr,...].T
+    Q1 /= (n_train*n_points)
+    
+    # Q2: variance of sine-cosine template
+    Q2 = S22
+    
+    Q = np.zeros_like(S)
+    Q[:n_chans,:n_chans] = Q1
+    Q[n_chans:,n_chans:] = Q2
+    
+    # GEPs
+    e_val, e_vec = LA.eig(LA.solve(Q,S))
+    w_index = np.argmax(e_val)
+    w = e_vec[:,[w_index]].T  # (1,Nc+2*Nh)
+    return w[:,:n_chans], w[:,n_chans:]  # U,V
 
 
 # group TRCA | gTRCA
+
+
+
+# cross-correlation TRCA | xTRCA
+
+
+
+# latency-aligned TRCA | LA-TRCA
+
+
+
+# task-discriminant component analysis | TDCA
+
+
+
+# 
