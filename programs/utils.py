@@ -162,13 +162,16 @@ def itr(number, time, acc):
 # %% spatial distances
 def corr_coef(X, y):
     """Pearson's Correlation Coefficient.
+    
     Args:
         X (ndarray): (m, n_points). Multi-pieces of data.
-            m could be 1 but the shape of X must be (1, n_points) then.
+            m could be 1 but not be ignored.
         y (ndarray): (1, n_points) or (n_points,)
+        
     Returns:
         corrcoef (ndarray): (1,m) or (m,)
     """
+    # X, y = zero_mean(X), zero_mean(y)
     cov_yX = y @ X.T
     var_XX, var_yy = sqrt(diagonal(X @ X.T)), sqrt(y @ y.T)
     corrcoef = cov_yX / (var_XX*var_yy)
@@ -177,30 +180,36 @@ def corr_coef(X, y):
 
 def corr2_coef(X, Y):
     """2-D Pearson correlation coefficient.
+    
     Args:
-        X (ndarray): (m, n_points)
-        Y (ndarray): (m, n_points)
+        X (ndarray): (..., n_points)
+        Y (ndarray): (..., n_points). The dimension must be same with X.
+        
     Returns:
         corrcoef (float)
     """
-    mean_X, mean_Y = X.mean(), Y.mean()
-    numerator = einsum('ij->', (X-mean_X)*(Y-mean_Y))
-    denominator_X = einsum('ij->', (X-mean_X)**2)
-    denominator_Y = einsum('ij->', (Y-mean_Y)**2)
-    # using np.einsum() here is nearly 10% faster than np.sum(), i.e.
-    # numerator = np.sum((X-mean_X)*(Y-mean_Y))
-    # denominator_X = np.sum((X-mean_X)**2)
-    # denominator_Y = np.sum((Y-mean_Y)**2)
-    corrcoef = numerator / sqrt(denominator_X*denominator_Y)
+    # if not zero_mean():
+    # mean_X, mean_Y = X.mean(), Y.mean()
+    # numerator = einsum('ij->', (X-mean_X)*(Y-mean_Y))
+    # denominator_X = einsum('ij->', (X-mean_X)**2)
+    # denominator_Y = einsum('ij->', (Y-mean_Y)**2)
+    
+    # using np.einsum() could be nearly 10% faster than np.sum()
+    covariance = np.sum(X*Y)   # float
+    variance_X = np.sum(X**2)  # float
+    variance_Y = np.sum(Y**2)  # float
+    corrcoef = covariance / sqrt(variance_X*variance_Y)
     return corrcoef
 
 
 def fisher_score(dataset=(), *args):
     """Fisher Score (sequence) in time domain.
+    
     Args:
         dataset (tuple of ndarray): (event1, event2, ...).
             The shape of each data matrix must be (n_trials, n_features).
             n_features must be the same (n_trials could be various).
+            
     Returns:
         fs (ndarray): (1, n_features). Fisher-Score sequence.
     """
@@ -232,9 +241,11 @@ def fisher_score(dataset=(), *args):
 
 def euclidean_dist(X, Y):
     """Euclidean distance.
+    
     Args:
         X (ndarray): (n_chans, n_points).
         Y (ndarray): (n_chans, n_points).
+        
     Returns:
         dist (float)
     """
@@ -244,9 +255,11 @@ def euclidean_dist(X, Y):
 
 def cosine_sim(x, y):
     """Cosine similarity.
+    
     Args:
         x (ndarray or list): (n_points,)
         y (ndarray or list): (n_points,)
+        
     Returns:
         sim (float)
     """
@@ -256,10 +269,12 @@ def cosine_sim(x, y):
 
 def minkowski_dist(x, y, p):
     """Minkowski distance.
+    
     Args:
         x (ndarray): (n_points,).
         y (ndarray): (n_points,).
         p (int): Hyper-parameter.
+        
     Returns:
         dist (float)
     """
@@ -269,9 +284,11 @@ def minkowski_dist(x, y, p):
 
 def mahalanobis_dist(X, y):
     """Mahalanobis distance.
+    
     Args:
         X (ndarray): (n_trials, n_points). Training dataset.
         y (ndarray): (n_points,) or (1, n_points). Test data.
+        
     Returns:
         dist (float)
     """
