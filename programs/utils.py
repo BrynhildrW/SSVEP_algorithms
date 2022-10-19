@@ -87,22 +87,6 @@ def Imn(m,n):
     return Z
 
 
-def combine_feature(X):
-    """Two-level feature extraction.
-    
-    Args:
-        X (list of float): List of one-level features.
-    
-    Returns:
-        tl_feature (float): Two-level feature.
-    """
-    tl_feature = 0
-    for feature in X:
-        sign = abs(feature)/feature  # sign(*) function
-        tl_feature += sign*(feature**2)
-    return tl_feature
-
-
 def sign_sta(x):
     """Standardization of decision coefficient based on sign() function.
     
@@ -115,6 +99,23 @@ def sign_sta(x):
     return (abs(x)/x)*(x**2)
 
 
+def combine_feature(features, func=None):
+    """Coefficient-level fusion decision.
+    
+    Args:
+        features (list of float/int/ndarray): Different features.
+        func (functions): Quantization function.
+    
+    Returns:
+        coef (the same type with elements of features): Combined coefficients.
+    
+    """
+    coef = np.zeros_like(features[0])
+    for feature in features:
+        coef += func(feature)
+    return coef
+
+
 def acc_compute(rou):
     """Compute accuracy.
 
@@ -122,7 +123,7 @@ def acc_compute(rou):
         rou (ndarray): (n_events(real), n_test, n_events(models)). Decision coefficients.
 
     Returns:
-        correct (list): (n_events,). Correct trials for each event.
+        # correct (list): (n_events,). Correct trials for each event.
         acc (float)
     """
     n_events = rou.shape[0]
@@ -134,7 +135,7 @@ def acc_compute(rou):
             if np.argmax(rou[netr,nte,:])==netr:
                 temp += 1
         correct.append(temp)
-    return correct, np.sum(correct)/(n_test*n_events)
+    return np.sum(correct)/(n_test*n_events)
 
 
 def itr(number, time, acc):

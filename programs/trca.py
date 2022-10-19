@@ -199,27 +199,28 @@ def augmented_events(n_events, d):
         d (int): The range of events to be merged.
     
     Returns:
-        events_sheet (dict): {'events':[start index,end index]}
+        events_group (dict): {'events':[start index,end index]}
     """
-    events_sheet = {}
+    events_group = {}
     for ne in range(n_events):
         if ne <= d/2:
-            events_sheet[str(ne)] = [0,d]
+            events_group[str(ne)] = [0,d]
         elif ne >= int(n_events-d/2):
-            events_sheet[str(ne)] = [n_events-d,n_events]
+            events_group[str(ne)] = [n_events-d,n_events]
         else:
             m = int(d/2)  # forward augmentation
-            events_sheet[str(ne)] = [ne-m,ne-m+d]
-    return events_sheet
+            events_group[str(ne)] = [ne-m,ne-m+d]
+    return events_group
 
 
-def mstrca_compute(X, d, Nk=1, **kwargs):
+def mstrca_compute(X, d, Nk=1, events_group=None):
     """Multi-stimulus TRCA.
 
     Args:
         X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
         d (int): The range of events to be merged.
         Nk (int): Number of eigenvectors picked as filters.
+        events_group (dict): {'events':[start index,end index]}
 
     Returns:
         w (ndarray): (n_events, Nk, n_chans). Spatial filters.
@@ -230,11 +231,7 @@ def mstrca_compute(X, d, Nk=1, **kwargs):
     # basic information
     n_events = X.shape[0]
     n_chans = X.shape[2]
-    try:
-        events_group = kwargs['events_group']
-    except KeyError:
-        events_group = augmented_events(n_events, d)
-    
+
     # Q: covariance of original data for each event | (Ne,Nc,Nc)
     total_Q = einsum('etcp,ethp->ech', X,X)
     
@@ -253,7 +250,7 @@ def mstrca_compute(X, d, Nk=1, **kwargs):
     return w.squeeze()
 
 
-def msetrca(train_data, test_data, d):
+def msetrca(train_data, test_data, d, **kwargs):
     """Using ms-(e)TRCA to compute decision coefficients.
 
     Args:
@@ -268,9 +265,13 @@ def msetrca(train_data, test_data, d):
     # basic information
     n_events = train_data.shape[0]
     n_test = test_data.shape[1]
+    try:
+        events_group = kwargs['events_group']
+    except KeyError:
+        events_group = augmented_events(n_events, d)
 
     # training models & filters
-    w = mstrca_compute(train_data, d)  # (Ne,Nc)
+    w = mstrca_compute(X=train_data, d=d, Nk=1, events_group=events_group)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
     model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
     emodel = einsum('ec,vcp->vep', w,train_mean)  # (Ne real,Ne model,Np)
@@ -290,7 +291,7 @@ def msetrca(train_data, test_data, d):
     return rou, erou
 
 
-def msetrca_md(train_data, test_data, d, Nk):
+def msetrca_md(train_data, test_data, d, Nk, **kwargs):
     """Special version for msetrca() | multiple dimension, Nk>1
     
     Args:
@@ -306,9 +307,13 @@ def msetrca_md(train_data, test_data, d, Nk):
     # basic information
     n_events = train_data.shape[0]
     n_test = test_data.shape[1]
+    try:
+        events_group = kwargs['events_group']
+    except KeyError:
+        events_group = augmented_events(n_events, d)
     
     # training models & filters
-    w = mstrca_compute(train_data, d, Nk)  # (Ne,Nc)
+    w = mstrca_compute(X=train_data, d=d, Nk=1, events_group=events_group)  # (Ne,Nk,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
     model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
     emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Nk,Np)
@@ -540,6 +545,52 @@ def sctrca_compute_V2(X, Y, Nk=1):
     return w[...,:n_chans].squeeze(), w[...,n_chans:].squeeze()  # u,v
 
 
+def sctrca_compute_sp(X, Y, Nk=1):
+    """New version of sctrca_compute() | update Q
+
+    Args:
+        X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sine-cosine template.
+        Nk (int): Number of eigenvectors picked as filters. Defaults to be 1.
+
+    Return:
+        U (ndarray): (n_events, n_chans). Filters for EEG data.
+        V (ndarray): (n_events, 2*n_harmonics). Filters for artificial template.
+    """
+    # basic information
+    n_events = X.shape[0]
+    n_train = X.shape[1]
+    n_chans = X.shape[2]  # Nc
+    n_harmonics = int(Y.shape[1]/2)  # Nh
+
+    # block covariance matrix S: covariance of [Xmean.T,Y.T].T
+    Xmean = X.mean(axis=1)  # (Ne,Nc,Np)
+    Xhat = np.concatenate((Xmean,Y), axis=1)  # (Ne,Nc+2Nh,Np)
+    S = einsum('ecp,ehp->ech', Xhat,Xhat)  # (Ne,Nc+2Nh,Nc+2Nh)
+
+    # block covariance matrix S: covariance of [X.T,Y.T].T
+    Q = np.zeros_like(S)
+
+    # u @ Q11 @ u^T: variace of filtered EEG
+    Q[:,:n_chans,:n_chans] = einsum('etcp,ethp->ech', X,X)/n_train
+
+    # v @ Q2 @ v^T: variance of filtered sine-cosine template
+    Q[:,n_chans:,n_chans:] = S[:,-2*n_harmonics:,-2*n_harmonics:]
+
+    # u @ Q12 @ v^T: covariance of filtered EEG & filtered template
+    # Q12 = Q21^T
+    for ne in range(n_events):
+        temp = einsum('tcp,hp->ch', X[ne],Y[ne])/n_train
+        Q[ne,:n_chans,n_chans:] = temp
+        Q[ne,n_chans:,:n_chans] = temp.T
+    
+    # GEPs
+    w = np.zeros((n_events, n_chans+2*n_harmonics))  # (Ne,Nc+2Nh)
+    for ne in range(n_events):
+        w[ne,...] = solve_gep(S[ne,...], Q[ne,...], Nk)
+    return w[...,:n_chans].squeeze(), w[...,n_chans:].squeeze()  # u,v
+
+
 def scetrca(train_data, sine_template, test_data):
     """Use sc-(e)TRCA to compute decision coefficients.
 
@@ -625,6 +676,40 @@ def scetrca_md(train_data, sine_template, test_data, Nk):
 
                 # sc-eTRCA
                 f_temp = einsum('ekc,cp->ekp', u,temp)  # (Ne,Nk,Np)
+                rou3 = corr2_coef(f_temp, emodel_eeg[nem,...])
+                rou4 = corr2_coef(f_temp, emodel_sin[nem,...])
+                erou[ner,nte,nem] = sign_sta(rou3) + sign_sta(rou4)
+    return rou, erou
+
+
+def scetrca_sp(train_data, sine_template, test_data):
+    # basic information
+    n_events = train_data.shape[0]
+    n_test = test_data.shape[1]
+
+    # training models & filters
+    u,v = sctrca_compute_sp(train_data, sine_template)  # (Ne,Nc) & (Ne,2Nh)
+    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
+    model_eeg = einsum('ec,ecp->ep', u,train_mean)  # (Ne,Np)
+    model_sin = einsum('eh,ehp->ep', v,sine_template)  # (Ne,Np)
+    emodel_eeg = einsum('ec,vcp->vep', u,train_mean)  # (Ne real,Ne model,Np)
+    emodel_sin = einsum('eh,ahp->aep', v,sine_template)  # (Ne real,Ne model,Np)
+
+    # pattern matching
+    rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
+    erou = np.zeros_like(rou)
+    for ner in range(n_events):
+        for nte in range(n_test):
+            temp = test_data[ner,nte,...]  # (Nc,Np)
+            for nem in range(n_events):
+                # sc-TRCA
+                f_temp = u[[nem],:]@temp  # (1,Np)
+                rou1 = corr_coef(f_temp, model_eeg[[nem],:])[0,0]
+                rou2 = corr_coef(f_temp, model_sin[[nem],:])[0,0]
+                rou[ner,nte,nem] = sign_sta(rou1) + sign_sta(rou2)
+                
+                # sc-eTRCA
+                f_temp = u@temp  # (Ne,Np)
                 rou3 = corr2_coef(f_temp, emodel_eeg[nem,...])
                 rou4 = corr2_coef(f_temp, emodel_sin[nem,...])
                 erou[ner,nte,nem] = sign_sta(rou3) + sign_sta(rou4)
