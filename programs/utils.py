@@ -3,29 +3,27 @@
 @ author: Brynhildr Wu
 @ email: brynhildrwu@gmail.com
 
-Prefunctions for specific algorithms.
-
-update: 2022/7/12
+update: 2022/11/11
 
 """
 
 # %% basic moduls
 import numpy as np
-from numpy import (sin, sqrt, diagonal, einsum)
+from numpy import (sin, sqrt, einsum)
 
 from scipy import linalg as LA
 
 from math import (pi, log)
 
-from itertools import combinations
+# from itertools import combinations
 
-# %% prefunctions
+# %% data preprocessing
 def zero_mean(X):
     """Zero-mean normalization.
 
     Args:
         X (ndarray): (..., n_points). Data array.
-    
+
     Returns:
         X (ndarray): (..., n_points). Data after normalization.
     """
@@ -33,8 +31,9 @@ def zero_mean(X):
     return X
 
 
+# %% data preparation
 def sin_wave(freq, n_points, phase, sfreq=1000):
-    """Construct sinusoidal wave manually.
+    """Construct sinusoidal waveforms.
 
     Args:
         freq (float): Frequency / Hz.
@@ -50,8 +49,28 @@ def sin_wave(freq, n_points, phase, sfreq=1000):
     return wave
 
 
+def sine_template(freq, phase, n_points, n_harmonics, sfreq):
+    """Create sine-cosine template for SSVEP signals.
+
+    Args:
+        freq (float or int): Basic frequency.
+        phase (float or int): Initial phase.
+        n_points (int): Sampling points.
+        n_harmonics (int): Number of harmonics.
+        sfreq (float or int): Sampling frequency.
+
+    Returns:
+        Y (ndarray): (n_points, 2*n_harmonics).
+    """
+    Y = np.zeros((n_points, 2*n_harmonics))  # (Np, 2Nh)
+    for nh in range(n_harmonics):
+        Y[:,2*nh] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
+        Y[:,2*nh+1] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
+    return Y
+
+
 def time_shift(data, step, axis=None):
-    """Cyclic shift data.
+    """Shift data cyclically.
 
     Args:
         data (ndarray): (n_chans, n_points). Input data array.
@@ -66,20 +85,20 @@ def time_shift(data, step, axis=None):
     n_chans = data.shape[0]
     tf_data = np.zeros_like(data)
     tf_data[0,:] = data[0,:]
-    for i in range(n_chans-1):
-        tf_data[i+1,:] = np.roll(data[i+1,:], shift=round(step*(i+1)), axis=axis)
+    for nc in range(n_chans-1):
+        tf_data[nc+1,:] = np.roll(data[nc+1,:], shift=round(step*(nc+1)), axis=axis)
     return tf_data
 
 
 def Imn(m,n):
-    """Make concatenated eye matrices.
+    """Concatenate identical matrices into a big matrix.
 
     Args:
         m (int): Total number of identity matrix.
         n (int): Dimensions of the identity matrix.
 
     Returns:
-        target (ndarray): (m*n, n). Vertical concatenation of m unity matrices (n,n)
+        target (ndarray): (m*n, n).
     """
     Z = np.zeros((m*n,n))
     for i in range(m):
@@ -87,28 +106,52 @@ def Imn(m,n):
     return Z
 
 
+def augmented_events(n_events, d):
+    """Generate indices for merged events for each target event.
+    Special function for ms- series algorithms.
+
+    Args:
+        n_events (int)
+        d (int): The range of events to be merged.
+
+    Returns:
+        events_group (dict): {'events':[start index,end index]}
+    """
+    events_group = {}
+    for ne in range(n_events):
+        if ne <= d/2:
+            events_group[str(ne)] = [0,d]
+        elif ne >= int(n_events-d/2):
+            events_group[str(ne)] = [n_events-d,n_events]
+        else:
+            m = int(d/2)  # forward augmentation
+            events_group[str(ne)] = [ne-m,ne-m+d]
+    return events_group
+
+
+# %% feature integration
 def sign_sta(x):
-    """Standardization of decision coefficient based on sign() function.
-    
+    """Standardization of decision coefficient based on sign(x).
+
     Args:
         x (float)
-        
+
     Returns:
         y (float): y=sign(x)*x^2
     """
     return (abs(x)/x)*(x**2)
 
 
-def combine_feature(features, func=None):
+def combine_feature(features, func=sign_sta):
     """Coefficient-level fusion decision.
-    
+
     Args:
         features (list of float/int/ndarray): Different features.
         func (functions): Quantization function.
-    
+
     Returns:
         coef (the same type with elements of features): Combined coefficients.
-    
+
     """
     coef = np.zeros_like(features[0])
     for feature in features:
@@ -116,6 +159,7 @@ def combine_feature(features, func=None):
     return coef
 
 
+# %% algorithm evaluation
 def acc_compute(rou):
     """Compute accuracy.
 
@@ -123,19 +167,36 @@ def acc_compute(rou):
         rou (ndarray): (n_events(real), n_test, n_events(models)). Decision coefficients.
 
     Returns:
-        # correct (list): (n_events,). Correct trials for each event.
         acc (float)
     """
     n_events = rou.shape[0]
     n_test = rou.shape[1]
     correct = []
-    for netr in range(n_events):
+    for ner in range(n_events):
         temp = 0
         for nte in range(n_test):
-            if np.argmax(rou[netr,nte,:])==netr:
+            if np.argmax(rou[ner,nte,:]) == ner:
                 temp += 1
         correct.append(temp)
     return np.sum(correct)/(n_test*n_events)
+
+
+def confusion_matrix(rou):
+    """Compute confusion matrix.
+
+    Args:
+        rou (ndarray): (n_events(real), n_test, n_events(models)). Decision coefficients.
+
+    Returns:
+        cm (ndarray): (n_events, n_events).
+    """
+    n_events = rou.shape[0]
+    n_test = rou.shape[1]
+    cm = np.zeros((n_events, n_events))  # (Ne,Ne)
+    for ner in range(n_events):
+        for nte in range(n_test):
+            cm[ner,np.argmax(rou[ner,nte,:])] += 1
+    return cm/n_test
 
 
 def itr(number, time, acc):
@@ -147,8 +208,7 @@ def itr(number, time, acc):
         acc (float): 0-1
 
     Returns:
-        correct (list): (n_events,). Correct trials for each event.
-        acc (float)
+        result (float)
     """
     part_a = log(number,2)
     if acc==1.0 or acc==100:  # avoid spectial situation
@@ -161,26 +221,8 @@ def itr(number, time, acc):
 
 
 # %% spatial distances
-def corr_coef(X, y):
-    """Pearson's Correlation Coefficient.
-    
-    Args:
-        X (ndarray): (m, n_points). Multi-pieces of data.
-            m could be 1 but not be ignored.
-        y (ndarray): (1, n_points) or (n_points,)
-        
-    Returns:
-        corrcoef (ndarray): (1,m) or (m,)
-    """
-    # X, y = zero_mean(X), zero_mean(y)
-    cov_yX = y @ X.T
-    var_XX, var_yy = sqrt(diagonal(X @ X.T)), sqrt(y @ y.T)
-    corrcoef = cov_yX / (var_XX*var_yy)
-    return corrcoef
-
-
-def corr2_coef(X, Y):
-    """2-D Pearson correlation coefficient.
+def pearson_corr(X, Y):
+    """Pearson correlation coefficient (1-D or 2-D).
     
     Args:
         X (ndarray): (..., n_points)
@@ -189,30 +231,25 @@ def corr2_coef(X, Y):
     Returns:
         corrcoef (float)
     """
-    # if not zero_mean():
-    # mean_X, mean_Y = X.mean(), Y.mean()
-    # numerator = einsum('ij->', (X-mean_X)*(Y-mean_Y))
-    # denominator_X = einsum('ij->', (X-mean_X)**2)
-    # denominator_Y = einsum('ij->', (Y-mean_Y)**2)
-    
-    # using np.einsum() could be nearly 10% faster than np.sum()
-    covariance = np.sum(X*Y)   # float
-    variance_X = np.sum(X**2)  # float
-    variance_Y = np.sum(Y**2)  # float
-    corrcoef = covariance / sqrt(variance_X*variance_Y)
+    # check if not zero_mean():
+    # X,Y = zero_mean(X), zero_mean(Y)
+    cov_xy = np.sum(X*Y)
+    var_x = np.sum(X**2)
+    var_y = np.sum(Y**2)
+    corrcoef = cov_xy / sqrt(var_x*var_y)
     return corrcoef
 
 
 def fisher_score(dataset=(), *args):
     """Fisher Score (sequence) in time domain.
-    
+
     Args:
         dataset (tuple of ndarray): (event1, event2, ...).
             The shape of each data matrix must be (n_trials, n_features).
             n_features must be the same (n_trials could be various).
-            
+
     Returns:
-        fs (ndarray): (1, n_features). Fisher-Score sequence.
+        fs (ndarray): (n_features). Fisher-Score sequence.
     """
     # data information
     n_events = len(dataset)
@@ -256,11 +293,12 @@ def euclidean_dist(X, Y):
 
 def cosine_sim(x, y):
     """Cosine similarity.
-    
+    Equal to corr_coef() if x & y are zero-meaned.
+
     Args:
         x (ndarray or list): (n_points,)
         y (ndarray or list): (n_points,)
-        
+
     Returns:
         sim (float)
     """
@@ -270,12 +308,12 @@ def cosine_sim(x, y):
 
 def minkowski_dist(x, y, p):
     """Minkowski distance.
-    
+
     Args:
         x (ndarray): (n_points,).
         y (ndarray): (n_points,).
         p (int): Hyper-parameter.
-        
+
     Returns:
         dist (float)
     """
@@ -285,11 +323,11 @@ def minkowski_dist(x, y, p):
 
 def mahalanobis_dist(X, y):
     """Mahalanobis distance.
-    
+
     Args:
         X (ndarray): (n_trials, n_points). Training dataset.
-        y (ndarray): (n_points,) or (1, n_points). Test data.
-        
+        y (ndarray): (n_points,). Test data.
+
     Returns:
         dist (float)
     """
@@ -378,26 +416,6 @@ def laplacian_matrix(W):
 
 
 # %% reduced QR decomposition
-def sine_template(freq, phase, n_points, n_harmonics, sfreq):
-    """Create sine-cosine template for SSVEP signals.
-
-    Args:
-        freq (float or int): Basic frequency.
-        phase (float or int): Initial phase.
-        n_points (int): Sampling points.
-        n_harmonics (int): Number of harmonics.
-        sfreq (float or int): Sampling frequency.
-
-    Returns:
-        Y (ndarray): (n_points, 2*n_harmonics).
-    """
-    Y = np.zeros((n_points, 2*n_harmonics))  # (Np, 2Nh)
-    for nh in range(n_harmonics):
-        Y[:,2*nh] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
-        Y[:,2*nh+1] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
-    return Y
-
-
 def qr_projection(X):
     """Orthogonal projection based on QR decomposition of X.
 
@@ -410,3 +428,79 @@ def qr_projection(X):
     Q,_ = LA.qr(X, mode='economic')
     P = Q @ Q.T  # (Np,Np)
     return P
+
+
+# %% Eigenvalue problems
+def pick_subspace(descend_order, e_val_sum, ratio):
+    """Config the number of subspaces.
+
+    Args:
+        descend_order (List of tuple, (idx,e_val)): See it in solve_gep() or solve_ep().
+        e_val_sum (float): Trace of covariance matrix.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+
+    Returns:
+        Nk (int): The number of subspaces.
+    """
+    temp_val_sum = 0
+    for Nk,do in enumerate(descend_order):  # n_sp: n_subspace
+        temp_val_sum += do[1]
+        if temp_val_sum > ratio*e_val_sum:
+            return Nk+1
+
+
+def solve_ep(A, Nk=None, ratio=None, mode='Max'):
+    """Solve eigenvalue problems | Rayleigh quotient: 
+        f(w)=wAw^T/(ww^T) -> Aw = lambda w
+
+    Args:
+        A (ndarray): (m,m)
+        B (ndarray): (m,m)
+        Nk (int): Number of eigenvectors picked as filters.
+            Eigenvectors are referring to eigenvalues sorted in descend order.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+        mode (str): 'Max' or 'Min'. Depends on target function.
+
+    Returns:
+        w (ndarray): (Nk,m). Picked eigenvectors.
+    """
+    e_val_sum = A.trace()
+    e_val, e_vec = LA.eig(A)
+    descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
+    w_index = [do[0] for do in descend_order]
+    if not Nk:
+        Nk = pick_subspace(descend_order, e_val_sum, ratio)
+    if mode == 'Min':
+        return e_vec[:,w_index][:,Nk:].T  # (Nk,m)
+    elif mode == 'Max':
+        return e_vec[:,w_index][:,:Nk].T  # (Nk,m)
+
+
+def solve_gep(A, B, Nk=None, ratio=None, mode='Max'):
+    """Solve generalized problems | generalized Rayleigh quotient:
+        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw
+
+    Args:
+        A (ndarray): (m,m)
+        B (ndarray): (m,m)
+        Nk (int): Number of eigenvectors picked as filters.
+            Eigenvectors are referring to eigenvalues sorted in descend order.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+        mode (str): 'Max' or 'Min'. Depends on target function.
+
+    Returns:
+        w (ndarray): (Nk,m). Picked eigenvectors.
+    """
+    e_matrix = LA.solve(B,A)
+    e_val_sum = e_matrix.trace()
+    e_val, e_vec = LA.eig(e_matrix)
+    descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
+    w_index = [do[0] for do in descend_order]
+    if not Nk:
+        Nk = pick_subspace(descend_order, e_val_sum, ratio)
+    if mode == 'Min':
+        return e_vec[:,w_index][:,Nk:].T  # (Nk,m)
+    elif mode == 'Max':
+        return e_vec[:,w_index][:,:Nk].T  # (Nk,m)
+
+

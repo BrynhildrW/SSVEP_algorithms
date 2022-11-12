@@ -3,9 +3,25 @@
 @ author: Brynhildr Wu
 @ email: brynhildrwu@gmail.com
 
-TRCA series.
+Task-related component analysis (TRCA) series.
+    (1) (e)TRCA: 
+            DOI: 
+    (2) ms-(e)TRCA: 
+            DOI: 
+    (3) (e)TRCA-R:
+            DOI:
+    (4) sc-(e)TRCA:
+            DOI:
+    (5) gTRCA:
+            DOI:
+    (6) xTRCA:
+            DOI:
+    (7) LA-TRCA:
+            DOI:
+    (8) TDCA:
+            DOI:
 
-update: 2022/7/20
+update: 2022/11/11
 
 """
 
@@ -13,46 +29,26 @@ update: 2022/7/20
 from utils import *
 
 
-# %% universal function
-def solve_gep(A, B, Nk):
-    """Solve generalized eigenvalue problems. f(w)=wAw^T/(wBw^T)
-
-    Args:
-        A (ndarray): (m,m)
-        B (ndarray): (m,m)
-        Nk (int): Number of eigenvectors picked as filters.
-            Eigenvectors are referring to eigenvalues sorted in descend order.
-
-    Returns:
-        w (ndarray): (Nk,m). Picked eigenvectors.
-    """
-    e_val, e_vec = LA.eig(LA.solve(B,A))
-    descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
-    w_index = [do[0] for do in descend_order]
-    w = e_vec[:,w_index][:,:Nk].T  # (Nk,m)
-    return w
-
-
-# %% Task-related component analysis
+# %% 
 # (ensemble) TRCA | (e)TRCA
-def trca_compute(X, Nk=1):
+def trca_compute(X, Nk=1, ratio=None):
     """Task-related component analysis.
-    n_events is a non-ignorable parameter, could be 1 if not necessary.
+    n_events is a non-ignorable parameter, could be 1 if necessary.
 
     Args:
         X (ndarray): (n_events, n_train, n_chans, n_points).
-        Nk (int): Number of eigenvectors picked as filters. Defaults to be 1.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
 
     Returns:
         w (ndarray): (n_events, Nk, n_chans). Spatial filters.
     """
-    # preprocess
-    X = zero_mean(X)
-    
     # basic information
     n_events = X.shape[0]
     n_chans = X.shape[2]
-    
+
     # Q: covariance of original data | (Ne,Nc,Nc)
     Q = einsum('etcp,ethp->ech', X,X)
 
@@ -63,54 +59,20 @@ def trca_compute(X, Nk=1):
     # GEPs
     w = np.zeros((n_events, Nk, n_chans))  # (Ne,Nk,Nc)
     for ne in range(n_events):
-        w[ne,...] = solve_gep(S[ne,...], Q[ne,...], Nk)
-    return w.squeeze()
+        w[ne,...] = solve_gep(S[ne,...], Q[ne,...], Nk, ratio)
+    return w
 
 
-def etrca(train_data, test_data):
+def etrca(train_data, test_data, Nk=1, ratio=None):
     """Using TRCA & eTRCA to compute decision coefficients.
-    
-    Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        test_data (ndarray): (n_events, n_test, n_chans, n_points).
 
-    Returns:
-        rou (ndarray): (n_events for real, n_test, n_events for model).
-        erou (ndarray): (n_events, n_test, n_events).
-    """
-    # basic information
-    n_events = train_data.shape[0]
-    n_test = test_data.shape[1]
-
-    # training models & filters
-    w = trca_compute(train_data)  # (Ne,Nc)
-    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ec,vcp->vep', w,train_mean)  # (Ne real,Ne model,Np)
-    
-    # pattern matching
-    rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
-    erou = np.zeros_like(rou)
-    for ner in range(n_events):
-        for nte in range(n_test):
-            temp = test_data[ner,nte,...]  # (Nc,Np)
-            for nem in range(n_events):
-                # TRCA
-                rou[ner,nte,nem] = corr_coef(w[[nem],...]@temp, model[[nem],...])[0,0]
-
-                # eTRCA
-                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
-    return rou, erou
-
-
-def etrca_md(train_data, test_data, Nk):
-    """Special version for etrca() | multiple dimension, Nk>1
-        Maybe useful when in high frequency.
-    
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
         test_data (ndarray): (n_events, n_test, n_chans, n_points).
         Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
 
     Returns:
         rou (ndarray): (n_events for real, n_test, n_events for model).
@@ -121,11 +83,11 @@ def etrca_md(train_data, test_data, Nk):
     n_test = test_data.shape[1]
 
     # training models & filters
-    w = trca_compute(train_data, Nk)  # (Ne,Nk,Nc)
+    w = trca_compute(train_data, Nk, ratio)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
-    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Nk,Np)
-    
+    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Np)
+    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Np)
+
     # pattern matching
     rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
     erou = np.zeros_like(rou)
@@ -133,12 +95,8 @@ def etrca_md(train_data, test_data, Nk):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                # TRCA
-                rou[ner,nte,nem] = corr2_coef(w[nem,...]@temp, model[nem,...])
-                
-                # eTRCA
-                f_temp = einsum('ekc,cp->ekp', w,temp)
-                erou[ner,nte,nem] = corr2_coef(f_temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[[nem],...]@temp, model[[nem],...])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
     return rou, erou
 
 
@@ -152,12 +110,12 @@ def etrca_sp(train_data, test_data, Nk=1):
     Pearson correlation coefficient of two projected templates are checked. If 
     that value is positive, it means that one of those filters has a phase inversion.
     Then a filter is randomly selected and multiplied by -1.
-    
+
     Args:
         train_data (ndarray): (2, n_train, n_chans, n_points).
         test_data (ndarray): (2, n_test, n_chans, n_points).
         Nk (int): Number of eigenvectors picked as filters. Defaults to be 1.
-    
+
     Returns:
         rou (ndarray): (2, n_test, 2).
         erou (ndarray): (2, n_test, 2).
@@ -168,11 +126,11 @@ def etrca_sp(train_data, test_data, Nk=1):
     # training models & filters
     w = trca_compute(train_data, Nk)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ec,vcp->vep', w,train_mean)  # (Ne real,Ne model,Np)
+    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Np)
+    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Np)
 
     # sign check for filters & models
-    coef = corr_coef(model[[0],:], model[[1],:])[0,0]
+    coef = pearson_corr(model[[0],:], model[[1],:])
     if coef > 0:
         w[-1,:] *= -1
         model[-1,:] *= -1
@@ -185,60 +143,34 @@ def etrca_sp(train_data, test_data, Nk=1):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(2):
-                rou[ner,nte,nem] = corr_coef(w[[nem],:]@temp, model[[nem],:])[0,0]
-                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[[nem],:]@temp, model[[nem],:])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
     return rou, erou
 
 
 # multi-stimulus (e)TRCA | ms-(e)TRCA
-def augmented_events(n_events, d):
-    """Generate indices for merged events for each target event.
-    
-    Args:
-        n_events (int)
-        d (int): The range of events to be merged.
-    
-    Returns:
-        events_group (dict): {'events':[start index,end index]}
-    """
-    events_group = {}
-    for ne in range(n_events):
-        if ne <= d/2:
-            events_group[str(ne)] = [0,d]
-        elif ne >= int(n_events-d/2):
-            events_group[str(ne)] = [n_events-d,n_events]
-        else:
-            m = int(d/2)  # forward augmentation
-            events_group[str(ne)] = [ne-m,ne-m+d]
-    return events_group
-
-
-def mstrca_compute(X, d, Nk=1, events_group=None):
+def mstrca_compute(X, Nk=1, events_group=None):
     """Multi-stimulus TRCA.
 
     Args:
         X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
-        d (int): The range of events to be merged.
         Nk (int): Number of eigenvectors picked as filters.
         events_group (dict): {'events':[start index,end index]}
 
     Returns:
         w (ndarray): (n_events, Nk, n_chans). Spatial filters.
     """
-    # preprocess
-    X = zero_mean(X)
-    
     # basic information
     n_events = X.shape[0]
     n_chans = X.shape[2]
 
     # Q: covariance of original data for each event | (Ne,Nc,Nc)
     total_Q = einsum('etcp,ethp->ech', X,X)
-    
+
     # S: covariance of averaged data | (Ne,Nc,Nc)
     Xsum = np.sum(X, axis=1)
     total_S = einsum('ecp,ehp->ech', Xsum, Xsum)
-    
+
     # GEPs with merged data
     w = np.zeros((n_events, Nk, n_chans))  # (Ne,Nk,Nc)
     for ne in range(n_events):
@@ -247,53 +179,12 @@ def mstrca_compute(X, d, Nk=1, events_group=None):
         temp_Q = np.sum(total_Q[st:ed], axis=0)  # (Nc,Nc)
         temp_S = np.sum(total_S[st:ed], axis=0)  # (Nc,Nc)
         w[ne,...] = solve_gep(temp_S, temp_Q, Nk)
-    return w.squeeze()
+    return w
 
 
-def msetrca(train_data, test_data, d, **kwargs):
+def msetrca(train_data, test_data, d, Nk, **kwargs):
     """Using ms-(e)TRCA to compute decision coefficients.
 
-    Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        test_data (ndarray): (n_events, n_test, n_chans, n_points).
-        d (int): The range of events to be merged.
-
-    Returns:
-        rou (ndarray): (n_events for real, n_test, n_events for model).
-        erou (ndarray): (n_events, n_test, n_events).
-    """
-    # basic information
-    n_events = train_data.shape[0]
-    n_test = test_data.shape[1]
-    try:
-        events_group = kwargs['events_group']
-    except KeyError:
-        events_group = augmented_events(n_events, d)
-
-    # training models & filters
-    w = mstrca_compute(X=train_data, d=d, Nk=1, events_group=events_group)  # (Ne,Nc)
-    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ec,vcp->vep', w,train_mean)  # (Ne real,Ne model,Np)
-
-    # pattern matching
-    rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
-    erou = np.zeros_like(rou)
-    for ner in range(n_events):
-        for nte in range(n_test):
-            temp = test_data[ner,nte,...]  # (Nc,Np)
-            for nem in range(n_events):
-                # ms-TRCA
-                rou[ner,nte,nem] = corr_coef(w[[nem],...]@temp, model[[nem],...])[0,0]
-
-                # ms-eTRCA
-                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])  # ms-eTRCA
-    return rou, erou
-
-
-def msetrca_md(train_data, test_data, d, Nk, **kwargs):
-    """Special version for msetrca() | multiple dimension, Nk>1
-    
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
         test_data (ndarray): (n_events, n_test, n_chans, n_points).
@@ -311,13 +202,13 @@ def msetrca_md(train_data, test_data, d, Nk, **kwargs):
         events_group = kwargs['events_group']
     except KeyError:
         events_group = augmented_events(n_events, d)
-    
+
     # training models & filters
-    w = mstrca_compute(X=train_data, d=d, Nk=1, events_group=events_group)  # (Ne,Nk,Nc)
+    w = mstrca_compute(train_data, Nk, events_group)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
     model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
     emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Nk,Np)
-    
+
     # pattern matching
     rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
     erou = np.zeros_like(rou)
@@ -325,12 +216,8 @@ def msetrca_md(train_data, test_data, d, Nk, **kwargs):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                # ms-TRCA
-                rou[ner,nte,nem] = corr2_coef(w[nem,...]@temp, model[nem,...])
-                
-                # ms-eTRCA
-                f_temp = einsum('ekc,cp->ekp', w,temp)
-                erou[ner,nte,nem] = corr2_coef(f_temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[[nem],...]@temp, model[[nem],...])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
     return rou, erou
 
 
@@ -358,55 +245,18 @@ def trcar_compute(X, Y, Nk=1):
 
     # S: covariance of averaged data | (Ne,Nc,Nc)
     Xsum = np.sum(X, axis=1)  # (Ne,Nc,Np)
-    pX = einsum('ecp,ehp->ech', Xsum, Y)  # (Ne,Nc,2Nh)
+    pX = einsum('ecp,ehp->ech', Xsum,Y)  # (Ne,Nc,2Nh)
     S = einsum('ech,eah->eca', pX,pX)  # (Ne,Nc,Nc)
 
     # GEPs
-    w = np.zeros((n_events, n_chans))  # (Ne,Nc)
+    w = np.zeros((n_events, Nk, n_chans))  # (Ne,Nc)
     for ne in range(n_events):
         w[ne,...] = solve_gep(S[ne,...], Q[ne,...], Nk)
-    return w.squeeze()
+    return w
 
 
 def etrcar(train_data, sine_template, test_data):
     """Use (e)TRCA-R to compute decision coefficients.
-
-    Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
-        test_data (ndarray): (n_events, n_test, n_chans, n_points).
-
-    Returns:
-        rou (ndarray): (n_events for real, n_test, n_events for model).
-        erou (ndarray): (n_events, n_test, n_events).
-    """
-    # basic information
-    n_events = train_data.shape[0]
-    n_test = test_data.shape[1]
-
-    # training models & filters
-    w = trcar_compute(train_data, sine_template)  # (Ne,Nc)
-    train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ec,ecp->ep', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ec,vcp->vep', w,train_mean)  # (Ne real,Ne model,Np)
-
-    # pattern matching
-    rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
-    erou = np.zeros_like(rou)
-    for ner in range(n_events):
-        for nte in range(n_test):
-            temp = test_data[ner,nte,...]  # (Nc,Np)
-            for nem in range(n_events):
-                # TRCA-R
-                rou[ner,nte,nem] = corr_coef(w[[nem],:]@temp, model[[nem],:])[0,0]
-
-                # eTRCA-R
-                erou[ner,nte,nem] = corr2_coef(w@temp, emodel[nem,...])
-    return rou, erou
-
-
-def etrcar_md(train_data, sine_template, test_data, Nk):
-    """Special version for etrcar() | multiple dimension, Nk>1
 
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
@@ -423,7 +273,7 @@ def etrcar_md(train_data, sine_template, test_data, Nk):
     n_test = test_data.shape[1]
 
     # training models & filters
-    w = trcar_compute(train_data, sine_template, Nk)  # (Ne,Nk,Nc)
+    w = trcar_compute(train_data, sine_template)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
     model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
     emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Nk,Np)
@@ -435,13 +285,8 @@ def etrcar_md(train_data, sine_template, test_data, Nk):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                # TRCA-R
-                f_temp = w[nem,...]@temp  # (Nk,Np)
-                rou[ner,nte,nem] = corr2_coef(f_temp, model[nem,...])[0,0]
-
-                # eTRCA-R
-                f_temp = einsum('ekc,cp->ekp', w,temp)  # (Ne,Nk,Np)
-                erou[ner,nte,nem] = corr2_coef(f_temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[[nem],:]@temp, model[[nem],:])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
     return rou, erou
 
 
@@ -732,4 +577,4 @@ def scetrca_sp(train_data, sine_template, test_data):
 
 
 
-# 
+# optimized TRCA | op-TRCA
