@@ -12,8 +12,15 @@ Canonical correlation analysis (CCA) series.
             DOI: 10.1109/TBME.2020.2975552
     (4) ms-eCCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
             DOI: 10.1088/1741-2552/ab2373
+    (5) MsetCCA: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
+            DOI: 10.1142/S0129065714500130
+    (6) MwayCCA: 
+            DOI: 
+    (7) CCA-M3: https://www.worldscientific.com/doi/abs/10.1142/S0129065720500203
+            DOI: 10.1142/S0129065720500203
+    (8)
 
-update: 2022/11/11
+update: 2022/11/15
 
 """
 
@@ -21,7 +28,7 @@ update: 2022/11/11
 from utils import *
 
 
-# %% standard CCA | CCA
+# %% (1) standard CCA | CCA
 def cca_compute(X, Y, Nk=1, ratio=None):
     """Canonical correlation analysis.
 
@@ -42,9 +49,9 @@ def cca_compute(X, Y, Nk=1, ratio=None):
     Cxx = X @ X.T  # (Nc,Nc)
     Cyy = Y @ Y.T  # (2Nh,2Nh)
     Cxy = X @ Y.T  # (Nc,2Nh)
-    Cyx = Cyx.T  # (2Nh,Nc)
-    A = LA.solve(Cxx,Cxy) @ LA.solve(Cyy,Cyx)  # AU = lambda*U
-    B = LA.solve(Cyy,Cyx) @ LA.solve(Cxx,Cxy)  # BV = lambda*V
+    Cyx = Cxy.T  # (2Nh,Nc)
+    A = sLA.solve(Cxx,Cxy) @ sLA.solve(Cyy,Cyx)  # AU = lambda*U
+    B = sLA.solve(Cyy,Cyx) @ sLA.solve(Cxx,Cxy)  # BV = lambda*V
 
     # EEG part
     U = solve_ep(A, Nk, ratio)  # (Nk,Nc)
@@ -54,12 +61,12 @@ def cca_compute(X, Y, Nk=1, ratio=None):
     return U, V
 
 
-def cca(test_data, template, Nk=1, ratio=None):
+def cca(template, test_data, Nk=1, ratio=None):
     """Using CCA to compute decision coefficients.
 
     Args:
-        test_data (ndarray): (n_events, n_test, n_chans, n_points).
         template (ndarray): (n_events, 2*n_harmonics, n_points).
+        test_data (ndarray): (n_events, n_test, n_chans, n_points).
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
@@ -78,19 +85,19 @@ def cca(test_data, template, Nk=1, ratio=None):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                U, V = cca_compute(temp, template[nem,...], Nk, ratio)
+                U, V = cca_compute(X=temp, Y=template[nem,...], Nk=Nk, ratio=ratio)
                 rou[ner,nte,nem] = pearson_corr(U@temp, V@template[nem,...])
     return rou
 
 
-# %% Extended CCA | eCCA
-def ecca_compute(Xmean, Y, data, Nk=1, ratio=None):
+# %% (2) Extended CCA | eCCA
+def ecca_compute(Xmean, Y, test_data, Nk=1, ratio=None):
     """CCA with individual calibration data.
 
     Args:
         Xmean (ndarray): (n_chans, n_points). Trial-averaged SSVEP template.
         Y (ndarray): (2*n_harmonics, n_points). Sinusoidal SSVEP template.
-        data (ndarray): (n_chans, n_points). Test-trial EEG.
+        test_data (ndarray): (n_chans, n_points). Test-trial EEG.
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
@@ -100,33 +107,33 @@ def ecca_compute(Xmean, Y, data, Nk=1, ratio=None):
         rou (float): feature coefficient.
     """
     # correlation coefficient from CCA process
-    U1, V1 = cca(data, Y, Nk, ratio)
-    r1 = pearson_corr(U1@data, V1@Y)
+    U1, V1 = cca_compute(X=test_data, Y=Y, Nk=Nk, ratio=ratio)
+    r1 = pearson_corr(U1@test_data, V1@Y)
 
     # correlation coefficients between single-trial EEG and SSVEP templates
-    U2, V2 = cca(data, Xmean, Nk, ratio)
-    r2 = pearson_corr(U2@data, U2@Xmean)
+    U2, V2 = cca_compute(X=test_data, Y=Xmean, Nk=Nk, ratio=ratio)
+    r2 = pearson_corr(U2@test_data, U2@Xmean)
 
-    r3 = pearson_corr(U1@data, U1@Xmean)
+    r3 = pearson_corr(U1@test_data, U1@Xmean)
 
-    U3, _ = cca(Xmean, Y, Nk, ratio)
-    r4 = pearson_corr(U3@data, U3@Xmean)
+    U3, _ = cca_compute(X=Xmean, Y=Y, Nk=Nk, ratio=ratio)
+    r4 = pearson_corr(U3@test_data, U3@Xmean)
 
     # similarity between filters corresponding to single-trial EEG and SSVEP templates
     r5 = pearson_corr(U2@Xmean, V2@Xmean)
 
     # combined features
     rou = combine_feature([r1, r2, r3, r4, r5])
-    return rou
+    return np.real(rou)
 
 
-def ecca(train_data, test_data, Y, Nk=1, ratio=None):
+def ecca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """Use eCCA to compute decision coefficient.
 
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
         test_data (ndarray): (n_events, n_test, n_chans, n_points).
-        Y (ndarray): (n_events, 2*n_harmonics, n_points).
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
@@ -146,7 +153,8 @@ def ecca(train_data, test_data, Y, Nk=1, ratio=None):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
                 Xmean = train_data[nem,...].mean(axis=0)  # (Nc,Np)
-                rou[ner,nte,nem] = ecca_compute(Xmean, Y[nem,...], temp, Nk, ratio)
+                rou[ner,nte,nem] = ecca_compute(Xmean=Xmean, Y=sine_template[nem,...],
+                                                test_data=temp, Nk=Nk, ratio=ratio)
     return rou
 
 
@@ -164,16 +172,17 @@ def ecca_sp_compute(Xmean, Y, data):
     U1, V1 = cca(test_data=data, template=Y)
     U2, V2 = cca(test_data=data, template=Xmean)
     U3, V3 = cca(test_data=Xmean, template=Y)
+    pass
 
 
-# %% Multi-stimulus eCCA | ms-eCCA
+# %% (3-4) Multi-stimulus eCCA | ms-eCCA
 # msCCA is only part of ms-eCCA. Personally, i dont like this design
-def mscca_compute(X, Y, Nk=1, ratio=None):
+def mscca_compute(Xmean, sine_template, Nk=1, ratio=None):
     """Multi-stimulus CCA.
 
     Args:
-        X (ndarray): (n_events, n_chans, n_points). Averaged template.
-        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        Xmean (ndarray): (n_events, n_chans, n_points). Averaged template.
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
@@ -183,23 +192,23 @@ def mscca_compute(X, Y, Nk=1, ratio=None):
         w (ndarray): (Nk, n_chans). Common spatial filter.
     """
     # GEPs' conditions
-    Czz = einsum('ecp,ehp->ch', X,X)  # (Nc,Nc)
-    Cyy = einsum('ecp,ehp->ch', Y,Y)  # (2Nh,2Nh)
-    Czy = einsum('ecp,ehp->ch', X,Y)  # (Nc,2Nh)
+    Czz = einsum('ecp,ehp->ch', Xmean,Xmean)  # (Nc,Nc)
+    Cyy = einsum('ecp,ehp->ch', sine_template,sine_template)  # (2Nh,2Nh)
+    Czy = einsum('ecp,ehp->ch', Xmean,sine_template)  # (Nc,2Nh)
     Cyz = Czy.T  # (2Nh,Nc)
-    A = LA.solve(Czz,Czy) @ LA.solve(Cyy,Cyz)  # AU = lambda*U
+    A = sLA.solve(Czz,Czy) @ sLA.solve(Cyy,Cyz)  # AU = lambda*U
 
     # ms-CCA part
     w = solve_ep(A, Nk, ratio)  # (Nk,Nc)
     return w
 
 
-def mscca(train_data, Y, test_data, Nk=1, ratio=None):
+def mscca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """Use msCCA to compute decision coefficients.
 
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
         test_data (ndarray): (n_events, n_test, n_chans, n_points).
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
@@ -212,15 +221,12 @@ def mscca(train_data, Y, test_data, Nk=1, ratio=None):
     # basic information
     n_events = train_data.shape[0]
     n_test = test_data.shape[1]
-    n_chans = test_data.shape[2]
-    n_points = test_data.shape[-1]
 
     # training models & filters
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = np.zeros((n_events, n_points))  # (Ne,Np)
-    w = mscca_compute(train_mean, Y, Nk, ratio)  # (1,Nc)
-    for ne in range(n_events):
-        model[ne,:] = w @ train_mean[ne,...]  # (1,Np)
+    w = mscca_compute(Xmean=train_mean, sine_template=sine_template,
+                      Nk=Nk, ratio=ratio)  # (Nk,Nc)
+    model = einsum('kc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
 
     # pattern matching
     rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
@@ -228,16 +234,16 @@ def mscca(train_data, Y, test_data, Nk=1, ratio=None):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                rou[ner,nte,nem] = pearson_corr(w@temp, model[[nem],:])
+                rou[ner,nte,nem] = pearson_corr(w@temp, model[nem,...])
     return rou
 
 
-def msecca_compute(X, Y, events_group=None, Nk=1, ratio=None):
+def msecca_compute(Xmean, sine_template, events_group=None, Nk=1, ratio=None):
     """Multi-stimulus eCCA.
 
     Args:
-        X (ndarray): (n_events, n_chans, n_points). Averaged template.
-        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        Xmean (ndarray): (n_events, n_chans, n_points). Averaged template.
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
         events_group (dict): {'events':[start index,end index]}
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
@@ -245,22 +251,19 @@ def msecca_compute(X, Y, events_group=None, Nk=1, ratio=None):
             Defaults to be 'None'.
 
     Returns:
-        U (ndarray): (n_events, Nk, n_chans). Spatial filters for EEG.
-        V (ndarray): (n_events, Nk, 2*n_harmonics). Spatial filters for templates.
+        U (list of ndarray): n_events * (Nk, n_chans). Spatial filters for EEG.
+        V (list of ndarray): n_events * (Nk, 2*n_harmonics). Spatial filters for templates.
     """
     # basic information
-    n_events = X.shape[0]
-    n_chans = X.shape[2]
-    n_harmonics_2 = Y.shape[1]  # 2Nh
+    n_events = Xmean.shape[0]
 
     # GEPs' conditions
-    Czz_total = einsum('ecp,ehp->ech', X,X)  # (Ne,Nc,Nc)
-    Cyy_total = einsum('ecp,ehp->ech', Y,Y)  # (Ne,2Nh,2Nh)
-    Czy_total = einsum('ecp,ehp->ech', X,Y)  # (Ne,Nc,2Nh)
+    Czz_total = einsum('ecp,ehp->ech', Xmean,Xmean)  # (Ne,Nc,Nc)
+    Cyy_total = einsum('ecp,ehp->ech', sine_template,sine_template)  # (Ne,2Nh,2Nh)
+    Czy_total = einsum('ecp,ehp->ech', Xmean,sine_template)  # (Ne,Nc,2Nh)
 
     # GEPs with merged data
-    U = np.zeros((n_events, Nk, n_chans))  # (Ne,Nk,Nc)
-    V = np.zeros((n_events, Nk, n_harmonics_2))  # (Ne,Nk,2*Nh)
+    U, V = [], []
     for ne in range(n_events):
         # GEPs' conditions
         idx = str(ne)
@@ -269,21 +272,21 @@ def msecca_compute(X, Y, events_group=None, Nk=1, ratio=None):
         Cyy = np.sum(Cyy_total[st:ed], axis=0)  # (2Nh,2Nh)
         Czy = np.sum(Czy_total[st:ed], axis=0)  # (Nc,2Nh)
         Cyz = Czy.T  # (2Nh,Nc)
-        A = LA.solve(Czz,Czy) @ LA.solve(Cyy,Cyz)  # AU = lambda*U
-        B = LA.solve(Cyy,Cyz) @ LA.solve(Czz,Czy)  # AU = lambda*U
+        A = sLA.solve(Czz,Czy) @ sLA.solve(Cyy,Cyz)  # AU = lambda*U
+        B = sLA.solve(Cyy,Cyz) @ sLA.solve(Czz,Czy)  # AU = lambda*U
 
         # solve GEPs
-        U[ne,...] = solve_ep(A, Nk, ratio)  # EEG part: (Nk,Nc)
-        V[ne,...] = solve_ep(B, Nk, ratio)  # template part: (Nk,2Nh)
+        U.append(solve_ep(A, Nk, ratio))  # EEG part: (Nk,Nc)
+        V.append(solve_ep(B, Nk, ratio))  # template part: (Nk,2Nh)
     return U, V
 
 
-def msecca(train_data, Y, test_data, d, Nk=1, ratio=None, **kwargs):
+def msecca(train_data, sine_template, test_data, d, Nk=1, ratio=None, **kwargs):
     """Using ms-eCCA to compute decision coefficients.
 
     Args:
         train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        Y (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
         test_data (ndarray): (n_events, n_test, n_chans, n_points).
         d (int): The range of events to be merged.
         Nk (int): Number of eigenvectors picked as filters.
@@ -303,10 +306,13 @@ def msecca(train_data, Y, test_data, d, Nk=1, ratio=None, **kwargs):
         events_group = augmented_events(n_events, d)
 
     # training models & filters
-    U,V = msecca_compute(train_data, Y, events_group, Nk, ratio)  # U: (Ne,Nk,Nc), V (Ne,Nk,2Nh)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model_eeg = einsum('ekc,ecp->ekp', U,train_mean)  # (Ne,Nk,Np)
-    model_template = einsum('ekh,ehp->ekp', V,Y)  # (Ne,Nk,Np)
+    U,V = msecca_compute(Xmean=train_mean, sine_template=sine_template,
+        events_group=events_group, Nk=Nk, ratio=ratio)
+    model_eeg, model_template = [], []
+    for ne in range(n_events):
+        model_eeg.append(U[ne] @ train_mean[ne])
+        model_template.append(V[ne] @ sine_template[ne])
 
     # pattern matching
     rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
@@ -314,16 +320,189 @@ def msecca(train_data, Y, test_data, d, Nk=1, ratio=None, **kwargs):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                r1 = pearson_corr(U[nem,...]@temp, model_template[nem,...])
-                r2 = pearson_corr(U[nem,...]@temp, model_eeg[nem,...])
-                rou[ner,nte,nem] = combine_feature([r1, r2])
+                r1 = pearson_corr(U[nem]@temp, model_template[nem])
+                r2 = pearson_corr(U[nem]@temp, model_eeg[nem])
+                rou[ner,nte,nem] = np.real(combine_feature([r1, r2]))
     return rou
 
 
-# Cross-subject spatial filter transfer method | CSSFT
+# %% (5) Multiset CCA | MsetCCA
+def msetcca_compute():
+    pass
+
+
+def msetcca():
+    pass
+
+
+# %% Cross-subject transfer learning | CSSFT
 def cssft_compute():
     pass
 
 
 def cssft():
     pass
+
+
+
+# %% Filter-bank CCA series | FB-
+def fbcca(template, test_data, Nk=1, ratio=None):
+    """CCA algorithms with filter banks.
+
+    Args:
+        template (ndarray): (n_events, 2*n_harmonics, n_points).
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+    n_events = test_data.shape[1]
+    n_test = test_data.shape[2]
+    
+    # multiple CCA classification
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = np.zeros((n_events, n_test, n_events))  # (Ne real, Nt, Ne model)
+        for ner in range(n_events):
+            for nte in range(n_test):
+                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
+                for nem in range(n_events):
+                    U, V = cca_compute(X=temp, Y=template[nem,...], Nk=Nk, ratio=ratio)
+                    temp_rou[ner,nte,nem] = pearson_corr(U@temp, V@template[nem,...])
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)
+
+
+def fbecca(train_data, sine_template, test_data, Nk=1, ratio=None):
+    """eCCA with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+    """
+    # basic information
+    n_bands = train_data.shape[0]
+    n_events = train_data.shape[1]
+    n_test = test_data.shape[2]
+
+    # pattern matching
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = np.zeros((n_events, n_test, n_events))
+        for ner in range(n_events):
+            for nte in range(n_test):
+                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
+                for nem in range(n_events):
+                    Xmean = train_data[nb,nem,...].mean(axis=0)  # (Nc,Np)
+                    temp_rou[ner,nte,nem] = ecca_compute(Xmean=Xmean, Y=sine_template[nem,...],
+                                                         test_data=temp, Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)
+
+
+def fbmscca(train_data, sine_template, test_data, Nk=1, ratio=None):
+    """msCCA with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+    """
+    # basic information
+    n_bands = train_data.shape[0]
+    n_events = train_data.shape[1]
+    n_test = test_data.shape[2]
+
+    # training models & filters
+    train_mean = train_data.mean(axis=2)  # (Nb,Ne,Nc,Np)
+    w, model = [], []
+    for nb in range(n_bands):
+        w.append(mscca_compute(Xmean=train_mean[nb], sine_template=sine_template,
+                               Nk=Nk, ratio=ratio))  # (Nk,Nc)
+        model.append(einsum('kc,ecp->ekp', w[nb],train_mean[nb]))  # (Ne,Nk,Np)
+
+    # pattern matching
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
+        for ner in range(n_events):
+            for nte in range(n_test):
+                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
+                for nem in range(n_events):
+                    temp_rou[ner,nte,nem] = pearson_corr(w[nb]@temp, model[nb][nem])
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)
+
+
+def fbmsecca(train_data, sine_template, test_data, d, Nk=1, ratio=None, **kwargs):
+    """ms-eCCA with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        d (int): The range of events to be merged.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events for real, n_test, n_events for model).
+    """
+    # basic information
+    n_bands = train_data.shape[0]
+    n_events = train_data.shape[1]
+    n_test = test_data.shape[2]
+    try:
+        events_group = kwargs['events_group']
+    except KeyError:
+        events_group = augmented_events(n_events, d)
+
+    # training models & filters
+    train_mean = train_data.mean(axis=2)  # (Nb,Ne,Nc,Np)
+    U = [[] for nb in range(n_bands)]
+    V = [[] for nb in range(n_bands)]
+    model_eeg = [[] for nb in range(n_bands)]
+    model_template = [[] for nb in range(n_bands)]
+    for nb in range(n_bands):
+        U[nb], V[nb] = msecca_compute(Xmean=train_mean[nb], sine_template=sine_template,
+                                      events_group=events_group, Nk=Nk, ratio=ratio)
+        for ne in range(n_events):
+            model_eeg[nb].append(U[nb][ne] @ train_mean[nb,ne,...])
+            model_template[nb].append(V[nb][ne] @ sine_template[ne])
+
+    # pattern matching
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
+        for ner in range(n_events):
+            for nte in range(n_test):
+                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
+                for nem in range(n_events):
+                    r1 = pearson_corr(U[nb][nem]@temp, model_template[nb][nem])
+                    r2 = pearson_corr(U[nb][nem]@temp, model_eeg[nb][nem])
+                    temp_rou[ner,nte,nem] = np.real(combine_feature([r1, r2]))
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)

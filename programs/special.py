@@ -40,3 +40,6 @@ def pt_proj(X, theta):
 # %% Discriminant Canonical Pattern Matching
 def dcpm(X, Y):
     pass
+
+
+# %% Filter-bank framework

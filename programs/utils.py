@@ -3,7 +3,7 @@
 @ author: Brynhildr Wu
 @ email: brynhildrwu@gmail.com
 
-update: 2022/11/11
+update: 2022/11/15
 
 """
 
@@ -11,11 +11,9 @@ update: 2022/11/11
 import numpy as np
 from numpy import (sin, sqrt, einsum)
 
-from scipy import linalg as LA
+from scipy import linalg as sLA
 
-from math import (pi, log)
-
-# from itertools import combinations
+from math import (pi, log, pow)
 
 # %% data preprocessing
 def zero_mean(X):
@@ -49,7 +47,7 @@ def sin_wave(freq, n_points, phase, sfreq=1000):
     return wave
 
 
-def sine_template(freq, phase, n_points, n_harmonics, sfreq):
+def sine_template(freq, phase, n_points, n_harmonics, sfreq=1000):
     """Create sine-cosine template for SSVEP signals.
 
     Args:
@@ -57,15 +55,15 @@ def sine_template(freq, phase, n_points, n_harmonics, sfreq):
         phase (float or int): Initial phase.
         n_points (int): Sampling points.
         n_harmonics (int): Number of harmonics.
-        sfreq (float or int): Sampling frequency.
+        sfreq (float or int): Sampling frequency. Defaults to 1000.
 
     Returns:
-        Y (ndarray): (n_points, 2*n_harmonics).
+        Y (ndarray): (2*n_harmonics, n_points).
     """
-    Y = np.zeros((n_points, 2*n_harmonics))  # (Np, 2Nh)
+    Y = np.zeros((2*n_harmonics, n_points))  # (2Nh, Np)
     for nh in range(n_harmonics):
-        Y[:,2*nh] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
-        Y[:,2*nh+1] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
+        Y[2*nh,:] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
+        Y[2*nh+1,:] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
     return Y
 
 
@@ -139,23 +137,40 @@ def sign_sta(x):
     Returns:
         y (float): y=sign(x)*x^2
     """
+    x = np.real(x)
     return (abs(x)/x)*(x**2)
 
 
 def combine_feature(features, func=sign_sta):
-    """Coefficient-level fusion decision.
+    """Coefficient-level integration.
 
     Args:
         features (list of float/int/ndarray): Different features.
         func (functions): Quantization function.
 
     Returns:
-        coef (the same type with elements of features): Combined coefficients.
+        coef (the same type with elements of features): Integrated coefficients.
 
     """
     coef = np.zeros_like(features[0])
     for feature in features:
         coef += func(feature)
+    return coef
+
+
+def combine_fb_feature(features):
+    """Coefficient-level integration specially for filter-bank design.
+
+    Args:
+        features (list of ndarray): Coefficient matrices of different sub-bands.
+
+    Returns:
+        coef (float): Integrated coefficients.
+
+    """
+    coef = np.zeros_like(features[0])
+    for nf,feature in enumerate(features):
+        coef += (pow(nf+1, -1.25) + 0.25) * (feature**2)
     return coef
 
 
@@ -211,7 +226,7 @@ def itr(number, time, acc):
         result (float)
     """
     part_a = log(number,2)
-    if acc==1.0 or acc==100:  # avoid spectial situation
+    if acc==1.0 or acc==100:  # avoid special situation
         part_b, part_c = 0, 0
     else:
         part_b = acc*log(acc,2)
@@ -333,7 +348,7 @@ def mahalanobis_dist(X, y):
     """
     cov_XX = einsum('ij,ik->jk', X,X)  # (Np, Np)
     mean_X = X.mean(axis=0, keepdims=True)  # (1, Np)
-    dist = sqrt((mean_X-y) @ LA.solve(cov_XX, (mean_X-y).T))
+    dist = sqrt((mean_X-y) @ sLA.solve(cov_XX, (mean_X-y).T))
     return dist
 
 
@@ -346,9 +361,9 @@ def nega_root(X):
     Returns:
         nr_X (ndarray): (m,m). X^(-1/2).
     """
-    e_val, e_vec = LA.eig(X)
+    e_val, e_vec = sLA.eig(X)
     nr_lambda = np.diag(1/sqrt(e_val))
-    nr_X = e_vec @ nr_lambda @ LA.inv(e_vec)
+    nr_X = e_vec @ nr_lambda @ sLA.inv(e_vec)
     return nr_X
 
 
@@ -361,7 +376,7 @@ def s_estimator(X):
     Returns:
         s_estimator (float)
     """
-    e_val, _ = LA.eig(X)
+    e_val, _ = sLA.eig(X)
     norm_e_val = e_val/einsum('ii->', X)
     numerator = np.sum([x*log(x) for x in norm_e_val])
     s_estimator = 1 + numerator/X.shape[0]
@@ -425,7 +440,7 @@ def qr_projection(X):
     Return:
         P (ndarray): (n_points, n_points).
     """
-    Q,_ = LA.qr(X, mode='economic')
+    Q,_ = sLA.qr(X, mode='economic')
     P = Q @ Q.T  # (Np,Np)
     return P
 
@@ -465,7 +480,7 @@ def solve_ep(A, Nk=None, ratio=None, mode='Max'):
         w (ndarray): (Nk,m). Picked eigenvectors.
     """
     e_val_sum = A.trace()
-    e_val, e_vec = LA.eig(A)
+    e_val, e_vec = sLA.eig(A)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
     if not Nk:
@@ -491,9 +506,9 @@ def solve_gep(A, B, Nk=None, ratio=None, mode='Max'):
     Returns:
         w (ndarray): (Nk,m). Picked eigenvectors.
     """
-    e_matrix = LA.solve(B,A)
+    e_matrix = sLA.solve(B,A)
     e_val_sum = e_matrix.trace()
-    e_val, e_vec = LA.eig(e_matrix)
+    e_val, e_vec = sLA.eig(e_matrix)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
     if not Nk:

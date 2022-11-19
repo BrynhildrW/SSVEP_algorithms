@@ -4,24 +4,26 @@
 @ email: brynhildrwu@gmail.com
 
 Task-related component analysis (TRCA) series.
-    (1) (e)TRCA: 
-            DOI: 
-    (2) ms-(e)TRCA: 
-            DOI: 
-    (3) (e)TRCA-R:
+    (1) (e)TRCA: https://ieeexplore.ieee.org/document/7904641/
+            DOI: 10.1109/TBME.2017.2694818
+    (2) ms-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
+            DOI: 10.1088/1741-2552/ab2373
+    (3) (e)TRCA-R: https://ieeexplore.ieee.org/document/9006809/
+            DOI: 10.1109/TBME.2020.2975552
+    (4) sc-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
+            DOI: 10.1088/1741-2552/abfdfa
+    (5) CORRCA: 
             DOI:
-    (4) sc-(e)TRCA:
+    (6) gTRCA: 
             DOI:
-    (5) gTRCA:
+    (7) xTRCA: 
             DOI:
-    (6) xTRCA:
+    (8) LA-TRCA: 
             DOI:
-    (7) LA-TRCA:
-            DOI:
-    (8) TDCA:
+    (9) TDCA: 
             DOI:
 
-update: 2022/11/11
+update: 2022/11/15
 
 """
 
@@ -29,14 +31,14 @@ update: 2022/11/11
 from utils import *
 
 
-# %% 
-# (ensemble) TRCA | (e)TRCA
-def trca_compute(X, Nk=1, ratio=None):
+# %% (1) (ensemble) TRCA | (e)TRCA
+def trca_compute(X, template, Nk=1, ratio=None):
     """Task-related component analysis.
     n_events is a non-ignorable parameter, could be 1 if necessary.
 
     Args:
-        X (ndarray): (n_events, n_train, n_chans, n_points).
+        X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+        template (ndarray): (n_events, n_chans, n_points).
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
@@ -52,9 +54,9 @@ def trca_compute(X, Nk=1, ratio=None):
     # Q: covariance of original data | (Ne,Nc,Nc)
     Q = einsum('etcp,ethp->ech', X,X)
 
-    # S: covariance of averaged data | (Ne,Nc,Nc)
-    Xsum = np.sum(X, axis=1)  # (Ne,Nc,Np)
-    S = einsum('ecp,ehp->ech', Xsum,Xsum)
+    # S: covariance of template | (Ne,Nc,Nc)
+    # template = np.sum(X, axis=1)  # (Ne,Nc,Np)
+    S = einsum('ecp,ehp->ech', template,template)
 
     # GEPs
     w = np.zeros((n_events, Nk, n_chans))  # (Ne,Nk,Nc)
@@ -83,10 +85,10 @@ def etrca(train_data, test_data, Nk=1, ratio=None):
     n_test = test_data.shape[1]
 
     # training models & filters
-    w = trca_compute(train_data, Nk, ratio)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Np)
+    w = trca_compute(X=train_data, template=train_mean, Nk=Nk, ratio=ratio)  # (Ne,Nk,Nc)
+    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
+    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Nk,Ne model,Np)
 
     # pattern matching
     rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
@@ -95,12 +97,12 @@ def etrca(train_data, test_data, Nk=1, ratio=None):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(n_events):
-                rou[ner,nte,nem] = pearson_corr(w[[nem],...]@temp, model[[nem],...])
-                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[nem]@temp, model[nem])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem])
     return rou, erou
 
 
-def etrca_sp(train_data, test_data, Nk=1):
+def etrca_sp(train_data, test_data, Nk=1, ratio=None):
     """Special version for etrca() | with signature check
        Because eigenvectors are not number-preserving, we cannot judge whether
     the spatial filter trained on target data will cause the phase inversion
@@ -114,7 +116,10 @@ def etrca_sp(train_data, test_data, Nk=1):
     Args:
         train_data (ndarray): (2, n_train, n_chans, n_points).
         test_data (ndarray): (2, n_test, n_chans, n_points).
-        Nk (int): Number of eigenvectors picked as filters. Defaults to be 1.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
 
     Returns:
         rou (ndarray): (2, n_test, 2).
@@ -124,17 +129,17 @@ def etrca_sp(train_data, test_data, Nk=1):
     n_test = test_data.shape[1]
 
     # training models & filters
-    w = trca_compute(train_data, Nk)  # (Ne,Nc)
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Np)
-    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Ne model,Np)
+    w = trca_compute(X=train_data, template=train_mean, Nk=Nk, ratio=ratio)  # (Ne,Nc)
+    model = einsum('ekc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
+    emodel = einsum('ekc,vcp->vekp', w,train_mean)  # (Ne real,Nk,Ne model,Np)
 
     # sign check for filters & models
-    coef = pearson_corr(model[[0],:], model[[1],:])
+    coef = pearson_corr(model[0], model[1])
     if coef > 0:
-        w[-1,:] *= -1
-        model[-1,:] *= -1
-        emodel[-1,:] *= -1
+        w[-1] *= -1
+        model[-1] *= -1
+        emodel[-1] *= -1
 
     # pattern matching
     rou = np.zeros((2, n_test, 2))  # (Ne real,Nt,Ne model)
@@ -143,22 +148,26 @@ def etrca_sp(train_data, test_data, Nk=1):
         for nte in range(n_test):
             temp = test_data[ner,nte,...]  # (Nc,Np)
             for nem in range(2):
-                rou[ner,nte,nem] = pearson_corr(w[[nem],:]@temp, model[[nem],:])
-                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem,...])
+                rou[ner,nte,nem] = pearson_corr(w[nem]@temp, model[nem])
+                erou[ner,nte,nem] = pearson_corr(w@temp, emodel[nem])
     return rou, erou
 
 
-# multi-stimulus (e)TRCA | ms-(e)TRCA
-def mstrca_compute(X, Nk=1, events_group=None):
+# %% (2) multi-stimulus (e)TRCA | ms-(e)TRCA
+def mstrca_compute(X, template, events_group=None, Nk=1, ratio=None):
     """Multi-stimulus TRCA.
 
     Args:
         X (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+        template (ndarray): (n_events, n_chans, n_points).
+        events_group (dict): {'events':[start index,end index]}.
         Nk (int): Number of eigenvectors picked as filters.
-        events_group (dict): {'events':[start index,end index]}
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
 
     Returns:
-        w (ndarray): (n_events, Nk, n_chans). Spatial filters.
+        w (list of ndarray): n_events * (Nk, n_chans). Spatial filters.
     """
     # basic information
     n_events = X.shape[0]
@@ -168,8 +177,8 @@ def mstrca_compute(X, Nk=1, events_group=None):
     total_Q = einsum('etcp,ethp->ech', X,X)
 
     # S: covariance of averaged data | (Ne,Nc,Nc)
-    Xsum = np.sum(X, axis=1)
-    total_S = einsum('ecp,ehp->ech', Xsum, Xsum)
+    # template = np.sum(X, axis=1)
+    total_S = einsum('ecp,ehp->ech', template,template)
 
     # GEPs with merged data
     w = np.zeros((n_events, Nk, n_chans))  # (Ne,Nk,Nc)
