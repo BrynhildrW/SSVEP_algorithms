@@ -496,8 +496,8 @@ def solve_gep(A, B, Nk=None, ratio=None, mode='Max'):
         f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw
 
     Args:
-        A (ndarray): (m,m)
-        B (ndarray): (m,m)
+        A (ndarray): (m,m).
+        B (ndarray): (m,m).
         Nk (int): Number of eigenvectors picked as filters.
             Eigenvectors are referring to eigenvalues sorted in descend order.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
