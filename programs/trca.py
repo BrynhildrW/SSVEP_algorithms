@@ -29,7 +29,7 @@ update: 2022/11/15
 
 # %% basic modules
 from utils import *
-
+from special import dsp_compute
 
 # %% (1) (ensemble) TRCA | (e)TRCA
 def trca_compute(train_data, avg_template, Nk=1, ratio=None):
@@ -417,7 +417,141 @@ def scetrca(train_data, concat_template, test_data, Nk=1, ratio=None):
 
 
 # task-discriminant component analysis | TDCA
+def aug_2(data, projection):
+    pass
+
+
 
 
 
 # optimized TRCA | op-TRCA
+
+
+
+# %% Filter-bank TRCA series | FB-
+def fb_etrca(train_data, avg_template, test_data, Nk=1, ratio=None):
+    """(e)TRCA algorithms with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        avg_template (ndarray): (n_bands, n_events, n_chans, n_points). Trial-averaged data.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+        erou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+
+    # multiple (e)TRCA classification
+    rou, erou = [], []
+    for nb in range(n_bands):
+        temp_rou, temp_erou = etrca(train_data=train_data[nb], avg_template=avg_template[nb],
+            test_data=test_data[nb], Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+        erou.append(temp_erou)
+    return combine_fb_feature(rou), combine_fb_feature(erou)
+
+
+def fb_msetrca(train_data, avg_template, test_data, d, Nk=1, ratio=None, **kwargs):
+    """ms-(e)TRCA algorithms with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        avg_template (ndarray): (n_bands, n_events, n_chans, n_points). Trial-averaged data.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        d (int): The range of events to be merged.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+        erou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+    n_events = train_data.shape[1]
+    try:
+        events_group = kwargs['events_group']
+    except KeyError:
+        events_group = augmented_events(n_events, d)
+
+    # multiple ms-(e)TRCA classification
+    rou, erou = [], []
+    for nb in range(n_bands):
+        temp_rou, temp_erou = msetrca(train_data=train_data[nb], avg_template=avg_template[nb],
+            test_data=test_data[nb], d=d, Nk=Nk, ratio=ratio, events_group=events_group)
+        rou.append(temp_rou)
+        erou.append(temp_erou)
+    return combine_fb_feature(rou), combine_fb_feature(erou)
+
+
+def fb_etrcar(train_data, avg_template, sine_template, test_data, Nk=1, ratio=None):
+    """(e)TRCA-R algorithms with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        avg_template (ndarray): (n_bands, n_events, n_chans, n_points). Trial-averaged data.
+        sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+        erou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+
+    # multiple (e)TRCA-R classification
+    rou, erou = [], []
+    for nb in range(n_bands):
+        temp_rou, temp_erou = etrcar(train_data=train_data[nb], avg_template=avg_template[nb],
+            sine_template=sine_template, test_data=test_data[nb], Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+        erou.append(temp_erou)
+    return combine_fb_feature(temp_rou), combine_fb_feature(temp_erou)
+
+
+def fb_scetrca(train_data, concat_template, test_data, Nk=1, ratio=None):
+    """Use sc-(e)TRCA to compute decision coefficients.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        concat_template (ndarray): (n_bands, n_events, n_chans+2*n_harmonics, n_points). Concatenated template.
+            Trial-averaged data & Sinusoidal template.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+        erou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+
+    # multiple sc-(e)TRCA classification
+    rou, erou = [], []
+    for nb in range(n_bands):
+        temp_rou, temp_erou = scetrca(train_data=train_data[nb], concat_template=concat_template[nb],
+            test_data=test_data[nb], Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+        erou.append(temp_erou)
+    return combine_fb_feature(temp_rou), combine_fb_feature(temp_erou)
+
+
+def fb_tdca():
+    pass

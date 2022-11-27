@@ -346,7 +346,7 @@ def cssft():
 
 
 # %% Filter-bank CCA series | FB-
-def fbcca(sine_template, test_data, Nk=1, ratio=None):
+def fb_cca(sine_template, test_data, Nk=1, ratio=None):
     """CCA algorithms with filter banks.
 
     Args:
@@ -370,7 +370,7 @@ def fbcca(sine_template, test_data, Nk=1, ratio=None):
     return combine_fb_feature(rou)
 
 
-def fbecca(train_data, sine_template, test_data, Nk=1, ratio=None):
+def fb_ecca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """eCCA with filter banks.
 
     Args:
@@ -387,25 +387,16 @@ def fbecca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """
     # basic information
     n_bands = train_data.shape[0]
-    n_events = train_data.shape[1]
-    n_test = test_data.shape[2]
 
-    # pattern matching
+    # multiple eCCA classification
     rou = []
     for nb in range(n_bands):
-        temp_rou = np.zeros((n_events, n_test, n_events))
-        for ner in range(n_events):
-            for nte in range(n_test):
-                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
-                for nem in range(n_events):
-                    Xmean = train_data[nb,nem,...].mean(axis=0)  # (Nc,Np)
-                    temp_rou[ner,nte,nem] = ecca_compute(Xmean=Xmean,
-                        Y=sine_template[nem,...], test_data=temp, Nk=Nk, ratio=ratio)
-        rou.append(temp_rou)
+        rou.append(ecca(train_data=train_data[nb], sine_template=sine_template,
+            test_data=test_data[nb], Nk=Nk, ratio=ratio))
     return combine_fb_feature(rou)
 
 
-def fbmscca(train_data, sine_template, test_data, Nk=1, ratio=None):
+def fb_mscca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """msCCA with filter banks.
 
     Args:
@@ -422,31 +413,16 @@ def fbmscca(train_data, sine_template, test_data, Nk=1, ratio=None):
     """
     # basic information
     n_bands = train_data.shape[0]
-    n_events = train_data.shape[1]
-    n_test = test_data.shape[2]
 
-    # training models & filters
-    train_mean = train_data.mean(axis=2)  # (Nb,Ne,Nc,Np)
-    w, model = [], []
-    for nb in range(n_bands):
-        w.append(mscca_compute(Xmean=train_mean[nb], sine_template=sine_template,
-                               Nk=Nk, ratio=ratio))  # (Nk,Nc)
-        model.append(einsum('kc,ecp->ekp', w[nb],train_mean[nb]))  # (Ne,Nk,Np)
-
-    # pattern matching
+    # multiple msCCA classification
     rou = []
     for nb in range(n_bands):
-        temp_rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
-        for ner in range(n_events):
-            for nte in range(n_test):
-                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
-                for nem in range(n_events):
-                    temp_rou[ner,nte,nem] = pearson_corr(w[nb]@temp, model[nb][nem])
-        rou.append(temp_rou)
+        rou.append(mscca(train_data=train_data[nb], sine_template=sine_template,
+            test_data=test_data[nb], Nk=Nk, ratio=ratio))
     return combine_fb_feature(rou)
 
 
-def fbmsecca(train_data, sine_template, test_data, d, Nk=1, ratio=None, **kwargs):
+def fb_msecca(train_data, sine_template, test_data, d, Nk=1, ratio=None, **kwargs):
     """ms-eCCA with filter banks.
 
     Args:
@@ -465,35 +441,14 @@ def fbmsecca(train_data, sine_template, test_data, d, Nk=1, ratio=None, **kwargs
     # basic information
     n_bands = train_data.shape[0]
     n_events = train_data.shape[1]
-    n_test = test_data.shape[2]
     try:
         events_group = kwargs['events_group']
     except KeyError:
         events_group = augmented_events(n_events, d)
 
-    # training models & filters
-    train_mean = train_data.mean(axis=2)  # (Nb,Ne,Nc,Np)
-    U = [[] for nb in range(n_bands)]
-    V = [[] for nb in range(n_bands)]
-    model_eeg = [[] for nb in range(n_bands)]
-    model_template = [[] for nb in range(n_bands)]
-    for nb in range(n_bands):
-        U[nb], V[nb] = msecca_compute(Xmean=train_mean[nb], sine_template=sine_template,
-                                      events_group=events_group, Nk=Nk, ratio=ratio)
-        for ne in range(n_events):
-            model_eeg[nb].append(U[nb][ne] @ train_mean[nb,ne,...])
-            model_template[nb].append(V[nb][ne] @ sine_template[ne])
-
-    # pattern matching
+    # multiple mseCCA classification
     rou = []
     for nb in range(n_bands):
-        temp_rou = np.zeros((n_events, n_test, n_events))  # (Ne real,Nt,Ne model)
-        for ner in range(n_events):
-            for nte in range(n_test):
-                temp = test_data[nb,ner,nte,...]  # (Nc,Np)
-                for nem in range(n_events):
-                    r1 = pearson_corr(U[nb][nem]@temp, model_template[nb][nem])
-                    r2 = pearson_corr(U[nb][nem]@temp, model_eeg[nb][nem])
-                    temp_rou[ner,nte,nem] = np.real(combine_feature([r1, r2]))
-        rou.append(temp_rou)
+        rou.append(msecca(train_data=train_data[nb], sine_template=sine_template,
+            test_data=test_data[nb], d=d, Nk=Nk, ratio=ratio, events_group=events_group))
     return combine_fb_feature(rou)
