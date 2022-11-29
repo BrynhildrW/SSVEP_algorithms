@@ -62,8 +62,8 @@ def sine_template(freq, phase, n_points, n_harmonics, sfreq=1000):
     """
     Y = np.zeros((2*n_harmonics, n_points))  # (2Nh, Np)
     for nh in range(n_harmonics):
-        Y[2*nh,:] = sin_wave((nh+1)*freq, n_points, 0+phase, sfreq)
-        Y[2*nh+1,:] = sin_wave((nh+1)*freq, n_points, 0.5+phase, sfreq)
+        Y[2*nh,:] = sin_wave((nh+1)*freq, n_points, 0+(nh+1)*phase, sfreq)
+        Y[2*nh+1,:] = sin_wave((nh+1)*freq, n_points, 0.5+(nh+1)*phase, sfreq)
     return Y
 
 

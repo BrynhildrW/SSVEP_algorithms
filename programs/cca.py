@@ -49,7 +49,7 @@ def cca_compute(data, template, Nk=1, ratio=None):
     Cxx = data @ data.T  # (Nc,Nc)
     Cyy = template @ template.T  # (2Nh,2Nh)
     Cxy = data @ template.T  # (Nc,2Nh)
-    Cyx = Cxy.template  # (2Nh,Nc)
+    Cyx = Cxy.T  # (2Nh,Nc)
     A = sLA.solve(Cxx,Cxy) @ sLA.solve(Cyy,Cyx)  # AU = lambda*U
     B = sLA.solve(Cyy,Cyx) @ sLA.solve(Cxx,Cxy)  # BV = lambda*V
 
@@ -224,8 +224,8 @@ def mscca(train_data, sine_template, test_data, Nk=1, ratio=None):
 
     # training models & filters
     train_mean = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    w = mscca_compute(Xmean=train_mean, sine_template=sine_template,
-                      Nk=Nk, ratio=ratio)  # (Nk,Nc)
+    w = mscca_compute(avg_template=train_mean, sine_template=sine_template,
+        Nk=Nk, ratio=ratio)  # (Nk,Nc)
     model = einsum('kc,ecp->ekp', w,train_mean)  # (Ne,Nk,Np)
 
     # pattern matching

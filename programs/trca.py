@@ -20,8 +20,8 @@ Task-related component analysis (TRCA) series.
             DOI:
     (8) LA-TRCA: 
             DOI:
-    (9) TDCA: 
-            DOI:
+    (9) TDCA: https://ieeexplore.ieee.org/document/9541393/
+            DOI: 10.1109/TNSRE.2021.3114340
 
 update: 2022/11/15
 
@@ -417,11 +417,109 @@ def scetrca(train_data, concat_template, test_data, Nk=1, ratio=None):
 
 
 # task-discriminant component analysis | TDCA
-def aug_2(data, projection):
-    pass
+def aug_2(data, projection, m, mode='train'):
+    """Construct secondary augmented data.
+
+    Args:
+        data (ndarray): (n_chans, n_points+m or n_points).
+            m must be larger than n_points while mode is 'train'.
+        projection (ndarray): (n_points, 2*n_harmonics). Y.T
+        m (int): Extra data length.
+        mode (str, optional): 'train' or 'test'.
+
+    Returns:
+        data_aug2 (ndarray): ((m+1)*n_chans, 2*n_points).
+    """
+    # basic information
+    n_chans = data.shape[0]  # Nc
+    n_points = projection.shape[0]  # Np
+    n_2harmonics = projection.shape[1]  # 2*Nh
+
+    # secondary augmented data
+    data_aug2 = np.zeros(((m+1)*n_chans, n_points+n_2harmonics))  # ((m+1)*Nc,Np+2Nh)
+    if mode == 'train':
+        for nm in range(m+1):
+            sp, ep = nm*n_chans, (nm+1)*n_chans
+            data_aug2[sp:ep,:n_points] = data[:,nm:n_points+nm]  # augmented data
+            data_aug2[sp:ep,n_points:] = data_aug2[sp:ep,:n_points] @ projection
+    elif mode == 'test':
+        for nm in range(m+1):
+            sp, ep = nm*n_chans, (nm+1)*n_chans
+            data_aug2[sp:ep,:n_points-nm] = data[:,nm:n_points]
+            data_aug2[sp:ep,n_points:] = data_aug2[sp:ep,:n_points] @ projection
+    return data_aug2
 
 
+def tdca_compute(train_data, projection, m, Nk=1, ratio=None):
+    """Task-discriminant component analysis.
 
+    Args:
+        data (ndarray): (n_events, n_chans, n_points+m).
+        projection (ndarray): (n_events, n_points, 2*n_harmonics).
+        m (int): Extra data length.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        w (ndarray): (Nk,(m+1)*n_chans). Spatial filter.
+        aug_template (ndarray): (n_events,Nk,2*n_points). Augmented template.
+    """
+    # basic information
+    n_events = train_data.shape[0]
+    n_train = train_data.shape[1]
+    n_chans = train_data.shape[2]
+    n_points = train_data.shape[-1]
+
+    # create secondary augmented data
+    train_data_aug2 = np.zeros((n_events, n_train, (m+1)*n_chans, 2*n_points))
+    for ne in range(n_events):
+        for ntr in range(n_train):
+            train_data_aug2[ne,ntr,...] = aug_2(data=train_data[ne,ntr,...],
+                                                projection=projection[ne], m=m)
+
+    # DSP filters based on augmented data
+    class_center = train_data_aug2.mean(axis=1)  # (Ne,(m+1)*Nc,2*Np)
+    w = dsp_compute(train_data=train_data_aug2, class_center=class_center,
+                    Nk=Nk, ratio=ratio)  # (Nk,(m+1)*Nc)
+    aug_template = einsum('kc,ecp->ekp', w,class_center)
+    return w, aug_template
+
+
+def tdca(train_data, test_data, projection, m, Nk=1, ratio=None):
+    """Using TDCA to compute decision coefficients.
+
+    Args:
+        train_data (ndarray): (n_events, n_train, n_chans, n_points+m).
+        test_data (ndarray): (n_events, n_test, n_chans, n_points).
+        projection (ndarray): (n_events, n_points, 2*n_harmonics).
+        m (int): Extra data length.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_events = train_data.shape[0]
+    n_test = test_data.shape[1]
+
+    # training models & filters
+    w, aug_template = tdca_compute(train_data=train_data, projection=projection,
+                                   m=m, Nk=Nk, ratio=ratio)
+
+    # pattern matching
+    rou = np.zeros((n_events, n_test, n_events))
+    for ner in range(n_events):
+        for nte in range(n_test):
+            temp = test_data[ner,nte,...]  # (Nc,Np)
+            for nem in range(n_events):
+                temp_aug2 = aug_2(data=temp, projection=projection[nem], m=m, mode='test')
+                rou[ner,nte,nem] = pearson_corr(w@temp_aug2, aug_template[nem])
+    return rou
 
 
 # optimized TRCA | op-TRCA
