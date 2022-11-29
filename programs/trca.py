@@ -423,7 +423,7 @@ def aug_2(data, projection, m, mode='train'):
     Args:
         data (ndarray): (n_chans, n_points+m or n_points).
             m must be larger than n_points while mode is 'train'.
-        projection (ndarray): (n_points, 2*n_harmonics). Y.T
+        projection (ndarray): (n_points, 2*n_harmonics).
         m (int): Extra data length.
         mode (str, optional): 'train' or 'test'.
 
@@ -431,12 +431,11 @@ def aug_2(data, projection, m, mode='train'):
         data_aug2 (ndarray): ((m+1)*n_chans, 2*n_points).
     """
     # basic information
-    n_chans = data.shape[0]  # Nc
-    n_points = projection.shape[0]  # Np
-    n_2harmonics = projection.shape[1]  # 2*Nh
+    n_chans = data.shape[0]
+    n_points = projection.shape[0]
 
     # secondary augmented data
-    data_aug2 = np.zeros(((m+1)*n_chans, n_points+n_2harmonics))  # ((m+1)*Nc,Np+2Nh)
+    data_aug2 = np.zeros(((m+1)*n_chans, 2*n_points))  # ((m+1)*Nc,2*Np)
     if mode == 'train':
         for nm in range(m+1):
             sp, ep = nm*n_chans, (nm+1)*n_chans
