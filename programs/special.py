@@ -76,7 +76,7 @@ def dsp_compute(train_data, class_center, Nk=1, ratio=None):
     # Sw = einsum('etcp,ethp->ch', Hw,Hw)/(n_events*n_train) | clearer but slower
 
     # GEPs
-    return solve_gep(Sw, Sb, Nk, ratio)  # (Nk,Nc)
+    return solve_gep(Sb, Sw, Nk, ratio)  # (Nk,Nc)
 
 
 def dsp_m1(train_data, class_center, test_data, Nk=1, ratio=None):
@@ -112,3 +112,31 @@ def dsp_m1(train_data, class_center, test_data, Nk=1, ratio=None):
             for nem in range(n_events):
                 rou[ner,nte,nem] = pearson_corr(w@temp, model[nem])
     return rou
+
+
+# %% Filter-bank TRCA series | FB-
+def fb_dsp_m1(train_data, class_center, test_data, Nk=1, ratio=None):
+    """DSP-M1 algorithms with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
+        class_center (ndarray): (n_bands, n_events, n_chans, n_points). Trial-averaged data.
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+    
+    # multiple TDCA classification
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = dsp_m1(train_data=train_data[nb], class_center=class_center[nb],
+            test_data=test_data[nb], Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)

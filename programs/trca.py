@@ -20,8 +20,8 @@ Task-related component analysis (TRCA) series.
             DOI:
     (8) LA-TRCA: 
             DOI:
-    (9) TDCA: https://ieeexplore.ieee.org/document/9541393/
-            DOI: 10.1109/TNSRE.2021.3114340
+    (9) TDCA: 
+            DOI:
 
 update: 2022/11/15
 
@@ -423,7 +423,7 @@ def aug_2(data, projection, m, mode='train'):
     Args:
         data (ndarray): (n_chans, n_points+m or n_points).
             m must be larger than n_points while mode is 'train'.
-        projection (ndarray): (n_points, 2*n_harmonics).
+        projection (ndarray): (n_points, n_points). Y.T@Y
         m (int): Extra data length.
         mode (str, optional): 'train' or 'test'.
 
@@ -431,11 +431,12 @@ def aug_2(data, projection, m, mode='train'):
         data_aug2 (ndarray): ((m+1)*n_chans, 2*n_points).
     """
     # basic information
-    n_chans = data.shape[0]
-    n_points = projection.shape[0]
+    n_chans = data.shape[0]  # Nc
+    n_points = projection.shape[0]  # Np
+    # n_2harmonics = projection.shape[1]  # 2*Nh
 
     # secondary augmented data
-    data_aug2 = np.zeros(((m+1)*n_chans, 2*n_points))  # ((m+1)*Nc,2*Np)
+    data_aug2 = np.zeros(((m+1)*n_chans, 2*n_points))  # ((m+1)*Nc,Np+2Nh)
     if mode == 'train':
         for nm in range(m+1):
             sp, ep = nm*n_chans, (nm+1)*n_chans
@@ -453,8 +454,8 @@ def tdca_compute(train_data, projection, m, Nk=1, ratio=None):
     """Task-discriminant component analysis.
 
     Args:
-        data (ndarray): (n_events, n_chans, n_points+m).
-        projection (ndarray): (n_events, n_points, 2*n_harmonics).
+        train_data (ndarray): (n_events, n_train, n_chans, n_points+m).
+        projection (ndarray): (n_events, n_points, n_points).
         m (int): Extra data length.
         Nk (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
@@ -469,7 +470,7 @@ def tdca_compute(train_data, projection, m, Nk=1, ratio=None):
     n_events = train_data.shape[0]
     n_train = train_data.shape[1]
     n_chans = train_data.shape[2]
-    n_points = train_data.shape[-1]
+    n_points = projection.shape[1]
 
     # create secondary augmented data
     train_data_aug2 = np.zeros((n_events, n_train, (m+1)*n_chans, 2*n_points))
@@ -621,7 +622,7 @@ def fb_etrcar(train_data, avg_template, sine_template, test_data, Nk=1, ratio=No
 
 
 def fb_scetrca(train_data, concat_template, test_data, Nk=1, ratio=None):
-    """Use sc-(e)TRCA to compute decision coefficients.
+    """sc-(e)TRCA algorithms with filter banks.
 
     Args:
         train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
@@ -650,5 +651,29 @@ def fb_scetrca(train_data, concat_template, test_data, Nk=1, ratio=None):
     return combine_fb_feature(temp_rou), combine_fb_feature(temp_erou)
 
 
-def fb_tdca():
-    pass
+def fb_tdca(train_data, test_data, projection, m, Nk=1, ratio=None):
+    """TDCA algorithms with filter banks.
+
+    Args:
+        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points+m).
+        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
+        projection (ndarray): (n_events, n_points, 2*n_harmonics).
+        m (int): Extra data length.
+        Nk (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+
+    Returns:
+        rou (ndarray): (n_events(real), n_test, n_events(model)).
+    """
+    # basic information
+    n_bands = test_data.shape[0]
+
+    # multiple TDCA classification
+    rou = []
+    for nb in range(n_bands):
+        temp_rou = tdca(train_data=train_data[nb], test_data=test_data[nb],
+            projection=projection, m=m, Nk=Nk, ratio=ratio)
+        rou.append(temp_rou)
+    return combine_fb_feature(rou)
