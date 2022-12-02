@@ -255,11 +255,11 @@ def pearson_corr(X, Y):
     return corrcoef
 
 
-def fisher_score(dataset=(), *args):
+def fisher_score(dataset=None, *args, **kwargs):
     """Fisher Score (sequence) in time domain.
 
     Args:
-        dataset (tuple of ndarray): (event1, event2, ...).
+        dataset (tuple or list of ndarray): (event1, event2, ...).
             The shape of each data matrix must be (n_trials, n_features).
             n_features must be the same (n_trials could be various).
 
@@ -268,25 +268,25 @@ def fisher_score(dataset=(), *args):
     """
     # data information
     n_events = len(dataset)
-    trials = np.array([x.shape[0] for x in dataset])  # (Ne,)
+    trials = np.array([data.shape[0] for data in dataset])  # (Ne,)
     n_features = dataset[0].shape[-1]
-    
+
     # class center & total center
     class_center = np.zeros((n_events, n_features))
     for ne in range(n_events):
         class_center[ne,:] = dataset[ne].mean(axis=0)
     total_center = class_center.mean(axis=0)
     # total_center = (trials @ class_center)/trials.sum()
-    
+
     # inter-class divergence
     decenter = class_center - total_center
     ite_d = trials @ decenter**2
-    
+
     # intra-class divergence
     itr_d = np.zeros((n_features))
     for ne in range(n_events):
         itr_d += np.sum((dataset[ne] - class_center[ne,:])**2, axis=0)
-    
+
     # fisher-score
     fs = ite_d / itr_d
     return fs
@@ -296,8 +296,8 @@ def euclidean_dist(X, Y):
     """Euclidean distance.
     
     Args:
-        X (ndarray): (n_chans, n_points).
-        Y (ndarray): (n_chans, n_points).
+        X (ndarray): (m, n).
+        Y (ndarray): (m, n).
         
     Returns:
         dist (float)
@@ -308,7 +308,7 @@ def euclidean_dist(X, Y):
 
 def cosine_sim(x, y):
     """Cosine similarity.
-    Equal to corr_coef() if x & y are zero-meaned.
+    Equal to pearson_corr() if x & y are zero-normalized.
 
     Args:
         x (ndarray or list): (n_points,)
@@ -455,67 +455,66 @@ def pick_subspace(descend_order, e_val_sum, ratio):
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
 
     Returns:
-        Nk (int): The number of subspaces.
+        n_components (int): The number of subspaces.
     """
     temp_val_sum = 0
-    for Nk,do in enumerate(descend_order):  # n_sp: n_subspace
-        temp_val_sum += do[1]
+    for n_components,do in enumerate(descend_order):  # n_sp: n_subspace
+        temp_val_sum += do[-1]
         if temp_val_sum > ratio*e_val_sum:
-            return Nk+1
+            return n_components+1
 
 
-def solve_ep(A, Nk=None, ratio=None, mode='Max'):
+def solve_ep(A, n_components=None, ratio=None, mode='Max'):
     """Solve eigenvalue problems | Rayleigh quotient: 
         f(w)=wAw^T/(ww^T) -> Aw = lambda w
 
     Args:
         A (ndarray): (m,m)
         B (ndarray): (m,m)
-        Nk (int): Number of eigenvectors picked as filters.
+        n_components (int): Number of eigenvectors picked as filters.
             Eigenvectors are referring to eigenvalues sorted in descend order.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
         mode (str): 'Max' or 'Min'. Depends on target function.
 
     Returns:
-        w (ndarray): (Nk,m). Picked eigenvectors.
+        w (ndarray): (n_components,m). Picked eigenvectors.
     """
-    e_val_sum = A.trace()
-    e_val, e_vec = sLA.eig(A)
+    e_val, e_vec = sLA.eigh(A)
+    e_val_sum = np.sum(e_val)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
-    if not Nk:
-        Nk = pick_subspace(descend_order, e_val_sum, ratio)
+    if not n_components:
+        n_components = pick_subspace(descend_order, e_val_sum, ratio)
     if mode == 'Min':
-        return e_vec[:,w_index][:,Nk:].T  # (Nk,m)
+        return e_vec[:,w_index][:,n_components:].T  # (n_components,m)
     elif mode == 'Max':
-        return e_vec[:,w_index][:,:Nk].T  # (Nk,m)
+        return e_vec[:,w_index][:,:n_components].T  # (n_components,m)
 
 
-def solve_gep(A, B, Nk=None, ratio=None, mode='Max'):
+def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     """Solve generalized problems | generalized Rayleigh quotient:
         f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw
 
     Args:
         A (ndarray): (m,m).
         B (ndarray): (m,m).
-        Nk (int): Number of eigenvectors picked as filters.
+        n_components (int): Number of eigenvectors picked as filters.
             Eigenvectors are referring to eigenvalues sorted in descend order.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
         mode (str): 'Max' or 'Min'. Depends on target function.
 
     Returns:
-        w (ndarray): (Nk,m). Picked eigenvectors.
+        w (ndarray): (n_components,m). Picked eigenvectors.
     """
-    e_matrix = sLA.solve(B,A)
-    e_val_sum = e_matrix.trace()
-    e_val, e_vec = sLA.eig(e_matrix)
+    e_val, e_vec = sLA.eigh(A,B)
+    e_val_sum = np.sum(e_val)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
-    if not Nk:
-        Nk = pick_subspace(descend_order, e_val_sum, ratio)
+    if not n_components:
+        n_components = pick_subspace(descend_order, e_val_sum, ratio)
     if mode == 'Min':
-        return e_vec[:,w_index][:,Nk:].T  # (Nk,m)
+        return e_vec[:,w_index][:,n_components:].T  # (n_components,m)
     elif mode == 'Max':
-        return e_vec[:,w_index][:,:Nk].T  # (Nk,m)
+        return e_vec[:,w_index][:,:n_components].T  # (n_components,m)
 
 
