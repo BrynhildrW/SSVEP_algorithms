@@ -17,7 +17,7 @@ update: 2022/10/22
 """
 
 # %% basic modules
-from utils import *
+import utils
 
 import numpy as np
 
@@ -65,7 +65,7 @@ def dsp_compute(train_data, n_components=1, ratio=None):
     # Sw = einsum('etcp,ethp->ch', Hw,Hw)/(n_events*n_train) | clearer but slower
 
     # GEPs | training spatial filter
-    w = solve_gep(A=Sb, B=Sw, n_components=n_components, ratio=ratio)  # (Nk,Nc)
+    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components, ratio=ratio)  # (Nk,Nc)
 
     # signal templates
     template = np.einsum('kc,ecp->ekp', w,class_center)  # (Ne,Nk,Np)
@@ -73,7 +73,6 @@ def dsp_compute(train_data, n_components=1, ratio=None):
 
 
 class DSP(object):
-    """Discriminant Spatial Patterns (DSP) for multi-target classification problems."""
     def __init__(self, n_components=1, ratio=None):
         """Config model dimension.
 
@@ -105,7 +104,7 @@ class DSP(object):
             train_data=self.train_data,
             n_components=self.n_components,
             ratio=self.ratio
-            )
+        )
         return self
 
 
@@ -128,7 +127,7 @@ class DSP(object):
             for nte in range(self.n_test):
                 temp = test_data[ner,nte,...]  # (Nc,Np)
                 for nem in range(self.n_events):
-                    self.rou[ner,nte,nem] = pearson_corr(self.w@temp, self.template[nem])
+                    self.rou[ner,nte,nem] = utils.pearson_corr(self.w@temp, self.template[nem])
         return self.rou
 
 
@@ -186,4 +185,4 @@ def fb_dsp_m1(train_data, test_data, n_components=1, ratio=None):
         sub_band.fit(train_data=train_data[nb])
         models.append(sub_band)
         rou.append(sub_band.predict(test_data=test_data[nb]))
-    return models, combine_fb_feature(rou)
+    return models, utils.combine_fb_feature(rou)

@@ -28,15 +28,16 @@ update: 2022/11/15
 """
 
 # %% basic modules
+import utils
 from utils import *
-from special import (dsp_compute, DSP, FB_DSP)
+from special import (dsp_compute, DSP)
 
 import numpy as np
 
 
 # %% (1) (ensemble) TRCA | (e)TRCA
 def trca_compute(train_data, avg_template, n_components=1, ratio=None):
-    """Task-related component analysis.
+    """Task-related component analysis (TRCA).
     n_events is a non-ignorable parameter, could be 1 if necessary.
 
     Args:
@@ -48,75 +49,133 @@ def trca_compute(train_data, avg_template, n_components=1, ratio=None):
             Defaults to be 'None'.
 
     Returns:
-        w (list of ndarray): n_events * (n_components, n_chans). Spatial filters.
+        Q (ndarray): (n_events, n_chans, n_chans). Covariance of original data.
+        S (ndarray): (n_events, n_chans, n_chans). Covariance of template data.
+        w (list of ndarray): n_events*(n_components, n_chans). Spatial filters.
         w_concat (ndarray): (n_events*n_components, n_chans). Concatenated filter.
         ndim (list of int): 1st dimension of each spatial filter.
     """
     # basic information
     n_events = train_data.shape[0]
+    n_train = train_data.shape[1]
     n_chans = train_data.shape[2]
 
-    # Q: covariance of original data | (Ne,Nc,Nc)
-    Q = np.einsum('etcp,ethp->ech', train_data,train_data)
+    # Q: covariance of original data
+    # Q = np.einsum('etcp,ethp->ech', train_data,train_data) | clearer but slower in CPU
+    Q = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    for ne in range(n_events):
+        for ntr in range(n_train):
+            Q[ne] += train_data[ne,ntr,...] @ train_data[ne,ntr,...].T
 
-    # S: covariance of template | (Ne,Nc,Nc)
-    # avg_template = np.sum(X, axis=1)  # (Ne,Nc,Np)
-    S = np.einsum('ecp,ehp->ech', avg_template,avg_template)
+    # S: covariance of template
+    # S = np.einsum('ecp,ehp->ech', avg_template,avg_template) | clearer but slower in CPU
+    S = np.zeros((n_events, n_chans, n_chans))  # (Nc,Nc)
+    for ne in range(n_events):
+        S[ne] += avg_template[ne] @ avg_template[ne].T
 
     # GEPs
     w, ndim = [], []
-    for ne in range(n_events): 
-        spatial_filter = solve_gep(S[ne], Q[ne], n_components, ratio)  # (n_components,Nc)
-        w.append(spatial_filter)
-        ndim.append(spatial_filter.shape[0])  # n_components
+    for ne in range(n_events):
+        spatial_filter = solve_gep(A=S[ne], B=Q[ne], n_components=n_components, ratio=ratio)
+        w.append(spatial_filter)  # (Nk,Nc)
+        ndim.append(spatial_filter.shape[0])  # n_components, Nk
 
     # avoid np.concatenate() to speed up
-    w_concat = np.zeros((np.sum(ndim), n_chans))  # (Ne*n_components,Nc)
+    w_concat = np.zeros((np.sum(ndim), n_chans))  # (Ne*Nk,Nc)
     start_idx = 0
     for ne,dims in enumerate(ndim):
         w_concat[start_idx:start_idx+dims] = w[ne]
         start_idx += dims
-    return w, w_concat, ndim
+    return Q, S, w, w_concat, ndim
 
 
-def etrca(train_data, avg_template, test_data, n_components=1, ratio=None):
-    """Using TRCA & eTRCA to compute decision coefficients.
+class TRCA(object):
+    def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
+        """Config model dimension.
 
-    Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
-        avg_template (ndarray): (n_events, n_chans, n_points). Trial-averaged data.
-        test_data (ndarray): (n_events, n_test, n_chans, n_points).
-        n_components (int): Number of eigenvectors picked as filters.
-            Set to 'None' if ratio is not 'None'.
-        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-            Defaults to be 'None'.
+        Args:
+            standard (bool, optional): Train standard TRCA model.
+            ensemble (bool, optional): Train ensemble TRCA model.
+            n_components (int): Number of eigenvectors picked as filters.
+                Set to 'None' if ratio is not 'None'.
+            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+                Defaults to be 'None' when n_components is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+        self.standard = standard
+        self.ensemble = ensemble
+        self.template = []
+        self.ensemble_template = []
 
-    Returns:
-        rou (ndarray): (n_events(real), n_test, n_events(model)).
-        erou (ndarray): (n_events(real), n_test, n_events(model)).
-    """
-    # basic information
-    n_events = train_data.shape[0]
-    n_test = test_data.shape[1]
 
-    # training models & filters
-    w, w_concat, _ = trca_compute(train_data=train_data, avg_template=avg_template,
-        n_components=n_components, ratio=ratio)  # list, (Ne*n_components,Nc), list
-    model, emodel = [], []
-    for ne in range(n_events):
-        model.append(w[ne] @ avg_template[ne])  # (n_components,Np)
-        emodel.append(w_concat @ avg_template[ne])  # (Ne(model)*n_components,Np)
+    def fit(self, train_data):
+        """Train TRCA model.
 
-    # pattern matching
-    rou = np.zeros((n_events, n_test, n_events))  # (Ne(real),Nt,Ne(model))
-    erou = np.zeros_like(rou)
-    for ner in range(n_events):
-        for nte in range(n_test):
-            temp = test_data[ner,nte,...]  # (Nc,Np)
-            for nem in range(n_events):
-                rou[ner,nte,nem] = pearson_corr(w[nem]@temp, model[nem])
-                erou[ner,nte,nem] = pearson_corr(w_concat@temp, emodel[nem])
-    return rou, erou
+        Args:
+            train_data (ndarray): (n_events, n_train, n_chans, n_points).
+        """
+        # basic information
+        self.train_data = train_data  # (Ne,Nt,Nc,Np)
+        self.n_events = self.train_data.shape[0]  # Ne
+        self.n_train = self.train_data.shape[1]  # Nt
+        self.n_chans = self.train_data.shape[2]  # Nc
+
+        # train TRCA models & templates
+        self.avg_template = self.train_data.mean(axis=1)  # (Ne,Nc,Np)
+        self.Q, self.S, self.w, self.w_concat, self.ndim = trca_compute(
+            train_data=self.train_data,
+            avg_template=self.avg_template,
+            n_components=self.n_components,
+            ratio=self.ratio
+        )
+        if self.standard:
+            for ne in range(self.n_events):
+                self.template.append(self.w[ne] @ self.avg_template[ne])  # (Nk,Np)
+        if self.ensemble:
+            for ne in range(self.n_events):
+                self.ensemble_template.append(self.w_concat @ self.avg_template[ne])  # (Ne*Nk,Np)
+        return self
+
+
+    def predict(self, test_data):
+        """Using TRCA algorithm to compute decision coefficients.
+
+        Args:
+            test_data (ndarray): (n_events, n_test, n_chans, n_points).
+
+        Return:
+            rou (ndarray): (n_events(real), n_test, n_events(model)).
+                Not empty when self.standard is True.
+            erou (ndarray): (n_events(real), n_test, n_events(model)).
+                Not empty when self.ensemble is True.
+        """
+        # basic information
+        self.n_test = test_data.shape[1]
+
+        # pattern matching
+        if self.standard:
+            self.rou = np.zeros((self.n_events, self.n_test, self.n_events))
+            for ner in range(self.n_events):
+                for nte in range(self.n_test):
+                    temp = test_data[ner,nte,...]  # (Nc,Np)
+                    for nem in range(self.n_events):
+                        self.rou[ner,nte,nem] = utils.pearson_corr(
+                            X=self.w[nem]@temp,
+                            Y=self.template[nem]
+                        )
+        if self.ensemble:
+            self.erou = np.zeros((self.n_events, self.n_test, self.n_events))
+            for ner in range(self.n_events):
+                for nte in range(self.n_test):
+                    temp = test_data[ner,nte,...]  # (Nc,Np)
+                    for nem in range(self.n_events):
+                        self.erou[ner,nte,nem] = utils.pearson_corr(
+                            X=self.w_concat@temp,
+                            Y=self.ensemble_template[nem]
+                        )
+        return self.rou, self.erou
 
 
 # %% (2) multi-stimulus (e)TRCA | ms-(e)TRCA
