@@ -14,16 +14,12 @@ Supported objects
     Target functions (1-D): SNR, FS, pCORR
     Optimization methods: Traversal, Recursion, Mix
 
-3. TDSRCA: single channel & single-event (Two-dimensional SRCA)
-    Target functions (2-D): TRCA coef, TRCA eval
-    Optimization methods: Traversal, Recursion, Mix
-
-4. MCSRCA: multi-channel & single-event (Future Version)
+3. MCSRCA: multi-channel & single-event (Future Version)
     Target functions (2-D): DSP coef, 
     Optimization methods: Traversal, Recursion, Mix
     Combination optimization methods: SA(Simulated annealing), IBI(Item-by-item)
 
-5. MCESRCA: multi-channel & multi-event (Future Version)
+4. MCESRCA: multi-channel & multi-event (Future Version)
     Target functions:
     Optimization methods: Traversal, Recursion, Mix
     Combination optimization methods: SA, IBI
@@ -33,12 +29,14 @@ update: 2022/11/30
 """
 
 # %% basic modules
+from abc import ABC, abstractmethod
+
 import utils
 import special
-import trca
-import cca
-
 from special import DSP
+import trca
+from trca import TRCA
+import cca
 
 import numpy as np
 
@@ -48,6 +46,7 @@ from sklearn import linear_model
 from itertools import combinations
 
 from time import perf_counter
+from copy import deepcopy
 
 # %% 1-D target functions | single channel
 # SNR (mean) in time domain
@@ -82,7 +81,33 @@ def fs_sequence(train_data, *args, **kwargs):
     return utils.fisher_score(dataset)
 
 
-# %% 2-D target functions | multiple channels
+# %% 2-D target functions | multiple channels, single event
+# Target function values of TRCA | single event
+def trca_val(train_data, n_components=1, ratio=None):
+    """f(w)=(w @ S @ w.T)/(w @ Q @ w.T).
+
+    Args:
+        train_data (ndarray): (n_train, n_chans, n_points).
+        n_components (int): Number of eigenvectors picked as filters.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None' when n_component is not 'None'.
+
+    Returns:
+        coef (float): f(w)
+    """
+    trca_model = TRCA(
+        standard=True,
+        ensemble=False,
+        n_components=n_components,
+        ratio=ratio
+    ).fit(train_data=train_data[None,...])
+    total_power = trca_model.w_concat[0] @ trca_model.Q[0] @ trca_model.w_concat[0].T
+    template_power = trca_model.w_concat[0] @ trca_model.S[0] @ trca_model.w_concat[0].T
+    return template_power/total_power
+
+
+# %% 2-D target functions | multiple channels, multiple events
 # Target function values of DSP
 def dsp_val(train_data, n_components=1, ratio=None):
     """f(w)=(w @ S_b @ w.T)/(w @ S_w @ w.T).
@@ -101,7 +126,9 @@ def dsp_val(train_data, n_components=1, ratio=None):
         n_components=n_components,
         ratio=ratio
     ).fit(train_data=train_data)
-    return (dsp_model.w@dsp_model.Sb@dsp_model.w.T)/(dsp_model.w@dsp_model.Sw@dsp_model.w.T)
+    bcd_power = dsp_model.w @ dsp_model.Sb @ dsp_model.w.T  # between-class difference power
+    wcd_power = dsp_model.w @ dsp_model.Sw @ dsp_model.w.T  # within-class difference power
+    return bcd_power/wcd_power
 
 
 # Accuracy of DSP
@@ -373,10 +400,10 @@ class SRCA(object):
     def prepare(self):
         """Initialization for training."""
         # pick up target data for both state.
-        tar_index = self.chan_info.index(self.tar_chan)
-        self.rest_target = self.rest_data[...,tar_index,:]
-        self.task_target = self.task_data[...,tar_index,:]
-        self.alter_indices = np.delete(np.arange(self.n_chans), tar_index)
+        self.tar_index = self.chan_info.index(self.tar_chan)
+        self.rest_target = self.rest_data[...,self.tar_index,:]
+        self.task_target = self.task_data[...,self.tar_index,:]
+        self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)
 
         # model initialization
         self.init_value = np.mean(self.tar_functions[self.tar_func](self.task_target))
@@ -471,6 +498,7 @@ class SRCA(object):
     # optimization method 1
     def traversal(self):
         """Directly traverse each channel group to train SRCA model."""
+        self.check_traversal()
         self.results = list(map(self.srca_unit, self.traversal_combi))
         model_index = self.results.index(max(self.results))
         self.value_change.append(self.results[model_index])
@@ -530,14 +558,36 @@ class ESRCA(SRCA):
                      'FS':fs_sequence}
 
 
+    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func,
+                 opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE'):
+        """Load in settings.
+
+        Args:
+            train_data (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+            rest_phase (list): [st,ed]. The start and end point of rest-state data.
+            task_phase (list): [st,ed]. The start and end point of task-state data.
+            chan_info (list): Names of all channels.
+            tar_chan (str): Name of target channel.
+            tar_func (str): 'SNR'.
+            opt_method (str): 'Traversal', 'Recursion' or 'Mix'.
+            traversal_limit (int, optional): The maximum number of channels to be traversed.
+                Defaults to None.
+            chan_num_limit (int, optional): The maximum number of channels used in SRCA model.
+                Defaults to None.
+            regression (str, optional): Regression method used in SRCA process. Defaults to 'MSE'.
+        """
+        super().__init__(train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
+                         traversal_limit=traversal_limit, chan_num_limit=chan_num_limit, regression=regression)
+
+
     def srca_unit(self, chans_indices):
         """Compute updated target function values of eSRCA-processed data.
 
         Args:
-            chans_indices (list or tuple): Indices of channels to be used in SRCA model.
+            chans_indices (list or tuple): Indices of channels to be used in eSRCA model.
 
         Returns:
-            esrca_tar_value (float): Target function values of the SRCA-processed data.
+            esrca_tar_value (float): Target function values of the eSRCA-processed data.
         """
         esrca_target = esrca_process(
             rs_model=self.rest_data[...,chans_indices,:],
@@ -550,19 +600,185 @@ class ESRCA(SRCA):
         return esrca_tar_value
 
 
-class TDSRCA(SRCA):
+class TdSRCA(SRCA):
+    """Intermediate process of MultiSRCA
+        (i) multi-channel (2-D) target function
+        (ii) optimization on single channel
+        (iii) optimization on single event
+    Target functions (2-D):
+        (1) TRCA target function value
+    """
+    tar_functions = {'TRCA-val':trca_val}
+    opt_methods = ['Traversal', 'Recursion', 'Mix']
+
+
+    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_chan_list, tar_func,
+                 opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE'):
+        """Load in settings.
+
+        Args:
+            train_data (ndarray): (n_train, n_chans, n_points). Training dataset.
+            rest_phase (list): [st,ed]. The start and end point of rest-state data.
+            task_phase (list): [st,ed]. The start and end point of task-state data.
+            chan_info (list): Names of all channels.
+            tar_chan (str): Names of present target channel.
+            tar_chan_list (list of str): Names of all target channels.
+            tar_func (str): 'TRCA-val'.
+            opt_method (str): 'Traversal', 'Recursion' or 'Mix'.
+            traversal_limit (int, optional): The maximum number of channels to be traversed.
+                Defaults to None.
+            chan_num_limit (int, optional): The maximum number of channels used in tdSRCA model.
+                Defaults to None.
+            regression (str, optional): Regression method used in tdSRCA process. Defaults to 'MSE'.
+        """
+        # super().__init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
+        #                  traversal_limit=traversal_limit, chan_num_limit=chan_num_limit, regression=regression)
+        self.rest_data = train_data[...,rest_phase[0]:rest_phase[1]]
+        self.task_data = train_data[...,task_phase[0]:task_phase[1]]
+        self.n_chans = train_data.shape[-2]
+        self.chan_info = chan_info
+        self.tar_chan = tar_chan
+        self.tar_func = tar_func
+        self.opt_method = opt_method
+        self.traversal_limit = traversal_limit
+        self.chan_num_limit = chan_num_limit
+        self.regression = regression
+
+        # check extra input
+        assert set(tar_chan_list) <= set(chan_info), 'Unknown target channel!'
+        self.tar_chan_list = tar_chan_list
+
+
+    def prepare(self):
+        """Initialization for training."""
+        # pick up target data for both state
+        self.tar_index = self.chan_info.index(self.tar_chan)
+        self.rest_target = self.rest_data[...,self.tar_index,:]  # (Nt,Np)
+        self.task_target = self.task_data[...,self.tar_index,:]  # (Nt,Np)
+
+        # config target group data
+        self.tar_indices = [self.chan_info.index(ch_name) for ch_name in self.tar_chan_list]
+        self.target_group = self.task_data[...,self.tar_indices,:]  # (Nt,Nc,Np)
+        self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_indices)  # not allowed to use target group channels
+        # self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)  # allowed to use target group channels
+
+        # model initialization
+        self.init_value = np.mean(self.tar_functions[self.tar_func](self.target_group))  # different from SRCA.prepare()
+        self.model_indices, self.value_change = [], [self.init_value]
+
+
+    def srca_unit(self, chans_indices):
+        """Compute updated target function values of tdSRCA-processed data.
+
+        Args:
+            chans_indices (list or tuple): Indices of channels to be used in tdSRCA model.
+
+        Returns:
+            tdsrca_tar_value (float): Target function values of the tdSRCA-processed data.
+        """
+        tdsrca_target = srca_process(
+            rs_model=self.rest_data[:,chans_indices,:],
+            rs_target=self.rest_target,
+            ts_model=self.task_data[:,chans_indices,:],
+            ts_target=self.task_target,
+            regression=self.regression
+        )
+        update_target_group = deepcopy(self.target_group)
+        update_target_group[:,self.tar_chan_list.index(self.tar_chan),:] = tdsrca_target
+        tdsrca_tar_value = np.mean(self.tar_functions[self.tar_func](update_target_group))
+        return tdsrca_tar_value
+
+
+class TdESRCA(ESRCA):
+    """Intermediate process of MultiESRCA
+        (i) multi-channel (2-D) target function
+        (ii) optimization on single channel
+        (iii) optimization on multiple event
+    Target functions (2-D):
+        (1) DSP target function value
+        (2) DSP classification accuracy
+    """
+    tar_functions = {'DSP-val':dsp_val,
+                     'DSP-acc':dsp_acc}
+    opt_methods = ['Traversal', 'Recursion', 'Mix']
+
+
+    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_chan_list, tar_func,
+                 opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE'):
+        """Load in settings.
+
+        Args:
+            train_data (ndarray): (n_train, n_chans, n_points). Training dataset.
+            rest_phase (list): [st,ed]. The start and end point of rest-state data.
+            task_phase (list): [st,ed]. The start and end point of task-state data.
+            chan_info (list): Names of all channels.
+            tar_chan (str): Names of present target channel.
+            tar_chan_list (list of str): Names of all target channels.
+            tar_func (str): 'SNR'.
+            opt_method (str): 'Traversal', 'Recursion' or 'Mix'.
+            traversal_limit (int, optional): The maximum number of channels to be traversed.
+                Defaults to None.
+            chan_num_limit (int, optional): The maximum number of channels used in tdSRCA model.
+                Defaults to None.
+            regression (str, optional): Regression method used in tdSRCA process. Defaults to 'MSE'.
+        """
+        super().__init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
+                         traversal_limit=traversal_limit, chan_num_limit=chan_num_limit, regression=regression)
+        # check extra input
+        assert set(tar_chan_list) <= set(chan_info), 'Unknown target channel!'
+        self.tar_chan_list = tar_chan_list
+
+
+    def prepare(self):
+        """Initialization for training."""
+        # pick up target data for both state
+        self.tar_index = self.chan_info.index(self.tar_chan)
+        self.rest_target = self.rest_data[...,tar_index,:]  # (Nt,Np)
+        self.task_target = self.task_data[...,tar_index,:]  # (Nt,Np)
+
+        # config target group data
+        self.tar_indices = [self.chan_info.index(ch_name) for ch_name in self.tar_chan_list]
+        self.target_group = self.task_data[...,self.tar_indices,:]  # (Nt,Nc,Np)
+        self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_indices)  # not allowed to use target group channels
+        # self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)  # allowed to use target group channels
+
+        # model initialization
+        self.init_value = np.mean(self.tar_functions[self.tar_func](self.target_group))  # different from SRCA.prepare()
+        self.model_indices, self.value_change = [], [self.init_value]
+
+
+    def srca_unit(self, chans_indices):
+        """Compute updated target function values of tdSRCA-processed data.
+
+        Args:
+            chans_indices (list or tuple): Indices of channels to be used in tdSRCA model.
+
+        Returns:
+            tdsrca_tar_value (float): Target function values of the tdSRCA-processed data.
+        """
+        tdsrca_target = srca_process(
+            rs_model=self.rest_data[:,chans_indices,:],
+            rs_target=self.rest_target,
+            ts_model=self.task_data[:,chans_indices,:],
+            ts_target=self.task_target,
+            regression=self.regression
+        )
+        update_target_group = deepcopy(self.target_group)
+        update_target_group[:,self.tar_chan_list.index(self.tar_chan),:] = tdsrca_target
+        tdsrca_tar_value = np.mean(self.tar_functions[self.tar_func](tdsrca_target))
+        return tdsrca_tar_value
+
+
+
+class MultiSRCA(SRCA):
+    """Spatial Regression Component Analysis for multi-channel, single-event optimization.
+    Target functions (1-D):
+        (1) TRCA target function value
+    """
     pass
 
 
-class TDESRCA(ESRCA):
-    pass
-
-
-class MultiSRCA(TDSRCA):
-    pass
-
-
-class MultiESRCA(TDESRCA):
+class MultiESRCA(ESRCA):
     pass
 
 
@@ -628,146 +844,5 @@ def apply_ESRCA(rest_data, task_data, target_chan, model_chans, chan_info, regre
 def apply_TDSRCA():
     pass
 
-
-
-# %% SRCA test
-import scipy.io as io
-import matplotlib.pyplot as plt
-
-data_path = r'E:\SSVEP\Preprocessed Data\SSVEP：60\Sub7.mat'
-dataset = io.loadmat(data_path)['normal']
-n_events = dataset.shape[0]
-n_trials = dataset.shape[1]
-rest_phase, task_phase = [0,1000], [1140,1640]
-
-chan_info_path = r'E:\SSVEP\Preprocessed Data\62_chan_info.mat'
-chan_info = io.loadmat(chan_info_path)['chan_info'].tolist()
-del data_path, chan_info_path
-
-target_chans = ['PZ ', 'PO5', 'PO3', 'POZ', 'PO4', 'PO6', 'O1 ', 'OZ ', 'O2 ']
-target_idx = [chan_info.index(tc) for tc in target_chans]
-
-n_train = 40
-rand_order = np.arange(n_trials)
-
-np.random.shuffle(rand_order)
-train_data = dataset[:,rand_order[:n_train],...]
-test_data = dataset[:,rand_order[n_train:],...]
-
-srca_model_chans = [[],[]]
-esrca_model_chans = []
-
-for ne in range(n_events):
-    for tc in target_chans:
-        model = SRCA(
-            train_data=train_data[ne],
-            rest_phase=rest_phase,
-            task_phase=task_phase,
-            chan_info=chan_info,
-            tar_chan=tc,
-            tar_func='SNR',
-            opt_method='Recursion',
-            chan_num_limit=10,
-            regression='MSE'
-        )
-        model.prepare()
-        model.train()
-        srca_model_chans[ne].append(model.srca_model)
-print('Finish SRCA training!')
-
-for tc in target_chans:
-    model = ESRCA(
-        train_data=train_data,
-        rest_phase=rest_phase,
-        task_phase=task_phase,
-        chan_info=chan_info,
-        tar_chan=tc,
-        tar_func='SNR',
-        opt_method='Recursion',
-        chan_num_limit=10,
-        regression='MSE'
-    )
-    model.prepare()
-    model.train()
-    esrca_model_chans.append(model.srca_model)
-print('Finish eSRCA training!')
-
-# %%
-srca_train = np.zeros((n_events, n_train, len(target_chans), task_phase[1]-task_phase[0]))
-srca_test = np.zeros((n_events, n_trials-n_train, len(target_chans), task_phase[1]-task_phase[0]))
-for ne in range(n_events):
-    for nc,tc in enumerate(target_chans):
-        srca_train[ne,:,nc,:] = apply_SRCA(
-            rest_data=train_data[ne,...,rest_phase[0]:rest_phase[1]],
-            task_data=train_data[ne,...,task_phase[0]:task_phase[1]],
-            target_chan=tc,
-            model_chans=srca_model_chans[ne][nc],
-            chan_info=chan_info
-        )
-        srca_test[ne,:,nc,:] = apply_SRCA(
-            rest_data=test_data[ne,...,rest_phase[0]:rest_phase[1]],
-            task_data=test_data[ne,...,task_phase[0]:task_phase[1]],
-            target_chan=tc,
-            model_chans=srca_model_chans[ne][nc],
-            chan_info=chan_info
-        )
-
-
-esrca_train = np.zeros((n_events, n_train, len(target_chans), task_phase[1]-task_phase[0]))
-esrca_test = np.zeros((n_events, n_trials-n_train, len(target_chans), task_phase[1]-task_phase[0]))
-for nc,tc in enumerate(target_chans):
-    esrca_train[...,nc,:] = apply_ESRCA(
-        rest_data=train_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=train_data[...,task_phase[0]:task_phase[1]],
-        target_chan=tc,
-        model_chans=esrca_model_chans[nc],
-        chan_info=chan_info
-    )
-    esrca_test[...,nc,:] = apply_ESRCA(
-        rest_data=test_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=test_data[...,task_phase[0]:task_phase[1]],
-        target_chan=tc,
-        model_chans=esrca_model_chans[nc],
-        chan_info=chan_info
-    )
-
-
-# %%
-snr_train_origin = np.zeros((n_events, len(target_chans), task_phase[1]-task_phase[0]))
-snr_train_srca = np.zeros_like(snr_origin)
-snr_test_origin = np.zeros_like(snr_origin)
-snr_test_srca = np.zeros_like(snr_origin)
-for nc,tc in enumerate(target_chans):
-    tar_idx = chan_info.index(tc)
-    snr_train_origin[:,nc,:] = snr_sequence(train_data[...,tar_idx,task_phase[0]:task_phase[1]]).squeeze()
-    snr_test_origin[:,nc,:] = snr_sequence(test_data[...,tar_idx,task_phase[0]:task_phase[1]]).squeeze()
-    snr_train_srca[:,nc,:] = snr_sequence(srca_train[...,nc,:]).squeeze()
-    snr_test_srca[:,nc,:] = snr_sequence(srca_test[...,nc,:]).squeeze()
-
-# %%
-event_idx = 0
-chan_idx = 3
-# plt.plot(snr_train_origin[event_idx,chan_idx,:])
-# plt.plot(snr_train_srca[event_idx,chan_idx,:])
-
-plt.plot(snr_test_origin[event_idx,chan_idx,:])
-plt.plot(snr_test_srca[event_idx,chan_idx,:])
-
-# %% Acc for SRCA processed data
-rou, erou = trca.etrca(
-    train_data=train_data[...,target_idx,1140:1640],
-    avg_template=train_data[...,target_idx,1140:1640].mean(axis=1),
-    test_data=test_data[...,target_idx,1140:1640]
-)
-print('TRCA accuracy for original data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for original data: {}'.format(str(utils.acc_compute(erou))))
-
-rou, erou = trca.etrca(
-    train_data=esrca_train,
-    avg_template=esrca_train.mean(axis=1),
-    test_data=esrca_test
-)
-print('TRCA accuracy for eSRCA processed data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for eSRCA processed data: {}'.format(str(utils.acc_compute(erou))))
 
 # %%
