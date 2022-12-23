@@ -17,18 +17,25 @@ update: 2022/10/22
 """
 
 # %% basic modules
-from utils import *
+import utils
 
 import numpy as np
 
 from scipy import linalg as sLA
 
-# %% (1) Discriminant Spatial Patterns
-def dsp_compute(train_data, n_components=1, ratio=None):
+# %% (1) Discriminant Spatial Patterns | DSP
+def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     """Discriminant Spatial Patterns (DSP).
 
     Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
+        X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
+            Training dataset. train_trials could be 1 if neccessary.
+        y_train (ndarray): (train_trials,). Labels for X_train.
+        train_info (dict): {'event_type':ndarray (n_events,),
+                            'n_events':int,
+                            'n_train':ndarray (n_events,),
+                            'n_chans':int,
+                            'n_points':int}
         n_components (int, optional): Number of eigenvectors picked as filters.
             Defaults to 1. Set to 'None' if ratio is not 'None'.
         ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
@@ -38,16 +45,20 @@ def dsp_compute(train_data, n_components=1, ratio=None):
         Sb (ndarray): (n_chans, n_chans). Scatter matrix of between-class difference.
         Sw (ndarray): (n_chans, n_chans). Scatter matrix of within-class difference.
         w (ndarray): (n_components, n_chans). Common spatial filter.
-        model (ndarray): (n_events, n_components, n_points). EEG templates.
+        template (ndarray): (n_events, n_components, n_points). DSP templates.
     """
     # basic information
-    n_events = train_data.shape[0]  # Ne
-    n_train = train_data.shape[1]  # Nt
-    n_chans = train_data.shape[2]  # Nc
-    
+    event_type = train_info['event_type']
+    n_events = train_info['n_events']  # Ne
+    n_train = train_info['n_train']  # [Nt1,Nt2,...]
+    n_chans = train_info['n_chans']  # Nc
+    n_points = train_info['n_points']  # Np
+
     # between-class difference Hb -> scatter matrix Sb
-    class_center = train_data.mean(axis=1)  # (Ne,Nc,Np)
-    total_center = class_center.mean(axis=0, keepdims=True)  # (Nc,Np)
+    class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne in range(n_events):
+        class_center[ne] = X_train[y_train==ne].mean(axis=0)  # (:,Nc,Np)
+    total_center = X_train.mean(axis=0, keepdims=True)  # (1,Nc,Np)
     Hb = class_center - total_center  # (Ne,Nc,Np)
     Sb = np.zeros((n_chans, n_chans))  # (Nc,Nc)
     for ne in range(n_events):
@@ -56,16 +67,16 @@ def dsp_compute(train_data, n_components=1, ratio=None):
     # Sb = np.einsum('ecp,ehp->ch', Hb,Hb)/n_events | clearer but slower
 
     # within-class difference Hw -> scatter matrix Sw
-    Hw = train_data - class_center[:,None,...]  # (Ne,Nt,Nc,Np)
     Sw = np.zeros_like(Sb)  # (Nc,Nc)
     for ne in range(n_events):
-        for ntr in range(n_train):
-            Sw += Hw[ne,ntr,...] @ Hw[ne,ntr,...].T
-    Sw /= (n_events*n_train)
-    # Sw = einsum('etcp,ethp->ch', Hw,Hw)/(n_events*n_train) | clearer but slower
+        Hw = X_train[y_train==ne] - class_center[ne]  # (Nt,Nc,Np)-(Nc,Np)
+        for ntr in range(n_train[ne]):  # samples for each event
+            Sw += Hw[ntr] @ Hw[ntr].T
+    Sw /= X_train.shape[0]
+    # Sw = einsum('etcp,ethp->ch', Hw,Hw)/(n_events*n_train) | only when events for each type are the same
 
-    # GEPs | training spatial filter
-    w = solve_gep(A=Sb, B=Sw, n_components=n_components, ratio=ratio)  # (Nk,Nc)
+    # GEPs | train spatial filter
+    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components, ratio=ratio)  # (Nk,Nc)
 
     # signal templates
     template = np.einsum('kc,ecp->ekp', w,class_center)  # (Ne,Nk,Np)
@@ -73,7 +84,6 @@ def dsp_compute(train_data, n_components=1, ratio=None):
 
 
 class DSP(object):
-    """Discriminant Spatial Patterns (DSP) for multi-target classification problems."""
     def __init__(self, n_components=1, ratio=None):
         """Config model dimension.
 
@@ -88,48 +98,63 @@ class DSP(object):
         self.ratio = ratio
 
 
-    def fit(self, train_data):
+    def fit(self, X_train, y_train):
         """Train DSP model.
 
         Args:
-            train_data (ndarray): (n_events, n_train, n_chans, n_points).
+            X_train (ndarray): (train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
         """
         # basic information
-        self.train_data = train_data
-        self.n_events = self.train_data.shape[0]  # Ne
-        self.n_train = self.train_data.shape[1]  # Nt
-        self.n_chans = self.train_data.shape[2]  # Nc
-        
+        self.X_train = X_train
+        self.y_train = y_train
+        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        self.train_info = {'event_type':event_type,
+                           'n_events':len(event_type),
+                           'n_train':np.array([np.sum(self.y_train==et) for et in event_type]),
+                           'n_chans':self.X_train.shape[-2],
+                           'n_points':self.X_train.shape[-1]}
+
         # train DSP models & templates
         self.Sb, self.Sw, self.w, self.template = dsp_compute(
-            train_data=self.train_data,
+            X_train=self.X_train,
+            y_train = self.y_train,
+            train_info = self.train_info,
             n_components=self.n_components,
             ratio=self.ratio
-            )
+        )
         return self
 
 
-    def predict(self, test_data):
-        """Using DSP algorithm onto original EEG data.
+    def predict(self, X_test, y_test):
+        """Using DSP algorithm to predict test data.
 
         Args:
-            test_data (ndarray): (n_events, n_test, n_chans, n_points).
+            X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:
-            rou (ndarray): (n_events(real), n_test, n_events(model)).
-            label (ndarray): (n_events, n_test, predict_label). Updated in future version.
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+            y_predict (ndarray): (test_trials,). Predict labels.
         """
         # basic information
-        self.n_test = test_data.shape[1]
+        n_test = y_test.shape[0]
+        n_events = self.train_info['n_events']
 
         # pattern matching
-        self.rou = np.zeros((self.n_events, self.n_test, self.n_events))  # (Ne(real),Nt,Ne(model))
-        for ner in range(self.n_events):
-            for nte in range(self.n_test):
-                temp = test_data[ner,nte,...]  # (Nc,Np)
-                for nem in range(self.n_events):
-                    self.rou[ner,nte,nem] = pearson_corr(self.w@temp, self.template[nem])
-        return self.rou
+        self.rou = np.zeros((n_test, n_events))
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
+            f_test = self.w @ X_test[nte]  # (Nk,Np)
+            for ne in range(n_events):
+                self.rou[nte,ne] = utils.pearson_corr(
+                    X=f_test,
+                    Y=self.template[ne]
+                )
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
 
 
 # %% (2) Discriminant Canonical Pattern Matching | DCPM
@@ -161,29 +186,62 @@ def pt_proj(X, theta):
 
 
 # %% Filter-bank TRCA series | FB-
-def fb_dsp_m1(train_data, test_data, n_components=1, ratio=None):
-    """DSP-M1 algorithms with filter banks.
+class FB_DSP(DSP):
+    def fit(self, X_train, y_train):
+        """Train filter-bank DSP model.
 
-    Args:
-        train_data (ndarray): (n_bands, n_events, n_train, n_chans, n_points).
-        test_data (ndarray): (n_bands, n_events, n_test, n_chans, n_points).
-        n_components (int): Number of eigenvectors picked as filters.
-            Set to 'None' if ratio is not 'None'.
-        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-            Defaults to be 'None'.
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.n_bands = X_train.shape[0]
 
-    Returns:
-        models (list of DSP objects). DSP objects created under various filter-bank.
-        rou (ndarray): (n_events(real), n_test, n_events(model)).
-    """
-    # basic information
-    n_bands = test_data.shape[0]
+        # train DSP models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = DSP(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train
+            )
+        return self
 
-    # multiple DSP classification
-    models, rou = [], []
-    for nb in range(n_bands):
-        sub_band = DSP(n_components=n_components, ratio=ratio)
-        sub_band.fit(train_data=train_data[nb])
-        models.append(sub_band)
-        rou.append(sub_band.predict(test_data=test_data[nb]))
-    return models, combine_fb_feature(rou)
+
+    def predict(self, X_test, y_test):
+        """Using filter-bank DSP algorithm to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+            y_test (ndarray): (test_trials,). Labels for X_test.
+
+        Return:
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+            y_predict (ndarray): (test_trials,). Predict labels.
+        """
+        # basic information
+        n_test = X_test.shape[1]
+        
+        # apply DSP().predict() in each sub-band
+        self.fb_rou = [[] for nb in range(self.n_bands)]
+        self.fb_y_predict = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.fb_rou[nb], self.fb_y_predict[nb] = self.sub_models[nb].predict(
+                X_test=X_test[nb],
+                y_test=y_test
+            )
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
+

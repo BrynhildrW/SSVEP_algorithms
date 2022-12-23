@@ -3,6 +3,17 @@
 @ author: Brynhildr Wu
 @ email: brynhildrwu@gmail.com
 
+1. Data preprocessing:
+    (1-1) zero_mean()
+
+2. Data preparation
+    (2-1) sin_wave()
+    (2-2) sine_template()
+    (2-3) time_shift()
+    (2-4) Imn()
+    (2-5) augmented_events()
+    (2-6) reshape_dataset()
+
 update: 2022/11/15
 
 """
@@ -15,7 +26,7 @@ from scipy import linalg as sLA
 
 from math import (pi, log, pow)
 
-# %% data preprocessing
+# %% 1. Data preprocessing
 def zero_mean(X):
     """Zero-mean normalization.
 
@@ -29,7 +40,7 @@ def zero_mean(X):
     return X
 
 
-# %% data preparation
+# %% 2. Data preparation
 def sin_wave(freq, n_points, phase, sfreq=1000):
     """Construct sinusoidal waveforms.
 
@@ -127,6 +138,43 @@ def augmented_events(n_events, d):
     return events_group
 
 
+def reshape_dataset(data):
+    """Reshape dataset from SSVEP version (Ne,Nt,Nc,Np) into common version (Ne*Nt,Nc,Np).
+
+    Args:
+        data (ndarray): (Ne,Nt,Nc,Np) or (Nb,Ne,Nt,Nc,Np).
+
+    Returns:
+        X_total (ndarray): (Ne*Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np).
+        y_total (ndarray): (Ne,). Labels for X_total.
+    """
+    # basic information
+    n_points = data.shape[-1]  # Np
+    n_chans = data.shape[-2]  # Nc
+    n_trials = data.shape[-3]  # Nt
+    n_events = data.shape[-4]  # Ne
+
+    # create labels
+    y_total = []
+    for ne in range(n_events):
+        y_total += [ne for ntr in range(n_trials)]
+
+    # reshape data
+    if data.ndim == 4:  # (Ne,Nt,Nc,Np)
+        X_total = np.zeros((n_events*n_trials, n_chans, n_points))
+        for ne in range(n_events):
+            sp = ne*n_trials
+            X_total[sp:sp+n_trials,...] = data[ne,...]  # (Nt,Nc,Np)
+    elif data.ndim == 5:  # (Nb,Ne,Nt,Nc,Np)
+        n_bands = data.shape[0]  # Nb
+        X_total = np.zeros((n_bands, n_events*n_trials, n_chans, n_points))
+        for nb in range(n_bands):
+            for ne in range(n_events):
+                sp = ne*n_trials
+                X_total[nb,sp:sp+n_trials,...] = data[nb,ne,...]  # (Nt,Nc,Np)
+    return X_total, np.array(y_total)
+
+
 # %% feature integration
 def sign_sta(x):
     """Standardization of decision coefficient based on sign(x).
@@ -175,25 +223,17 @@ def combine_fb_feature(features):
 
 
 # %% algorithm evaluation
-def acc_compute(rou):
+def acc_compute(y_predict, y_test):
     """Compute accuracy.
 
     Args:
-        rou (ndarray): (n_events(real), n_test, n_events(models)). Decision coefficients.
+        y_predict (ndarray): (n_test,). Predict labels.
+        y_test (ndarray): (n_test,). Real labels for test dataset.
 
     Returns:
         acc (float)
     """
-    n_events = rou.shape[0]
-    n_test = rou.shape[1]
-    correct = []
-    for ner in range(n_events):
-        temp = 0
-        for nte in range(n_test):
-            if np.argmax(rou[ner,nte,:]) == ner:
-                temp += 1
-        correct.append(temp)
-    return np.sum(correct)/(n_test*n_events)
+    return np.sum(y_predict==y_test)/len(y_test)
 
 
 def confusion_matrix(rou):
