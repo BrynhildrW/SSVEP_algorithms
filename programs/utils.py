@@ -508,7 +508,7 @@ def solve_ep(A, n_components=None, ratio=None, mode='Max'):
     """Solve eigenvalue problems | Rayleigh quotient: 
         f(w)=wAw^T/(ww^T) -> Aw = lambda w
 
-    Args:
+    Args:      
         A (ndarray): (m,m)
         B (ndarray): (m,m)
         n_components (int): Number of eigenvectors picked as filters.
