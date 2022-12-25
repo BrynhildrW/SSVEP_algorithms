@@ -161,7 +161,7 @@ class TRCA(object):
                            'standard':self.standard,
                            'ensemble':self.ensemble}
 
-        # train TRCA models & templates
+        # train TRCA filters & templates
         results = trca_compute(
             X_train=self.X_train,
             y_train = self.y_train,
@@ -227,8 +227,7 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
             Training dataset. train_trials could be 1 if neccessary.
         y_train (ndarray): (train_trials,). Labels for X_train.
-        train_info (dict): {'event_type':ndarray (n_events,),
-                            'n_events':int,
+        train_info (dict): {'n_events':int,
                             'n_train':ndarray (n_events,),
                             'n_chans':int,
                             'n_points':int,
@@ -245,11 +244,10 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         S (ndarray): (n_events, n_chans, n_chans). Covariance of template data.
         w (list of ndarray): n_events*(n_components, n_chans). Spatial filters.
         w_concat (ndarray): (n_events*n_components, n_chans). Concatenated filter.
-        template (ndarray): n_events*(n_components, n_points). ms-TRCA templates.
+        template (list of ndarray): n_events*(n_components, n_points). ms-TRCA templates.
         ensemble_template (ndarray): (n_events, total_components, n_points). ms-eTRCA templates.
     """
     # basic information
-    event_type = train_info['event_type']
     n_events = train_info['n_events']  # Ne
     n_train = train_info['n_train']  # [Nt1,Nt2,...]
     n_chans = train_info['n_chans']  # Nc

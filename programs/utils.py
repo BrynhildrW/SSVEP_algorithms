@@ -519,16 +519,16 @@ def solve_ep(A, n_components=None, ratio=None, mode='Max'):
     Returns:
         w (ndarray): (n_components,m). Picked eigenvectors.
     """
-    e_val, e_vec = sLA.eigh(A)
+    e_val, e_vec = sLA.eig(A)
     e_val_sum = np.sum(e_val)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
     if not n_components:
         n_components = pick_subspace(descend_order, e_val_sum, ratio)
     if mode == 'Min':
-        return e_vec[:,w_index][:,n_components:].T  # (n_components,m)
+        return np.real(e_vec[:,w_index][:,n_components:].T)
     elif mode == 'Max':
-        return e_vec[:,w_index][:,:n_components].T  # (n_components,m)
+        return np.real(e_vec[:,w_index][:,:n_components].T)
 
 
 def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
@@ -553,8 +553,8 @@ def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     if not n_components:
         n_components = pick_subspace(descend_order, e_val_sum, ratio)
     if mode == 'Min':
-        return e_vec[:,w_index][:,n_components:].T  # (n_components,m)
+        return np.real(e_vec[:,w_index][:,n_components:].T)
     elif mode == 'Max':
-        return e_vec[:,w_index][:,:n_components].T  # (n_components,m)
+        return np.real(e_vec[:,w_index][:,:n_components].T)
 
 
