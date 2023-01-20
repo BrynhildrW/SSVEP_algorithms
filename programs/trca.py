@@ -20,8 +20,7 @@ Task-related component analysis (TRCA) series.
             DOI:
     (8) LA-TRCA: 
             DOI:
-    (9) TDCA: https://ieeexplore.ieee.org/document/9541393/
-            DOI: 10.1109/TNSRE.2021.3114340
+    (9) 
 
 update: 2022/11/15
 
@@ -29,9 +28,42 @@ update: 2022/11/15
 
 # %% basic modules
 import utils
-from special import dsp_compute
 
 import numpy as np
+
+from special import dsp_compute
+
+from abc import abstractmethod, ABCMeta
+
+
+# %% Basic TRCA object
+class BasicTRCA(metaclass=ABCMeta):
+    def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
+        """Config model dimension.
+
+        Args:
+            standard (bool, optional): Standard TRCA model. Defaults to True.
+            ensemble (bool, optional): Ensemble TRCA model. Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Set to 'None' if ratio is not 'None'.
+            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+                Defaults to be 'None' when n_components is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+        self.standard = standard
+        self.ensemble = ensemble
+
+
+    @abstractmethod
+    def fit(self, X_train, y_train):
+        pass
+
+
+    @abstractmethod
+    def predict(self, X_test, y_test):
+        pass
 
 
 # %% (1) (ensemble) TRCA | (e)TRCA
@@ -113,33 +145,11 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     if ensemble:
         for ne in range(n_events):
             ensemble_template[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
-    model = (
-        Q, S,
-        w, w_concat,
-        template, ensemble_template
-    )
+    model = (Q, S, w, w_concat, template, ensemble_template)
     return model
 
 
-class TRCA(object):
-    def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
-        """Config model dimension.
-
-        Args:
-            standard (bool, optional): Standard TRCA model. Defaults to True.
-            ensemble (bool, optional): Ensemble TRCA model. Defaults to True.
-            n_components (int): Number of eigenvectors picked as filters.
-                Set to 'None' if ratio is not 'None'.
-            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-                Defaults to be 'None' when n_components is not 'None'.
-        """
-        # config model
-        self.n_components = n_components
-        self.ratio = ratio
-        self.standard = standard
-        self.ensemble = ensemble
-
-
+class TRCA(BasicTRCA):
     def fit(self, X_train, y_train):
         """Train (e)TRCA model.
 
@@ -582,7 +592,7 @@ def sctrca_compute(X_train, y_train, sine_template, train_info, n_components=1, 
     return model
 
 
-class SC_TRCA(TRCA):
+class SC_TRCA(BasicTRCA):
     def fit(self, X_train, y_train, sine_template):
         """Train sc-(e)TRCA model.
 
@@ -701,143 +711,79 @@ class SC_TRCA(TRCA):
 
 
 
-# %% (8) task-discriminant component analysis | TDCA
-def aug_2(data, projection, extra_length, mode='train'):
-    """Construct secondary augmented data.
-
-    Args:
-        data (ndarray): (n_chans, n_points+m or n_points).
-            m must be larger than n_points while mode is 'train'.
-        projection (ndarray): (n_points, n_points). Y.T@Y
-        extra_length (int): Extra data length.
-        mode (str, optional): 'train' or 'test'.
-
-    Returns:
-        data_aug2 (ndarray): ((m+1)*n_chans, 2*n_points).
-    """
-    # basic information
-    n_chans = data.shape[0]  # Nc
-    n_points = projection.shape[0]  # Np
-
-    # secondary augmented data
-    data_aug2 = np.zeros(((extra_length+1)*n_chans, 2*n_points))  # ((m+1)*Nc,Np+2Nh)
-    if mode == 'train':
-        for el in range(extra_length+1):
-            sp, ep = el*n_chans, (el+1)*n_chans
-            data_aug2[sp:ep,:n_points] = data[:,el:n_points+el]  # augmented data
-            data_aug2[sp:ep,n_points:] = data_aug2[sp:ep,:n_points] @ projection
-    elif mode == 'test':
-        for el in range(extra_length+1):
-            sp, ep = el*n_chans, (el+1)*n_chans
-            data_aug2[sp:ep,:n_points-el] = data[:,el:n_points]
-            data_aug2[sp:ep,n_points:] = data_aug2[sp:ep,:n_points] @ projection
-    return data_aug2
-
-
-class TDCA(object):
-    """Task-discriminant component analysis."""
-    def __init__(self, n_components=1, ratio=None):
-        """Config model dimension.
-
-        Args:
-            n_components (int, optional): Number of eigenvectors picked as filters.
-                Defaults to 1. Set to 'None' if ratio is not 'None'.
-            ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
-                Defaults to None when n_component is not 'None'.
-        """
-        # config model
-        self.n_components = n_components
-        self.ratio = ratio
-
-
-    def fit(self, X_train, y_train, projection, extra_length):
-        """Train TDCA model.
-
-        Args:
-            X_train (ndarray): (train_trials, n_chans, n_points+extra_length).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            projection (ndarray): (n_events, n_points, n_points).
-                Orthogonal projection matrices.
-            extra_length (int).
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        self.projection = projection
-        self.extra_length = extra_length
-
-        # create secondary augmented data | (Ne*Nt,(el+1)*Nc,2*Np)
-        self.X_train_aug2 = np.zeros((len(self.y_train),
-                                      (self.extra_length+1)*self.X_train.shape[-2],
-                                      2*(self.X_train.shape[-1] - self.extra_length)))
-        for ntr in range(len(self.y_train)):
-            self.X_train_aug2[ntr] = aug_2(
-                data=X_train[ntr],
-                projection=projection[y_train[ntr]],
-                extra_length=extra_length
-            )
-        self.train_info = {'event_type':event_type,
-                           'n_events':len(event_type),
-                           'n_train':np.array([np.sum(self.y_train==et) for et in event_type]),
-                           'n_chans':self.X_train_aug2.shape[-2],
-                           'n_points':self.X_train_aug2.shape[-1]}
-
-        # train DSP models & templates
-        results = dsp_compute(
-            X_train=self.X_train_aug2,
-            y_train=self.y_train,
-            train_info=self.train_info,
-            n_components=self.n_components,
-            ratio=self.ratio
-        )
-        self.Sb, self.Sw = results[0], results[1]
-        self.w, self.template = results[2], results[3]
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using TDCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_test = y_test.shape[0]
-        n_events = self.train_info['n_events']
-
-        # pattern matching
-        self.rou = np.zeros((n_test, n_events))
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            for ne in range(n_events):
-                temp_test_aug2 = aug_2(
-                    data=X_test[nte],
-                    projection=self.projection[ne],
-                    extra_length=self.extra_length,
-                    mode='test'
-                )
-                self.rou[nte,ne] = utils.pearson_corr(
-                    X=self.w @ temp_test_aug2,
-                    Y=self.template[ne]
-                )
-                self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
-
-
-# %% (9) optimized TRCA | op-TRCA
+# %% (8) optimized TRCA | op-TRCA
 
 
 
 # %% Filter-bank TRCA series | FB-
-class FB_TRCA(TRCA):
+class BasicFBTRCA(metaclass=ABCMeta):
+    def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
+        """Config model dimension.
+
+        Args:
+            standard (bool, optional): Standard TRCA model. Defaults to True.
+            ensemble (bool, optional): Ensemble TRCA model. Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Set to 'None' if ratio is not 'None'.
+            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+                Defaults to be 'None' when n_components is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+        self.standard = standard
+        self.ensemble = ensemble
+
+
+    @abstractmethod
+    def fit(self, X_train, y_train):
+        pass
+
+
+    def predict(self, X_test, y_test):
+        """Using filter-bank TRCA algorithms to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+            y_test (ndarray): (test_trials,). Labels for X_test.
+
+        Return:
+            rou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank TRCA.
+                Not empty when self.standard is True.
+            y_standard (ndarray): (test_trials,). Predict labels of filter-bank TRCA.
+            erou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank eTRCA.
+                Not empty when self.ensemble is True.
+            y_ensemble (ndarray): (test_trials,). Predict labels of filter-bank eTRCA.
+        """
+        # basic information
+        n_test = X_test.shape[1]
+
+        # apply predict() method in each sub-band
+        self.fb_rou = [[] for nb in range(self.n_bands)]
+        self.fb_y_standard = [[] for nb in range(self.n_bands)]
+        self.fb_erou = [[] for nb in range(self.n_bands)]
+        self.fb_y_ensemble = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            fb_results = self.sub_models[nb].predict(
+                X_test=X_test[nb],
+                y_test=y_test
+            )
+            self.fb_rou[nb], self.fb_y_standard[nb] = fb_results[0], fb_results[1]
+            self.fb_erou[nb], self.fb_y_ensemble[nb] = fb_results[2], fb_results[3]
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.erou = utils.combine_fb_feature(self.fb_erou)
+        self.y_standard = np.empty((n_test))
+        self.y_ensemble = np.empty_like(self.y_standard)
+        for nte in range(n_test):
+            self.y_standard[nte] = np.argmax(self.rou[nte,:])
+            self.y_ensemble[nte] = np.argmax(self.erou[nte,:])
+        return self.rou, self.y_standard, self.erou, self.y_ensemble
+
+
+class FB_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train):
         """Train filter-bank (e)TRCA model.
 
@@ -867,50 +813,7 @@ class FB_TRCA(TRCA):
         return self
 
 
-    def predict(self, X_test, y_test):
-        """Using filter-bank (e)TRCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank TRCA.
-                Not empty when self.standard is True.
-            y_standard (ndarray): (test_trials,). Predict labels of filter-bank TRCA.
-            erou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank eTRCA.
-                Not empty when self.ensemble is True.
-            y_ensemble (ndarray): (test_trials,). Predict labels of filter-bank eTRCA.
-        """
-        # basic information
-        n_test = X_test.shape[1]
-
-        # apply TRCA().predict() in each sub-band
-        self.fb_rou = [[] for nb in range(self.n_bands)]
-        self.fb_y_standard = [[] for nb in range(self.n_bands)]
-        self.fb_erou = [[] for nb in range(self.n_bands)]
-        self.fb_y_ensemble = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            fb_results = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-            self.fb_rou[nb], self.fb_y_standard[nb] = fb_results[0], fb_results[1]
-            self.fb_erou[nb], self.fb_y_ensemble[nb] = fb_results[2], fb_results[3]
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.erou = utils.combine_fb_feature(self.fb_erou)
-        self.y_standard = np.empty((n_test))
-        self.y_ensemble = np.empty_like(self.y_standard)
-        for nte in range(n_test):
-            self.y_standard[nte] = np.argmax(self.rou[nte,:])
-            self.y_ensemble[nte] = np.argmax(self.erou[nte,:])
-        return self.rou, self.y_standard, self.erou, self.y_ensemble
-
-
-class FB_MS_TRCA(FB_TRCA):
+class FB_MS_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train, events_group=None, d=None):
         """Train filter-bank ms-(e)TRCA model.
 
@@ -946,7 +849,7 @@ class FB_MS_TRCA(FB_TRCA):
         return self
 
 
-class FB_TRCA_R(FB_TRCA):
+class FB_TRCA_R(BasicFBTRCA):
     def fit(self, X_train, y_train, projection):
         """Train filter-bank (e)TRCA-R model.
 
@@ -979,7 +882,7 @@ class FB_TRCA_R(FB_TRCA):
         return self
 
 
-class FB_SC_TRCA(FB_TRCA):
+class FB_SC_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train, sine_template):
         """Train filter-bank sc-(e)TRCA model.
 
@@ -1010,73 +913,6 @@ class FB_SC_TRCA(FB_TRCA):
                 sine_template=self.sine_template
             )
         return self
-
-
-class FB_TDCA(TDCA):
-    def fit(self, X_train, y_train, projection, extra_length):
-        """Train TDCA model.
-
-        Args:
-            X_train (ndarray): (train_trials, n_chans, n_points+extra_length).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            projection (ndarray): (n_events, n_points, n_points).
-                Orthogonal projection matrices.
-            extra_length (int).
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        self.projection = projection
-        self.extra_length = extra_length
-        self.n_bands = X_train.shape[0]
-
-        # train TDCA models & templates
-        self.sub_models = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.sub_models[nb] = TDCA(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train[nb],
-                y_train=self.y_train,
-                projection=self.projection,
-                extra_length=self.extra_length
-            )
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank TDCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_test = X_test.shape[1]
-
-        # apply TDCA().predict() in each sub-band
-        self.fb_rou = [[] for nb in range(self.n_bands)]
-        self.fb_y_predict = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.fb_rou[nb], self.fb_y_predict[nb] = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
 
 
 # %%

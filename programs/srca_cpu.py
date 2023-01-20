@@ -180,7 +180,12 @@ def dsp_val(train_data, kwargs):
     dsp_model = DSP(
         n_components=n_components,
         ratio=ratio
-    ).fit(train_data=train_data)
+    )
+    X_train, y_train = utils.reshape_dataset(train_data)
+    dsp_model.fit(
+        X_train=X_train,
+        y_train=y_train
+    )
     bcd_power = dsp_model.w @ dsp_model.Sb @ dsp_model.w.T  # between-class difference power
     wcd_power = dsp_model.w @ dsp_model.Sw @ dsp_model.w.T  # within-class difference power
     return bcd_power/wcd_power
