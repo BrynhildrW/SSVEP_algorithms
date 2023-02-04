@@ -138,6 +138,31 @@ def augmented_events(n_events, d):
     return events_group
 
 
+def selected_events(n_events, d, method='A2'):
+    """Generate indices for selected events of total dataset.
+    Special function for stCCA.
+
+    Args:
+        n_events (int)
+        d (int): The range of events to be merged.
+        method (str): 'A1', 'A2', and 'A3' according to the reference.
+
+    Returns:
+        events_indices (list)
+    """
+    events_indices = []
+    if method == 'A1':
+        for ne in range(d):
+            events_indices.append(1 + int((n_events-1)*ne/(d-1)))
+    elif method == 'A2':
+        for ne in range(d):
+            events_indices.append(int(n_events*(2*ne+1)/(2*d)))
+    elif method == 'A3':
+        for ne in range(d):
+            events_indices.append(int((n_events*2*(ne+1))/(2*d)))
+    return events_indices
+
+
 def reshape_dataset(data):
     """Reshape dataset from SSVEP version (Ne,Nt,Nc,Np) into common version (Ne*Nt,Nc,Np).
 

@@ -693,6 +693,10 @@ class MSETCCA2(BasicCCA):
     pass
 
 
+# %% (8) Subject transfer based CCA | stCCA
+
+
+
 # %% Cross-subject transfer learning | CSSFT
 def cssft_compute():
     pass
