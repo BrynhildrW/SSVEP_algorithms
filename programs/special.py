@@ -31,7 +31,7 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     Args:
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
-            Training dataset. train_trials could be 1 if neccessary.
+            Training dataset. train_trials could be 1 if necessary.
         y_train (ndarray): (train_trials,). Labels for X_train.
         train_info (dict): {'event_type':ndarray (n_events,),
                             'n_events':int,
@@ -58,8 +58,8 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     # between-class difference Hb -> scatter matrix Sb
     class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    for ne in range(n_events):
-        class_center[ne] = X_train[y_train==ne].mean(axis=0)  # (:,Nc,Np)
+    for ne,et in enumerate(event_type):
+        class_center[ne] = X_train[y_train==et].mean(axis=0)  # (:,Nc,Np)
     total_center = X_train.mean(axis=0, keepdims=True)  # (1,Nc,Np)
     Hb = class_center - total_center  # (Ne,Nc,Np)
     Sb = np.zeros((n_chans, n_chans))  # (Nc,Nc)
@@ -70,15 +70,20 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     # within-class difference Hw -> scatter matrix Sw
     Sw = np.zeros_like(Sb)  # (Nc,Nc)
-    for ne in range(n_events):
-        Hw = X_train[y_train==ne] - class_center[ne]  # (Nt,Nc,Np)-(Nc,Np)
+    for ne,et in enumerate(event_type):
+        Hw = X_train[y_train==et] - class_center[ne]  # (Nt,Nc,Np)-(Nc,Np)
         for ntr in range(n_train[ne]):  # samples for each event
             Sw += Hw[ntr] @ Hw[ntr].T
     Sw /= X_train.shape[0]
     # Sw = einsum('etcp,ethp->ch', Hw,Hw)/(n_events*n_train) | only when events for each type are the same
 
     # GEPs | train spatial filter
-    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components, ratio=ratio)  # (Nk,Nc)
+    w = utils.solve_gep(
+        A=Sb,
+        B=Sw,
+        n_components=n_components,
+        ratio=ratio
+    )  # (Nk,Nc)
 
     # signal templates
     template = np.einsum('kc,ecp->ekp', w,class_center)  # (Ne,Nk,Np)
@@ -105,7 +110,7 @@ class DSP(object):
 
         Args:
             X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
+                Training dataset. train_trials could be 1 if necessary.
             y_train (ndarray): (train_trials,). Labels for X_train.
         """
         # basic information
@@ -134,7 +139,7 @@ class DSP(object):
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
+                Test dataset. test_trials could be 1 if necessary.
             y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:

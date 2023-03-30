@@ -72,10 +72,9 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     Args:
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
-            Training dataset. train_trials could be 1 if neccessary.
+            Training dataset. train_trials could be 1 if necessary.
         y_train (ndarray): (train_trials,). Labels for X_train.
-        train_info (dict): {'n_events':int,
-                            'event_type':ndarray (n_events,),
+        train_info (dict): {'event_type':ndarray (n_events,),
                             'n_train':ndarray (n_events,),
                             'n_chans':int,
                             'n_points':int,
@@ -96,7 +95,7 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     """
     # basic information
     event_type = train_info['event_type']
-    n_events = train_info['n_events']  # Ne
+    n_events = len(event_type)  # Ne
     n_train = train_info['n_train']  # [Nt1,Nt2,...]
     n_chans = train_info['n_chans']  # Nc
     n_points = train_info['n_points']  # Np
@@ -106,15 +105,15 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     # S: covariance of template
     S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    for ne in range(n_events):
-        class_center[ne] = X_train[y_train==ne].mean(axis=0)  # (Nc,Np)
+    for ne,et in enumerate(event_type):
+        class_center[ne] = X_train[y_train==et].mean(axis=0)  # (Nc,Np)
         S[ne] = class_center[ne] @ class_center[ne].T
     # S = np.einsum('ecp,ehp->ech', class_center,class_center) | clearer but slower
 
     # Q: covariance of original data
     Q = np.zeros_like(S)  # (Ne,Nc,Nc)
-    for ne in range(n_events):
-        temp = X_train[y_train==ne]  # (Nt,Nc,Np)
+    for ne,et in enumerate(event_type):
+        temp = X_train[y_train==et]  # (Nt,Nc,Np)
         for ntr in range(n_train[ne]):
             Q[ne] += temp[ntr] @ temp[ntr].T
     # Q = np.einsum('etcp,ethp->ech', train_data,train_data) | clearer but slower
@@ -155,16 +154,15 @@ class TRCA(BasicTRCA):
 
         Args:
             X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
+                Training dataset. train_trials could be 1 if necessary.
             y_train (ndarray): (train_trials,). Labels for X_train.
         """
         # basic information
         self.X_train = X_train
         self.y_train = y_train
         event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_events = len(event_type)
         self.train_info = {'event_type':event_type,
-                           'n_events':n_events,
+                           'n_events':len(event_type),
                            'n_train':np.array([np.sum(self.y_train==et) for et in event_type]),
                            'n_chans':self.X_train.shape[-2],
                            'n_points':self.X_train.shape[-1],
@@ -190,7 +188,7 @@ class TRCA(BasicTRCA):
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
+                Test dataset. test_trials could be 1 if necessary.
             y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:

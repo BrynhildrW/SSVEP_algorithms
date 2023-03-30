@@ -28,11 +28,11 @@ update: 2022/11/30
 
 """
 
-# %% basic modules
+# basic modules
 from abc import ABC, abstractmethod
 
 import utils
-import special
+# import special
 from special import DSP
 import trca
 from trca import TRCA
@@ -43,51 +43,78 @@ import numpy as np
 import scipy.linalg as sLA
 
 from sklearn import linear_model
+from sklearn.model_selection import StratifiedShuffleSplit
 from itertools import combinations
 
 from time import perf_counter
 from copy import deepcopy
 
-# %% 1-D target functions | single channel
+# 1-D target functions | single channel
 # SNR (mean) in time domain
-def snr_sequence(train_data, *args, **kwargs):
+def snr_sequence(X_train, y_train, kwargs):
     """Signal-to-Noise ratio (sequence) in time domain.
 
     Args:
-        train_data (ndarray): (..., n_trials, n_points). Input data.
+        X_train (ndarray): (n_trials, n_points). Input data.
+        y_train (ndarray): (n_trials,). Labels for X_train.
+
+        (Below is contained in kwargs)
+        event_type (ndarray): (n_events,). [0,1,2,...,Ne-1].
 
     Returns:
-        snr (ndarray): (..., 1, n_points). SNR sequence in time domain. 
+        snr (ndarray): (n_events, n_points). SNR sequence in time domain.
+            n_events could be 1.
     """
-    pure_signal = train_data.mean(axis=-2, keepdims=True)  # (..., 1, n_points)
-    signal_power = pure_signal**2  # (..., 1, n_points)
-    noise_power = ((train_data-pure_signal)**2).mean(axis=-2, keepdims=True)  # (..., 1, n_points)
-    snr = signal_power / noise_power  # (..., 1, n_points)
-    return snr
+    # basic information
+    try:
+        event_type = kwargs['event_type']
+    except KeyError:
+        event_type = np.unique(y_train)
+    n_events = len(event_type)
+    n_points = X_train.shape[-1]
+
+    # compute SNR in time domain
+    signal_power = np.zeros((n_events, n_points))
+    noise_power = np.zeros_like(signal_power)
+    for ne, et in enumerate(event_type):
+        pure_signal = X_train[y_train==et].mean(axis=0, keepdims=True)  # (1,Np)
+        signal_power[ne,:] = pure_signal**2  # (1,Np)
+        noise_signal = X_train[y_train==et] - pure_signal  # (Nt,Np)
+        noise_power[ne,:] = (noise_signal**2).mean(axis=0, keepdims=True)  # (1,Np)
+    return signal_power/noise_power
 
 
 # Fisher score (mean) in time domain
-def fs_sequence(train_data, *args, **kwargs):
+def fs_sequence(X_train, y_train, kwargs):
     """Fisher Score (sequence) in time domain.
  
     Args:
-        train_data (ndarray): (n_events, n_trials, n_points). Data array.
+        X_train (ndarray): (n_trials, n_points). Input data.
+        y_train (ndarray): (n_trials,). Labels for X_train.
 
     Returns:
         fs (ndarray): (1, n_points). Fisher-Score sequence.
     """
-    n_events = train_data.shape[0]  # Ne
-    dataset = [train_data[ne] for ne in range(n_events)]  # (event1, event2, ...)
+    # basic information
+    try:
+        event_type = kwargs['event_type']
+    except KeyError:
+        event_type = np.unique(y_train)
+
+    # compute FS in time domain
+    dataset = [X_train[y_train==et] for et in event_type]  # (event1, event2, ...)
     return utils.fisher_score(dataset)
 
 
-# %% 2-D target functions | multiple channels, single event
+# 2-D target functions | multiple channels, single event
 # Target function values of TRCA | single event
-def trca_val(train_data, kwargs):
+def trca_val(X_train, kwargs):
     """f(w)=(w @ S @ w.T)/(w @ Q @ w.T).
 
     Args:
-        train_data (ndarray): (n_train, n_chans, n_points).
+        X_train (ndarray): (train_trials, n_chans, n_points).
+            Training dataset of only 1 category.
+        y_train (ndarray): (train_trials,). Labels for X_train.
         (Below are contained in kwargs)
         n_components (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
@@ -97,17 +124,17 @@ def trca_val(train_data, kwargs):
     Returns:
         coef (float): f(w)
     """
-    # basic information
-    n_components = kwargs['n_components']
-    ratio = kwargs['ratio']
-
     # TRCA target function
     trca_model = TRCA(
         standard=True,
         ensemble=False,
-        n_components=n_components,
-        ratio=ratio
-    ).fit(train_data=train_data[None,...])
+        n_components=kwargs['n_components'],
+        ratio=kwargs['ratio']
+    )
+    trca_model.fit(
+        X_train=X_train,
+        y_train=y_train
+    )
     total_power = trca_model.w_concat[0] @ trca_model.Q[0] @ trca_model.w_concat[0].T
     template_power = trca_model.w_concat[0] @ trca_model.S[0] @ trca_model.w_concat[0].T
     return template_power/total_power
@@ -156,13 +183,15 @@ def trca_acc(dataset, kwargs):
 
 
 
-# %% 2-D target functions | multiple channels, multiple events
+# 2-D target functions | multiple channels, multiple events
 # Target function values of DSP
-def dsp_val(train_data, kwargs):
+def dsp_val(X_train, y_train, kwargs):
     """f(w)=(w @ S_b @ w.T)/(w @ S_w @ w.T).
 
     Args:
-        train_data (ndarray): (n_events, n_train, n_chans, n_points).
+        X_train (ndarray): (train_trials, n_chans, n_points). Training dataset.
+        y_train (ndarray): (train_trials,). Labels for X_train.
+
         (Below are contained in kwargs)
         n_components (int): Number of eigenvectors picked as filters.
             Set to 'None' if ratio is not 'None'.
@@ -172,16 +201,11 @@ def dsp_val(train_data, kwargs):
     Returns:
         coef (float): f(w)
     """
-    # extra information from kwargs
-    n_components = kwargs['n_components']
-    ratio = kwargs['ratio']
-
     # DSP target function
     dsp_model = DSP(
-        n_components=n_components,
-        ratio=ratio
+        n_components=kwargs['n_components'],
+        ratio=kwargs['ratio']
     )
-    X_train, y_train = utils.reshape_dataset(train_data)
     dsp_model.fit(
         X_train=X_train,
         y_train=y_train
@@ -192,11 +216,12 @@ def dsp_val(train_data, kwargs):
 
 
 # Accuracy of DSP
-def dsp_acc(dataset, kwargs):
+def dsp_acc(X_train, y_train, kwargs):
     """Accuracy calculated by DSP-M1.
 
     Args:
-        dataset (ndarray): (n_events, n_trials, n_chans, n_points).
+        X_train (ndarray): (train_trials, n_chans, n_points). Training dataset.
+        y_train (ndarray): (train_trials,). Labels for X_train.
         (Below are contained in kwargs)
         n_train (int): Number of training samples. Must be less than n_trials.
         n_repeat (int, optional): Number of Monte-Carlo cross-validation.
@@ -210,28 +235,39 @@ def dsp_acc(dataset, kwargs):
         acc (float)
     """
     # basic information
-    n_trials = dataset.shape[1]
     n_repeat = kwargs['n_repeat']
     n_train = kwargs['n_train']
     n_components = kwargs['n_components']
     ratio = kwargs['ratio']
 
     # cross-validation
-    rand_order = np.arange(n_trials)
-    acc = np.zeros((n_repeat))
-    for nrep in range(n_repeat):
-        np.random.shuffle(rand_order)
-        train_data = dataset[:,rand_order[:n_train],...]
-        test_data = dataset[:,rand_order[n_train:],...]
+    sss = StratifiedShuffledSplit(
+        n_splits=kwargs['n_repeat'],
+        test_size=1-kwargs['n_train']/len(y_train),
+        random_state=0
+    )
+    acc = np.zeros((kwargs['n_repeat']))
+    for nrep, (train_index, test_index) in enumerate(sss.split(X_train, y_train)):
+        X_part_train, X_part_test = X_train[train_index], X_train[test_index]
+        y_part_train, y_part_test = y_train[train_index], y_train[test_index]
+
         dsp_model = DSP(
-            n_components=n_components,
-            ratio=ratio
-        ).fit(train_data=train_data)
-        acc[nrep] = utils.acc_compute(dsp_model.predict(test_data=test_data))
+            n_components=kwargs['n_components'],
+            ratio=kwargs['ratio']
+        )
+        dsp_model.fit(
+            X_train=X_part_train,
+            y_train=y_part_train
+        )
+        _, y_dsp = dsp_model.predict(
+            X_test=X_part_test,
+            y_test=y_part_test
+        )
+        acc[nrep] = utils.acc_compute(y_dsp, y_test)
     return acc.mean()
 
 
-# %% SRCA operation
+# SRCA operation
 def mse_regression(rs_model, rs_target, ts_model):
     """Linear regression for task-state target channel based on
         Mean squared error (Frobenius Norm).
@@ -276,7 +312,10 @@ def linear_regression(rs_model, rs_target, ts_model):
     n_points = ts_model.shape[-1]  # Np
     ts_target_estimate = np.zeros((n_trials, n_points))  # (Nt,Np)
     for ntr in range(n_trials):
-        L = linear_model.LinearRegression().fit(rs_model[ntr].T, rs_target[ntr])
+        L = linear_model.LinearRegression().fit(
+            X=rs_model[ntr].T,
+            y=rs_target[ntr]
+        )
         ts_target_estimate[ntr] = L.coef_@ts_model + L.intercept_
     return ts_target_estimate
 
@@ -300,7 +339,10 @@ def ridge(rs_model, rs_target, ts_model):
     n_points = ts_model.shape[-1]  # Np
     ts_target_estimate = np.zeros((n_trials, n_points))  # (Nt,Np)
     for ntr in range(n_trials):
-        L = linear_model.Ridge().fit(rs_model[ntr].T, rs_target[ntr])
+        L = linear_model.Ridge().fit(
+            X=rs_model[ntr].T,
+            y=rs_target[ntr]
+        )
         ts_target_estimate[ntr,:] = L.coef_@ts_model + L.intercept_
     return ts_target_estimate
 
@@ -388,39 +430,7 @@ def srca_process(rs_model, rs_target, ts_model, ts_target, regression='MSE'):
     return ts_target - ts_target_estimation
 
 
-def esrca_process(rs_model, rs_target, ts_model, ts_target, regression='MSE'):
-    """Main process of ensemble SRCA algorithm.
-
-    Args:
-        rs_model (ndarray): (n_events, n_trials, n_chans, n_points).
-            Rest-state data of model channels.
-        rs_target (ndarray): (n_events, n_trials, n_points).
-            Rest-state data of target channel.
-        ts_model (ndarray): (n_events, n_trials, n_chans, n_points).
-            Task-state data of model channels.
-        ts_target (ndarray): (n_events, n_trials, n_points).
-            Task-state data of target channel.
-        regression (str, optional): 'MSE', 'OLS', 'RI', 'LA' and 'EN'.
-            Defaults to 'MSE'.
-
-    Returns:
-        ts_target_extraction (ndarray): (n_trials, n_points). SRCA processed task-state data of target channel.
-    """
-    # basic information
-    n_events = ts_model.shape[0]
-
-    # repeat SRCA process on n_events axis
-    ts_target_estimation = np.zeros_like(ts_target)
-    for ne in range(n_events):
-        ts_target_estimation[ne] = regressions[regression](
-            rs_model=rs_model[ne],
-            rs_target=rs_target[ne],
-            ts_model=ts_model[ne]
-        )
-    return ts_target - ts_target_estimation
-
-
-# %% Main classes
+# Main classes
 class SRCA(object):
     """Spatial Regression Component Analysis for single-channel, single-event optimization.
     Target functions (1-D):
@@ -430,12 +440,12 @@ class SRCA(object):
     opt_methods = ['Traversal', 'Recursion', 'Mix']
 
 
-    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func,
+    def __init__(self, X_train, rest_phase, task_phase, chan_info, tar_chan, tar_func,
                  opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE', kwargs=None):
         """Load in settings.
 
         Args:
-            train_data (ndarray): (n_train, n_chans, n_points). Training dataset.
+            X_train (ndarray): (train_trials, n_chans, n_points). Training dataset of 1 category.
             rest_phase (list): [st,ed]. The start and end point of rest-state data.
             task_phase (list): [st,ed]. The start and end point of task-state data.
             chan_info (list): Names of all channels.
@@ -447,16 +457,14 @@ class SRCA(object):
             chan_num_limit (int, optional): The maximum number of channels used in SRCA model.
                 Defaults to None.
             regression (str, optional): Regression method used in SRCA process. Defaults to 'MSE'.
+
             (Below are in kwargs)
-            n_components (int): Number of eigenvectors picked as filters.
-                Set to 'None' if ratio is not 'None'.
-            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-                Defaults to be 'None' when n_component is not 'None'.
+            event_type (ndarray): (n_events,). [0,1,2,...,Ne-1].
         """
         # basic information
-        self.rest_data = train_data[...,rest_phase[0]:rest_phase[1]]
-        self.task_data = train_data[...,task_phase[0]:task_phase[1]]
-        self.n_chans = train_data.shape[-2]
+        self.rest_data = X_train[...,rest_phase[0]:rest_phase[1]]
+        self.task_data = X_train[...,task_phase[0]:task_phase[1]]
+        self.n_chans = X_train.shape[-2]
         self.chan_info = chan_info
         self.tar_chan = tar_chan
         self.tar_func = tar_func
@@ -464,8 +472,11 @@ class SRCA(object):
         self.traversal_limit = traversal_limit
         self.chan_num_limit = chan_num_limit
         self.regression = regression
-        self.kwargs = kwargs
-        # print('Load in data...Complete')
+        self.y_train = np.ones((self.task_data.shape[0]))
+        if not kwargs:
+            self.kwargs = {'event_type':np.array([1])}
+        else:
+            self.kwargs = kwargs
 
 
     def prepare(self):
@@ -477,9 +488,11 @@ class SRCA(object):
         self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)
 
         # model initialization
-        self.init_value = np.mean(self.tar_functions[self.tar_func](self.task_target))
+        self.init_value = np.mean(self.tar_functions[self.tar_func](
+            X_train=self.task_target,
+            y_train=self.y_train,
+            kwargs=self.kwargs))
         self.model_indices, self.value_change = [], [self.init_value]
-        # print('Prepare for training...Complete!')
         return self
 
 
@@ -510,7 +523,10 @@ class SRCA(object):
             ts_target=self.task_target,
             regression=self.regression
         )
-        srca_tar_value = np.mean(self.tar_functions[self.tar_func](srca_target, self.kwargs))
+        srca_tar_value = np.mean(self.tar_functions[self.tar_func](
+            X_train=srca_target,
+            y_train=self.y_train,
+            kwargs=self.kwargs))
         return srca_tar_value
 
 
@@ -629,12 +645,13 @@ class ESRCA(SRCA):
                      'FS':fs_sequence}
 
 
-    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func,
+    def __init__(self, X_train, y_train, rest_phase, task_phase, chan_info, tar_chan, tar_func,
                  opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE', kwargs=None):
         """Load in settings.
 
         Args:
-            train_data (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+            X_train (ndarray): (train_trials, n_chans, n_points). Training dataset of multiple categories.
+            y_train (ndarray): (train_trials,). Labels for X_train.
             rest_phase (list): [st,ed]. The start and end point of rest-state data.
             task_phase (list): [st,ed]. The start and end point of task-state data.
             chan_info (list): Names of all channels.
@@ -646,35 +663,17 @@ class ESRCA(SRCA):
             chan_num_limit (int, optional): The maximum number of channels used in SRCA model.
                 Defaults to None.
             regression (str, optional): Regression method used in SRCA process. Defaults to 'MSE'.
+
             (Below are in kwargs)
-            n_components (int): Number of eigenvectors picked as filters.
-                Set to 'None' if ratio is not 'None'.
-            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-                Defaults to be 'None' when n_component is not 'None'.
+            event_type (ndarray): (n_events,). [0,1,2,...,Ne-1].
         """
-        super().__init__(train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
+        super().__init__(X_train, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
                          traversal_limit, chan_num_limit, regression)
-        self.kwargs = kwargs
-
-
-    def srca_unit(self, chans_indices):
-        """Compute updated target function values of eSRCA-processed data.
-
-        Args:
-            chans_indices (list or tuple): Indices of channels to be used in eSRCA model.
-
-        Returns:
-            esrca_tar_value (float): Target function values of the eSRCA-processed data.
-        """
-        esrca_target = esrca_process(
-            rs_model=self.rest_data[...,chans_indices,:],
-            rs_target=self.rest_target,
-            ts_model=self.task_data[...,chans_indices,:],
-            ts_target=self.task_target,
-            regression=self.regression
-        )
-        esrca_tar_value = np.mean(self.tar_functions[self.tar_func](esrca_target, self.kwargs))
-        return esrca_tar_value
+        self.y_train = y_train
+        if not kwargs:
+            self.kwargs = {'event_type':np.unique(y_train)}
+        else:
+            self.kwargs = kwargs
 
 
 class TdSRCA(SRCA):
@@ -779,12 +778,13 @@ class TdESRCA(ESRCA):
     opt_methods = ['Traversal', 'Recursion', 'Mix']
 
 
-    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan, tar_chan_list, tar_func,
+    def __init__(self, X_train, y_train, rest_phase, task_phase, chan_info, tar_chan, tar_chan_list, tar_func,
                  opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE', kwargs=None):
         """Load in settings.
 
         Args:
-            train_data (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+            X_train (ndarray): (train_trials, n_chans, n_points). Training dataset.
+            y_train (ndarray): (train_trials,). Labels for X_train.
             rest_phase (list): [st,ed]. The start and end point of rest-state data.
             task_phase (list): [st,ed]. The start and end point of task-state data.
             chan_info (list): Names of all channels.
@@ -797,40 +797,46 @@ class TdESRCA(ESRCA):
             chan_num_limit (int, optional): The maximum number of channels used in tdSRCA model.
                 Defaults to None.
             regression (str, optional): Regression method used in tdSRCA process. Defaults to 'MSE'.
+
             (Below are in kwargs)
             n_components (int): Number of eigenvectors picked as filters.
                 Set to 'None' if ratio is not 'None'.
             ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
                 Defaults to be 'None' when n_component is not 'None'.
         """
-        super().__init__(train_data, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
+        super().__init__(X_train, y_train, rest_phase, task_phase, chan_info, tar_chan, tar_func, opt_method,
                          traversal_limit, chan_num_limit, regression)
 
         # check extra input
         assert set(tar_chan_list) <= set(chan_info), 'Unknown target channel!'
         self.tar_chan_list = tar_chan_list
-        self.kwargs = kwargs
+
+        if not kwargs:
+            self.kwargs = {'n_components':1,
+                           'ratio':None}
+        else:
+            self.kwargs = kwargs
 
 
     def prepare(self):
         """Initialization for training."""
         # pick up target data for both state
         self.tar_index = self.chan_info.index(self.tar_chan)
-        self.rest_target = self.rest_data[...,self.tar_index,:]  # (Nt,Np)
-        self.task_target = self.task_data[...,self.tar_index,:]  # (Nt,Np)
+        self.rest_target = self.rest_data[:,self.tar_index,:]  # (Nt,Np)
+        self.task_target = self.task_data[:,self.tar_index,:]  # (Nt,Np)
 
         # config target group data
         self.tar_indices = [self.chan_info.index(ch_name) for ch_name in self.tar_chan_list]
-        self.target_group = self.task_data[...,self.tar_indices,:]  # (Ne,Nt,Nc,Np)
-        self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_indices)  # not allowed to use target group channels
-        # self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)  # allowed to use target group channels
+        self.target_group = self.task_data[:,self.tar_indices,:]  # (Nt,Nc,Np)
+        self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_indices)  # except target group channels
 
         # model initialization
-        # try:
-        self.init_value = np.mean(self.tar_functions[self.tar_func](self.target_group, self.kwargs))
-        # except KeyError:
-            # raise Exception('Check your kwargs parameters according to the target function!')
+        self.init_value = np.mean(self.tar_functions[self.tar_func](
+            X_train=self.target_group,
+            y_train=self.y_train,
+            kwargs=self.kwargs))
         self.model_indices, self.value_change = [], [self.init_value]
+        return self
 
 
     def srca_unit(self, chans_indices):
@@ -842,18 +848,20 @@ class TdESRCA(ESRCA):
         Returns:
             tdesrca_tar_value (float): Target function values of the tdSRCA-processed data.
         """
-        tdesrca_target = esrca_process(
-            rs_model=self.rest_data[...,chans_indices,:],
+        tdesrca_target = srca_process(
+            rs_model=self.rest_data[:,chans_indices,:],
             rs_target=self.rest_target,
-            ts_model=self.task_data[...,chans_indices,:],
+            ts_model=self.task_data[:,chans_indices,:],
             ts_target=self.task_target,
             regression=self.regression
         )
         update_target_group = deepcopy(self.target_group)
         update_target_group[...,self.tar_chan_list.index(self.tar_chan),:] = tdesrca_target
-        tdesrca_tar_value = np.mean(self.tar_functions[self.tar_func](update_target_group, self.kwargs))
+        tdesrca_tar_value = np.mean(self.tar_functions[self.tar_func](
+            X_train=update_target_group,
+            y_train=self.y_train,
+            kwargs=self.kwargs))
         return tdesrca_tar_value
-
 
 
 class MultiSRCA(SRCA):
@@ -876,12 +884,13 @@ class MultiESRCA(object):
                      'DSP-acc':dsp_acc}
 
 
-    def __init__(self, train_data, rest_phase, task_phase, chan_info, tar_chan_list, tar_func,
+    def __init__(self, X_train, y_train, rest_phase, task_phase, chan_info, tar_chan_list, tar_func,
                  opt_method, traversal_limit=None, chan_num_limit=None, regression='MSE', kwargs=None):
         """Load in settings.
 
         Args:
-            train_data (ndarray): (n_events, n_train, n_chans, n_points). Training dataset.
+            X_train (ndarray): (train_trials, n_chans, n_points). Training dataset.
+            y_train (ndarray): (train_trials,). Labels for X_train.
             rest_phase (list): [st,ed]. The start and end point of rest-state data.
             task_phase (list): [st,ed]. The start and end point of task-state data.
             chan_info (list): Names of all channels.
@@ -893,22 +902,24 @@ class MultiESRCA(object):
             chan_num_limit (int, optional): The maximum number of channels used in SRCA model.
                 Defaults to None.
             regression (str, optional): Regression method used in SRCA process. Defaults to 'MSE'.
-            (Below are in kwargs[dict])
+
+            (Below are contained in kwargs)
             n_components (int): Number of eigenvectors picked as filters.
                 Set to 'None' if ratio is not 'None'.
             ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
                 Defaults to be 'None' when n_component is not 'None'.
         """
         # load in data
-        self.dataset = train_data
-        self.train_data = deepcopy(self.dataset)
+        self.X_train = X_train
+        self.y_train = y_train
+        self.train_data = deepcopy(self.X_train)
         self.rest_phase = rest_phase
         self.task_phase = task_phase
-        self.rest_data = train_data[...,self.rest_phase[0]:self.rest_phase[1]]
-        self.task_data = train_data[...,self.task_phase[0]:self.task_phase[1]]
+        self.rest_data = X_train[...,self.rest_phase[0]:self.rest_phase[1]]
+        self.task_data = X_train[...,self.task_phase[0]:self.task_phase[1]]
 
         # load in settings
-        self.n_chans = train_data.shape[-2]
+        self.n_chans = X_train.shape[-2]
         self.chan_info = chan_info
         self.tar_func = tar_func
         self.opt_method = opt_method
@@ -926,15 +937,14 @@ class MultiESRCA(object):
         """Initialization for training."""
         # config target group data
         self.tar_indices = [self.chan_info.index(ch_name) for ch_name in self.tar_chan_list]
-        self.target_group = self.task_data[...,self.tar_indices,:]  # (Ne,Nt,Nc,Np)
+        self.target_group = self.task_data[:,self.tar_indices,:]  # (Ne*Nt,Nc,Np)
         self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_indices)  # not allowed to use target group channels
-        # self.alter_indices = np.delete(np.arange(self.n_chans), self.tar_index)  # allowed to use target group channels
 
         # model initialization
-        # try:
-        self.init_value = np.mean(self.tar_functions[self.tar_func](self.target_group, self.kwargs))
-        # except KeyError:
-            # raise Exception('Check your kwargs parameters according to the target function!')
+        self.init_value = np.mean(self.tar_functions[self.tar_func](
+            X_train=self.target_group,
+            y_train=self.y_train,
+            kwargs=self.kwargs))
         self.model_indices, self.value_change = [], [self.init_value]
 
 
@@ -951,7 +961,8 @@ class MultiESRCA(object):
 
             # train one channel each loop
             model = TdESRCA(
-                train_data=self.train_data,
+                X_train=self.train_data,
+                y_train=self.y_train,
                 rest_phase=self.rest_phase,
                 task_phase=self.task_phase,
                 chan_info=self.chan_info,
@@ -970,7 +981,7 @@ class MultiESRCA(object):
             self.value_change.append(model.value_change[-1])
 
             # update the channel trained before
-            self.train_data[...,tar_index,self.task_phase[0]:self.task_phase[1]] = apply_ESRCA(
+            self.train_data[:,tar_index,self.task_phase[0]:self.task_phase[1]] = apply_SRCA(
                 rest_data=self.train_data[...,self.rest_phase[0]:self.rest_phase[1]],
                 task_data=self.train_data[...,self.task_phase[0]:self.task_phase[1]],
                 target_chan=tc,
@@ -984,7 +995,7 @@ class MultiESRCA(object):
 
 
 
-# %% Terminal function
+# Terminal function
 def apply_SRCA(rest_data, task_data, target_chan, model_chans, chan_info, regression='MSE'):
     """Apply SRCA model to EEG data.
 
@@ -1013,36 +1024,3 @@ def apply_SRCA(rest_data, task_data, target_chan, model_chans, chan_info, regres
         regression=regression
     )
     return srca_extraction
-
-
-def apply_ESRCA(rest_data, task_data, target_chan, model_chans, chan_info, regression='MSE'):
-    """Apply eSRCA model to EEG data.
-
-    Args:
-        rest_data (ndarray): (n_events, n_trials, n_chans, n_points). Rest-state data of all channels.
-        task_data (ndarray): (n_events, n_trials, n_chans, n_points). Task-state data of all channels.
-        target_chan (str): Name of target channel.
-        model_chans (list of str): Names of model channels.
-        chan_info (list of str): Names of all channels.
-        regression (str, optional): Regression method used in SRCA process. Defaults to 'MSE'.
-
-    Returns:
-        srca_extraction (ndarray): (n_events, n_trials, n_points).
-    """
-    target_idx = chan_info.index(target_chan)
-    if not model_chans:
-        return task_data[...,target_idx,:]
-    model_indices = [chan_info.index(x) for x in model_chans]
-
-    # main process of eSRCA
-    srca_extraction = esrca_process(
-        rs_model=rest_data[...,model_indices,:],
-        rs_target=rest_data[...,target_idx,:],
-        ts_model=task_data[...,model_indices,:],
-        ts_target=task_data[...,target_idx,:],
-        regression=regression
-    )
-    return srca_extraction
-
-
-# %%

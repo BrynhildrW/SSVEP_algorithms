@@ -353,8 +353,7 @@ def fisher_score(dataset=None, *args, **kwargs):
         itr_d += np.sum((dataset[ne] - class_center[ne,:])**2, axis=0)
 
     # fisher-score
-    fs = ite_d / itr_d
-    return fs
+    return ite_d/itr_d
 
 
 def euclidean_dist(X, Y):
@@ -533,7 +532,7 @@ def solve_ep(A, n_components=None, ratio=None, mode='Max'):
     """Solve eigenvalue problems | Rayleigh quotient: 
         f(w)=wAw^T/(ww^T) -> Aw = lambda w
 
-    Args:      
+    Args:
         A (ndarray): (m,m)
         B (ndarray): (m,m)
         n_components (int): Number of eigenvectors picked as filters.

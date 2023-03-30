@@ -10,7 +10,7 @@ update: 2022/12/5
 """
 
 # %% load in modules
-# cd D:\Software\Github\SSVEP_algorithms\programs
+# cd F:\Github\SSVEP_algorithms\programs
 import utils
 import special
 import trca
@@ -29,13 +29,12 @@ import matplotlib.pyplot as plt
 import scipy.io as io
 import matplotlib.pyplot as plt
 
-data_path = r'E:\SSVEP\Preprocessed Data\SSVEP：60\Sub9.mat'
+data_path = r'D:\SSVEP\Preprocessed Data\SSVEP：60\Sub9.mat'
 dataset = io.loadmat(data_path)['normal']
 n_events = dataset.shape[0]
-n_trials = dataset.shape[1]
 rest_phase, task_phase = [0,1000], [1140,1340]
 
-chan_info_path = r'E:\SSVEP\Preprocessed Data\62_chan_info.mat'
+chan_info_path = r'D:\SSVEP\Preprocessed Data\62_chan_info.mat'
 chan_info = io.loadmat(chan_info_path)['chan_info'].tolist()
 del data_path, chan_info_path
 
@@ -53,37 +52,60 @@ target_chans = ['PZ ', 'PO5', 'PO3', 'POZ', 'PO4', 'PO6', 'O1 ', 'OZ ', 'O2 ']
 #                 'OZ ','O1 ','O2 ','CB1','CB2']  # 30 channels' group
 
 target_idx = [chan_info.index(tc) for tc in target_chans]
+X_total, y_total = utils.reshape_dataset(dataset)
+event_type = np.unique(y_total)
+n_trials = len(y_total)
 
-n_train = 40
-n_test = n_trials - n_train
-rand_order = np.arange(n_trials)
 
-np.random.shuffle(rand_order)
-train_data = dataset[:,rand_order[:n_train],...]
-test_data = dataset[:,rand_order[n_train:],...]
+# %% baseline
+n_train = 40*2
+n_repeat = 1
+sss = StratifiedShuffleSplit(
+    n_splits=n_repeat,
+    test_size=1-n_train/n_trials,
+    random_state=1
+)
 
-# baseline
-trca_classifier = trca.TRCA().fit(train_data=train_data[...,target_idx,task_phase[0]:task_phase[1]])
-rou, erou = trca_classifier.predict(test_data[...,target_idx,task_phase[0]:task_phase[1]])
-print('TRCA accuracy for original data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for original data: {}'.format(str(utils.acc_compute(erou))))
+for nrep, (train_index,test_index) in enumerate(sss.split(X_total, y_total)):
+    X_train, X_test = X_total[train_index], X_total[test_index]
+    y_train, y_test = y_total[train_index], y_total[test_index]
+    train_samples = np.array([np.sum(y_train==et) for et in event_type])
+    test_samples = np.array([np.sum(y_test==et) for et in event_type])
 
-dsp_classifier = special.DSP().fit(train_data=train_data[...,target_idx,task_phase[0]:task_phase[1]])
-rou = dsp_classifier.predict(test_data[...,target_idx,task_phase[0]:task_phase[1]])
-print('DSP-M1 accuracy for original data: {}'.format(str(utils.acc_compute(rou))))
+    # baseline
+    trca_classifier = trca.TRCA().fit(
+        X_train=X_train[:, target_idx, task_phase[0]:task_phase[1]],
+        y_train=y_train
+    )
+    _, trca_predict, _, etrca_predict = trca_classifier.predict(
+        X_test=X_test[:, target_idx, task_phase[0]:task_phase[1]],
+        y_test=y_test
+    )
+    acc_1 = utils.acc_compute(trca_predict, y_test)
+    acc_2 = utils.acc_compute(etrca_predict, y_test)
+    print('TRCA accuracy for original data: {}'.format(str(acc_1.mean())))
+    print('eTRCA accuracy for original data: {}'.format(str(acc_2.mean())))
+
+    dsp_classifier = special.DSP().fit(
+        X_train=X_train[:, target_idx, task_phase[0]:task_phase[1]],
+        y_train=y_train
+    )
+    _, dsp_predict = dsp_classifier.predict(
+        X_test=X_test[:, target_idx, task_phase[0]:task_phase[1]],
+        y_test=y_test
+    )
+    acc_3 = utils.acc_compute(dsp_predict, y_test)
+    print('DSP-M1 accuracy for original data: {}'.format(str(acc_3.mean())))
 
 
 # %% SRCA test
 srca_model_chans = [[] for ne in range(n_events)]
 
-kwargs = {'n_components':1,
-          'ratio':None}
-
 # train models
 for ne in range(n_events):
     for tc in target_chans:
         model = srca_cpu.SRCA(
-            train_data=train_data[ne],
+            X_train=X_train[y_train==ne],
             rest_phase=rest_phase,
             task_phase=task_phase,
             chan_info=chan_info,
@@ -91,8 +113,7 @@ for ne in range(n_events):
             tar_func='SNR',
             opt_method='Recursion',
             chan_num_limit=10,
-            regression='MSE',
-            kwargs=kwargs
+            regression='MSE'
         )
         model.prepare()
         model.train()
@@ -100,45 +121,75 @@ for ne in range(n_events):
 print('Finish SRCA training!')
 
 # apply models into data
-srca_train = np.zeros((n_events, n_train, len(target_chans), task_phase[1]-task_phase[0]))
-srca_test = np.zeros((n_events, n_test, len(target_chans), task_phase[1]-task_phase[0]))
+srca_X_train = np.zeros((len(y_train), len(target_chans), task_phase[1]-task_phase[0]))
+srca_y_train = np.ones((len(y_train)))
+srca_X_test = np.zeros((len(y_test), len(target_chans), task_phase[1]-task_phase[0]))
+srca_y_test = np.ones((len(y_test)))
+
+trial_idx = 0
 for ne in range(n_events):
+    train_trials = train_samples[ne]
+    ytr = event_type[ne]
     for nc,tc in enumerate(target_chans):
-        srca_train[ne,:,nc,:] = srca_cpu.apply_SRCA(
-            rest_data=train_data[ne,...,rest_phase[0]:rest_phase[1]],
-            task_data=train_data[ne,...,task_phase[0]:task_phase[1]],
+        srca_X_train[trial_idx:trial_idx+train_trials, nc, :] = srca_cpu.apply_SRCA(
+            rest_data=X_train[y_train==ytr][...,rest_phase[0]:rest_phase[1]],
+            task_data=X_train[y_train==ytr][...,task_phase[0]:task_phase[1]],
             target_chan=tc,
-            model_chans=srca_model_chans[ne][nc],
+            model_chans=srca_model_chans[ytr][nc],
             chan_info=chan_info
         )
-        srca_test[ne,:,nc,:] = srca_cpu.apply_SRCA(
-            rest_data=test_data[ne,...,rest_phase[0]:rest_phase[1]],
-            task_data=test_data[ne,...,task_phase[0]:task_phase[1]],
+    srca_y_train[trial_idx:trial_idx+train_trials] *= ytr
+    trial_idx += train_trials
+
+trial_idx = 0
+for ne in range(n_events):
+    test_trials = test_samples[ne]
+    yte = event_type[ne]
+    for nc,tc in enumerate(target_chans):
+        srca_X_test[trial_idx:trial_idx+test_trials, nc, :] = srca_cpu.apply_SRCA(
+            rest_data=X_test[y_test==yte][...,rest_phase[0]:rest_phase[1]],
+            task_data=X_test[y_test==yte][...,task_phase[0]:task_phase[1]],
             target_chan=tc,
-            model_chans=srca_model_chans[ne][nc],
+            model_chans=srca_model_chans[yte][nc],
             chan_info=chan_info
         )
+    srca_y_test[trial_idx:trial_idx+test_trials] *= yte
+    trial_idx += test_trials
 
 # classification accuracy
-trca_classifier = trca.TRCA().fit(train_data=srca_train)
-rou, erou = trca_classifier.predict(srca_test)
-print('TRCA accuracy for SRCA data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for SRCA data: {}'.format(str(utils.acc_compute(erou))))
+trca_classifier = trca.TRCA().fit(
+    X_train=srca_X_train,
+    y_train=srca_y_train
+)
+_, trca_predict, _, etrca_predict = trca_classifier.predict(
+    X_test=srca_X_test,
+    y_test=srca_y_test
+)
+acc_1_srca = utils.acc_compute(trca_predict, srca_y_test)
+acc_2_srca = utils.acc_compute(etrca_predict, srca_y_test)
+print('TRCA accuracy for SRCA data: {}'.format(str(acc_1_srca.mean())))
+print('eTRCA accuracy for SRCA data: {}'.format(str(acc_2_srca.mean())))
 
-dsp_classifier = special.DSP().fit(train_data=srca_train)
-rou = dsp_classifier.predict(srca_test)
-print('DSP-M1 accuracy for SRCA data: {}'.format(str(utils.acc_compute(rou))))
+dsp_classifier = special.DSP().fit(
+    X_train=srca_X_train,
+    y_train=srca_y_train
+)
+_, dsp_predict = dsp_classifier.predict(
+    X_test=srca_X_test,
+    y_test=srca_y_test
+)
+acc_3_srca = utils.acc_compute(dsp_predict, srca_y_test)
+print('DSP-M1 accuracy for SRCA data: {}'.format(str(acc_3_srca.mean())))
 
 
 # %% eSRCA test
 esrca_model_chans = []
-kwargs = {'n_components':1,
-          'ratio':None}
 
 # train models
 for tc in target_chans:
     model = srca_cpu.ESRCA(
-        train_data=train_data,
+        X_train=X_train,
+        y_train=y_train,
         rest_phase=rest_phase,
         task_phase=task_phase,
         chan_info=chan_info,
@@ -147,7 +198,6 @@ for tc in target_chans:
         opt_method='Recursion',
         chan_num_limit=10,
         regression='MSE',
-        kwargs=kwargs
     )
     model.prepare()
     model.train()
@@ -155,33 +205,49 @@ for tc in target_chans:
 print('Finish eSRCA training!')
 
 # apply models into data
-esrca_train = np.zeros((n_events, n_train, len(target_chans), task_phase[1]-task_phase[0]))
-esrca_test = np.zeros((n_events, n_test, len(target_chans), task_phase[1]-task_phase[0]))
+esrca_X_train = np.zeros((len(y_train), len(target_chans), task_phase[1]-task_phase[0]))
+esrca_X_test = np.zeros((len(y_test), len(target_chans),task_phase[1]-task_phase[0]))
+
 for nc,tc in enumerate(target_chans):
-    esrca_train[...,nc,:] = srca_cpu.apply_ESRCA(
-        rest_data=train_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=train_data[...,task_phase[0]:task_phase[1]],
+    esrca_X_train[:,nc,:] = srca_cpu.apply_SRCA(
+        rest_data=X_train[...,rest_phase[0]:rest_phase[1]],
+        task_data=X_train[...,task_phase[0]:task_phase[1]],
         target_chan=tc,
         model_chans=esrca_model_chans[nc],
         chan_info=chan_info
     )
-    esrca_test[...,nc,:] = srca_cpu.apply_ESRCA(
-        rest_data=test_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=test_data[...,task_phase[0]:task_phase[1]],
+    esrca_X_test[...,nc,:] = srca_cpu.apply_SRCA(
+        rest_data=X_test[...,rest_phase[0]:rest_phase[1]],
+        task_data=X_test[...,task_phase[0]:task_phase[1]],
         target_chan=tc,
         model_chans=esrca_model_chans[nc],
         chan_info=chan_info
     )
 
 # classification accuracy
-trca_classifier = trca.TRCA().fit(train_data=esrca_train)
-rou, erou = trca_classifier.predict(esrca_test)
-print('TRCA accuracy for eSRCA data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for eSRCA data: {}'.format(str(utils.acc_compute(erou))))
+trca_classifier = trca.TRCA().fit(
+    X_train=esrca_X_train,
+    y_train=y_train
+)
+_, trca_predict, _, etrca_predict = trca_classifier.predict(
+    X_test=esrca_X_test,
+    y_test=y_test
+)
+acc_1_esrca = utils.acc_compute(trca_predict, y_test)
+acc_2_esrca = utils.acc_compute(etrca_predict, y_test)
+print('TRCA accuracy for eSRCA data: {}'.format(str(acc_1_esrca.mean())))
+print('eTRCA accuracy for eSRCA data: {}'.format(str(acc_2_esrca.mean())))
 
-dsp_classifier = special.DSP().fit(train_data=esrca_train)
-rou = dsp_classifier.predict(esrca_test)
-print('DSP-M1 accuracy for eSRCA data: {}'.format(str(utils.acc_compute(rou))))
+dsp_classifier = special.DSP().fit(
+    X_train=esrca_X_train,
+    y_train=y_train
+)
+_, dsp_predict = dsp_classifier.predict(
+    X_test=esrca_X_test,
+    y_test=y_test
+)
+acc_3_esrca = utils.acc_compute(dsp_predict, y_test)
+print('DSP-M1 accuracy for eSRCA data: {}'.format(str(acc_3_esrca.mean())))
 
 
 # %% td-SRCA test
@@ -302,49 +368,65 @@ kwargs = {'n_components':1,
           'n_train':30}
 
 model = srca_cpu.MultiESRCA(
-    train_data=train_data,
+    X_train=X_train,
+    y_train=y_train,
     rest_phase=rest_phase,
     task_phase=task_phase,
     chan_info=chan_info,
     tar_chan_list=target_chans,
     tar_func='DSP-val',
     opt_method='Recursion',
-    chan_num_limit=5,
+    chan_num_limit=10,
     regression='MSE',
-    kwargs=kwargs)
-
+    kwargs=kwargs
+)
 model.prepare()
 model.train()
 multiesrca_model_chans = model.multiesrca_model
 
 # apply models into data
-multiesrca_train = np.zeros((n_events, n_train, len(target_chans), task_phase[1]-task_phase[0]))
-multiesrca_test = np.zeros((n_events, n_test, len(target_chans), task_phase[1]-task_phase[0]))
+multiesrca_X_train = np.zeros((len(y_train), len(target_chans), task_phase[1]-task_phase[0]))
+multiesrca_X_test = np.zeros((len(y_test), len(target_chans), task_phase[1]-task_phase[0]))
 for nc,tc in enumerate(target_chans):
-    multiesrca_train[...,nc,:] = srca_cpu.apply_ESRCA(
-        rest_data=train_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=train_data[...,task_phase[0]:task_phase[1]],
+    multiesrca_X_train[:,nc,:] = srca_cpu.apply_SRCA(
+        rest_data=X_train[...,rest_phase[0]:rest_phase[1]],
+        task_data=X_train[...,task_phase[0]:task_phase[1]],
         target_chan=tc,
         model_chans=multiesrca_model_chans[nc],
         chan_info=chan_info
     )
-    multiesrca_test[...,nc,:] = srca_cpu.apply_ESRCA(
-        rest_data=test_data[...,rest_phase[0]:rest_phase[1]],
-        task_data=test_data[...,task_phase[0]:task_phase[1]],
+    multiesrca_X_test[:,nc,:] = srca_cpu.apply_SRCA(
+        rest_data=X_test[...,rest_phase[0]:rest_phase[1]],
+        task_data=X_test[...,task_phase[0]:task_phase[1]],
         target_chan=tc,
         model_chans=multiesrca_model_chans[nc],
         chan_info=chan_info
     )
 
 # classification accuracy
-trca_classifier = trca.TRCA().fit(train_data=multiesrca_train)
-rou, erou = trca_classifier.predict(multiesrca_test)
-print('TRCA accuracy for Multi-eSRCA data: {}'.format(str(utils.acc_compute(rou))))
-print('eTRCA accuracy for Multi-eSRCA data: {}'.format(str(utils.acc_compute(erou))))
+trca_classifier = trca.TRCA().fit(
+    X_train=multiesrca_X_train,
+    y_train=y_train
+)
+_, trca_predict, _, etrca_predict = trca_classifier.predict(
+    X_test=multiesrca_X_test,
+    y_test=y_test
+)
+acc_1_mesrca = utils.acc_compute(trca_predict, y_test)
+acc_2_mesrca = utils.acc_compute(etrca_predict, y_test)
+print('TRCA accuracy for Multi-eSRCA data: {}'.format(str(acc_1_mesrca.mean())))
+print('eTRCA accuracy for Multi-eSRCA data: {}'.format(str(acc_2_mesrca.mean())))
 
-dsp_classifier = special.DSP().fit(train_data=multiesrca_train)
-rou = dsp_classifier.predict(multiesrca_test)
-print('DSP-M1 accuracy for Multi-eSRCA data: {}'.format(str(utils.acc_compute(rou))))
+dsp_classifier = special.DSP().fit(
+    X_train=multiesrca_X_train,
+    y_train=y_train
+)
+_, dsp_predict = dsp_classifier.predict(
+    X_test=multiesrca_X_test,
+    y_test=y_test
+)
+acc_3_mesrca = utils.acc_compute(dsp_predict, y_test)
+print('DSP-M1 accuracy for Multi-eSRCA data: {}'.format(str(acc_3_mesrca.mean())))
 
 # %% target value test
 # snr_train_origin = np.zeros((n_events, len(target_chans), task_phase[1]-task_phase[0]))
@@ -607,7 +689,7 @@ for nsub,sub_id in enumerate(sub_list):
 
 
 # %% Circle & Ring
-chan_info_path = r'E:\SSVEP\Preprocessed Data\62_chan_info.mat'
+chan_info_path = r'D:\SSVEP\Preprocessed Data\62_chan_info.mat'
 chan_info = io.loadmat(chan_info_path)['chan_info'].tolist()
 del chan_info_path
 
@@ -622,18 +704,19 @@ target_chans = ['PZ ', 'PO5', 'PO3', 'POZ', 'PO4', 'PO6', 'O1 ', 'OZ ', 'O2 ']
 
 target_indices = [chan_info.index(tc) for tc in target_chans]
 
-train_length = [200,300,400,500]
-train_sample = [32,64]
+train_length = [100,200,300,400,500]
+train_sample = [30,60]
 n_repeat = 5
 
-data_path = r'E:\SSVEP\Preprocessed Data\Ring & Circle：60\Ring_S1.mat'
+data_path = r'D:\SSVEP\Preprocessed Data\Ring & Circle：60\20230221-sjs\ring_1.5.mat'
 eeg = io.loadmat(data_path)
 X, y = eeg['narrow'], eeg['trial_info'].squeeze()
 # for cirlce, Ne=0 is one more than Ne=1, so delete the first trial will be fine
-# X = np.delete(X, 0, axis=0)
-# y = np.delete(y, 0, axis=0)
+# X = np.delete(X, [-1,-2], axis=0)
+# y = np.delete(y, [-1,-2], axis=0)
 total_trials = X.shape[0]
 
+# %%
 n_events = 2
 # n_trials = dataset.shape[1]
     
@@ -655,7 +738,7 @@ acc_esrca_dsp = np.zeros_like(acc_trca)
 acc_mesrca_trca = np.zeros_like(acc_trca)
 acc_mesrca_etrca = np.zeros_like(acc_trca)
 acc_mesrca_dsp = np.zeros_like(acc_trca)
-    
+
 # begin loop
 # loop in data length: 0.2->0.5, d=0.1s
 for nlen, data_length in enumerate(train_length):
@@ -708,12 +791,8 @@ for nlen, data_length in enumerate(train_length):
             acc_dsp[nlen,nsam,nrep] = utils.acc_compute(y_dsp, y_test)
             
             #***************************************************************************#
-            # reshape data for old SRCA models
-            X_train_reshape = np.zeros((2, int(len(y_train)/2), X_train.shape[-2], X_train.shape[-1]))
-            X_test_reshape = np.zeros((2, int(len(y_test)/2), X_test.shape[-2], X_test.shape[-1]))
-            X_train_reshape[0], X_train_reshape[1] = X_train[y_train==0], X_train[y_train==1]
-            X_test_reshape[0], X_test_reshape[1] = X_test[y_test==0], X_test[y_test==1]
-            
+
+
             #***************************************************************************#
             # eSRCA
             esrca_model_chans = []
@@ -841,7 +920,7 @@ for nlen, data_length in enumerate(train_length):
     print('Finish data length: {}'.format(str(data_length)))
 
 # save results
-result_path = r'E:\SSVEP\Results\20230115\9c_ring_S1(narrow).mat'
+result_path = r'D:\SSVEP\Results\20230226\20230219-wqy_circle(normal).mat'
 io.savemat(result_path, {'TRCA':acc_trca, 'eTRCA':acc_etrca, 'DSP':acc_dsp,
                          'eSRCA-TRCA':acc_esrca_trca, 'eSRCA-eTRCA':acc_esrca_etrca, 'eSRCA-DSP':acc_esrca_dsp,
                          'Multi-eSRCA-TRCA':acc_mesrca_trca, 'Multi-eSRCA-eTRCA':acc_mesrca_etrca, 'Multi-eSRCA-DSP':acc_esrca_dsp,
