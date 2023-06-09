@@ -12,13 +12,47 @@
     (2-3) time_shift()
     (2-4) Imn()
     (2-5) augmented_events()
-    (2-6) reshape_dataset()
+    (2-6) selected_events()
+    (2-7) reshape_dataset()
 
-update: 2022/11/15
+3. feature integration
+    (3-1) sign_sta()
+    (3-2) combine_feature()
+    (3-3) combine_fb_feature()
+
+4. algorithm evaluation
+    (4-1) acc_compute()
+    (4-2) confusion_matrix()
+    (4-3) itr_compute()
+
+5. spatial distances
+    (5-1) pearson_corr()
+    (5-2) fisher_score()
+    (5-3) euclidean_dist()
+    (5-4) cosine_sim()
+    (5-5) minkowski_dist()
+    (5-6) mahalanobis_dist()
+    (5-7) nega_root()
+    (5-8) s_estimator()
+
+6. temporally smoothing functions
+    (6-1) tukeys_kernel()
+    (6-2) weight_matrix()
+    (6-3) laplacian_matrix
+
+7. reduced QR decomposition
+    (7-1) qr_projection()
+
+8. eigenvalue problems
+    (8-1) pick_subspace()
+    (8-2) solve_ep()
+    (8-3) solve_gep()
+
+update: 2023/05/23
 
 """
 
-# %% basic moduls
+# basic moduls
 import numpy as np
 from numpy import (sin, sqrt, einsum)
 
@@ -26,7 +60,8 @@ from scipy import linalg as sLA
 
 from math import (pi, log, pow)
 
-# %% 1. Data preprocessing
+
+# 1. data preprocessing
 def zero_mean(X):
     """Zero-mean normalization.
 
@@ -40,7 +75,7 @@ def zero_mean(X):
     return X
 
 
-# %% 2. Data preparation
+# 2. data preparation
 def sin_wave(freq, n_points, phase, sfreq=1000):
     """Construct sinusoidal waveforms.
 
@@ -200,7 +235,7 @@ def reshape_dataset(data):
     return X_total, np.array(y_total)
 
 
-# %% feature integration
+# 3. feature integration
 def sign_sta(x):
     """Standardization of decision coefficient based on sign(x).
 
@@ -247,7 +282,7 @@ def combine_fb_feature(features):
     return coef
 
 
-# %% algorithm evaluation
+# 4. algorithm evaluation
 def acc_compute(y_predict, y_test):
     """Compute accuracy.
 
@@ -279,7 +314,7 @@ def confusion_matrix(rou):
     return cm/n_test
 
 
-def itr(number, time, acc):
+def itr_compute(number, time, acc):
     """Compute information transfer rate.
 
     Args:
@@ -300,7 +335,7 @@ def itr(number, time, acc):
     return result
 
 
-# %% spatial distances
+# 5. spatial distances
 def pearson_corr(X, Y):
     """Pearson correlation coefficient (1-D or 2-D).
     
@@ -447,7 +482,7 @@ def s_estimator(X):
     return s_estimator
 
 
-# %% temporally smoothing functions
+# 6. temporally smoothing functions
 def tukeys_kernel(x, r=3):
     """Tukeys tri-cube kernel function.
     Args:
@@ -494,7 +529,7 @@ def laplacian_matrix(W):
     return D-W
 
 
-# %% reduced QR decomposition
+# 7. reduced QR decomposition
 def qr_projection(X):
     """Orthogonal projection based on QR decomposition of X.
 
@@ -509,7 +544,7 @@ def qr_projection(X):
     return P
 
 
-# %% Eigenvalue problems
+# 8. Eigenvalue problems
 def pick_subspace(descend_order, e_val_sum, ratio):
     """Config the number of subspaces.
 
@@ -557,7 +592,7 @@ def solve_ep(A, n_components=None, ratio=None, mode='Max'):
 
 def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     """Solve generalized problems | generalized Rayleigh quotient:
-        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw
+        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw -> B^{-1}Aw = lambda w
 
     Args:
         A (ndarray): (m,m).
@@ -570,7 +605,7 @@ def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     Returns:
         w (ndarray): (n_components,m). Picked eigenvectors.
     """
-    e_val, e_vec = sLA.eigh(A,B)
+    e_val, e_vec = sLA.eig(sLA.solve(a=B, b=A, assume_a='sym'))  # ax=b -> x=a^{-1}b
     e_val_sum = np.sum(e_val)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
@@ -580,5 +615,3 @@ def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
         return np.real(e_vec[:,w_index][:,n_components:].T)
     elif mode == 'Max':
         return np.real(e_vec[:,w_index][:,:n_components].T)
-
-

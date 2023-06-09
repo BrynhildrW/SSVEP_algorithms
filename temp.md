@@ -1,14 +1,19 @@
-# 中高频SSVEP-BCI系统研究综述-文献调研
+# 跨个体迁移 TRCA
+## Cross-subject transfer learning TRCA, TL-TRCA
+***
 
-## 频率范围定义
-不同文献对于 SSVEP 刺激频率区间的划分方式大同小异：*Yijun Wang* 在 2007 年的[早期研究][0216-1]中粗略地将其划分为三个频段：低频段（5-30 Hz）、中频段（31-35 Hz）以及高频段（39-45 Hz）。这种划分方式的主要依据是特征信号的平均幅-频响应拟合曲线图，区分标准取决于很多因素：受试者脑电特征的强弱、实验数据采集是否规范、数据处理流程是否合适等等。
+[论文链接][TL-TRCA]
 
-![20230210](figures/20230210.png)
+2023 年新鲜出炉的这一篇 TRCA 改进算法看上去好像集合了诸多文献的要义：[sc-(e)TRCA][ref1] 的正余弦模板拼接、[PT 投影][ref2]的最小二乘投影以及 [gTRCA][ref3] 的多受试者数据整合。可惜没能用上 [tlCCA][ref3] 的最小二乘受试者融合权重分配技术。为什么要说“好像”，是因为实际测试结果以及文献汇报的结果似乎没有想象得那么出众。当然这并不妨碍作者提出了一些富有新意的改进思路。
+
+![TL-TRCA示意图](TL-TRCA.png)
 
 
 
-## 编码范式
+***
 
-## 解码算法
+[TL-TRCA]: https://ieeexplore.ieee.org/document/10057002/
+[ref1]: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
+[ref2]: https://iopscience.iop.org/article/10.1088/1741-2552/abcb6e
+[ref3]: http://www.nature.com/articles/s41598-019-56962-2
 
-[0216-1]: http://ieeexplore.ieee.org/document/1499837/

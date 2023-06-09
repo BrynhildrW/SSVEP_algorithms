@@ -4,29 +4,39 @@
 @ email: brynhildrwu@gmail.com
 
 Canonical correlation analysis (CCA) series.
-    (1) CCA: http://ieeexplore.ieee.org/document/4203016/
+    1. CCA: http://ieeexplore.ieee.org/document/4203016/
             DOI: 10.1109/TBME.2006.889197
-    (2) eCCA: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
+    2. MEC: http://ieeexplore.ieee.org/document/4132932/
+            DOI: 10.1109/TBME.2006.889160
+    3. MCC: http://ieeexplore.ieee.org/document/4132932/
+            DOI: 10.1109/TBME.2006.889160
+    4. MSI:
+    
+    5. tMSI:
+    
+    6. eMSI:
+    
+    7. eCCA: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
             DOI: 10.1073/pnas.1508080112
-    (3) msCCA: https://ieeexplore.ieee.org/document/9006809/
+    8. msCCA: https://ieeexplore.ieee.org/document/9006809/
             DOI: 10.1109/TBME.2020.2975552
-    (4) ms-eCCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
+    9. ms-eCCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
             DOI: 10.1088/1741-2552/ab2373
-    (5) MsetCCA1: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
+    10. MsetCCA1: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
             DOI: 10.1142/S0129065714500130
-    (6) MsetCCA2: https://ieeexplore.ieee.org/document/8231203/
+    11. MsetCCA2: https://ieeexplore.ieee.org/document/8231203/
             DOI: 10.1109/TBME.2017.2785412
-    (7) MwayCCA: 
+    12. MwayCCA: 
             DOI: 
-    (8) stCCA: https://ieeexplore.ieee.org/document/9177172/
+    13. stCCA: https://ieeexplore.ieee.org/document/9177172/
             DOI: 10.1109/TNSRE.2020.3019276
-    (9)
+    14. 
 
 update: 2022/11/15
 
 """
 
-# %% basic modules
+# basic modules
 import utils
 
 import numpy as np
@@ -35,7 +45,7 @@ import scipy.linalg as sLA
 from abc import abstractmethod, ABCMeta
 
 
-# %% Basic CCA object
+# Basic CCA object
 class BasicCCA(metaclass=ABCMeta):
     def __init__(self, n_components=1, ratio=None):
         """Config model dimension.
@@ -53,6 +63,12 @@ class BasicCCA(metaclass=ABCMeta):
 
     @abstractmethod
     def fit(self, X_train, y_train):
+        """Load in training dataset.
+
+        Args:
+            X_train (ndarray): (train_trials, ..., n_points). Training dataset.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+        """
         pass
 
 
@@ -61,7 +77,7 @@ class BasicCCA(metaclass=ABCMeta):
         pass
 
 
-# %% (1) standard CCA | CCA
+# 1. standard CCA | CCA
 def cca_compute(data, template, n_components=1, ratio=None):
     """Canonical correlation analysis.
 
@@ -116,20 +132,19 @@ class CCA(BasicCCA):
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using CCA algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Returns:
             rou (ndarray): (test_trials, n_events). Decision coefficients.
             y_predict (ndarray): (test_trials,). Predict labels.
         """
         # basic information
-        n_test = y_test.shape[0]
+        n_test = X_test.shape[0]
         n_events = len(self.y_train)
 
         # pattern matching
@@ -151,7 +166,103 @@ class CCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (2) Extended CCA | eCCA
+class FB_CCA(BasicCCA):
+    def fit(self, X_train, y_train):
+        """Train filter-bank CCA model.
+
+        Args:
+            X_train (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+            y_train (ndarray): (n_events,). Labels for X_train.
+        """
+        self.X_train = X_train
+        self.y_train = y_train
+        return self
+
+
+    def predict(self, X_test):
+        """Using filter-bank CCA algorithm to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+
+        Return:
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+            y_predict (ndarray): (test_trials,). Predict labels.
+        """
+        # basic information
+        n_bands = X_test.shape[0]
+        n_test = X_test.shape[1]
+
+        # apply CCA().predict() in each sub-band
+        self.sub_models = [[] for nb in range(n_bands)]
+        self.fb_rou = [[] for nb in range(n_bands)]
+        self.fb_y_predict = [[] for nb in range(n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = CCA(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train,
+                y_train=self.y_train
+            )
+            fb_results = self.sub_models[nb].predict(X_test=X_test[nb])
+            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
+
+
+# 2. Minimum Energy Combination | MEC
+def mec_compute(data, template, n_components=1, ratio=None):
+    """Minimum energy combination.
+
+    Args:
+        data (ndarray): (n_chans, n_points). Real EEG data of a single trial.
+        template (ndarray): (2*n_harmonics or m, n_points).
+            Artificial sinusoidal template or averaged template.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Eigenvectors are referring to eigenvalues sorted in descend order.
+            Set to 'None' if ratio is not 'None'.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Defaults to be 'None'.
+    """
+    # projection matrix: (Np,Np)
+    # projection = template.T @ sLA.inv(template @ template.T) @ template  # slow way
+    projection = template.T @ template / np.sum(template[0]**2)  # fast way
+    X_hat = data - data @ projection  # (Nc,Np)
+
+    # GEP's conditions
+    A = X_hat @ X_hat.T
+
+    # spatial filter: (Nk,Nc)
+    W = utils.solve_ep(
+        A=A,
+        n_components=n_components,
+        ratio=ratio,
+        mode='Min'
+    )
+    return W
+
+
+# 3. Maximum Contrast Combination | MCC
+
+
+# 4. MSI | MSI
+
+
+# 5. tMSI
+
+
+# 6. extend-MSI | eMSI
+
+
+# 7. Extended CCA | eCCA
 def ecca_compute(avg_template, sine_template, X_test, n_components=1, ratio=None):
     """CCA with individual calibration data.
 
@@ -266,7 +377,69 @@ class ECCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (3-4) Multi-stimulus eCCA | ms-eCCA
+class FB_ECCA(BasicCCA):
+    def fit(self, X_train, y_train, sine_template):
+        """Load in filter-bank eCCA templates.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+            sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
+                Sinusoidal template.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.sine_template = sine_template
+        return self
+
+
+    def predict(self, X_test, y_test):
+        """Using filter-bank eCCA algorithm to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+            y_test (ndarray): (test_trials,). Labels for X_test.
+
+        Returns:
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+            y_predict (ndarray): (test_trials,). Predict labels.
+        """
+        # basic information
+        n_bands = X_test.shape[0]
+        n_test = X_test.shape[1]
+        
+        # apply ECCA().predict() in each sub-band
+        self.sub_models = [[] for nb in range(n_bands)]
+        self.fb_rou = [[] for nb in range(n_bands)]
+        self.fb_y_predict = [[] for nb in range(n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = ECCA(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train,
+                sine_template=self.sine_template
+            )
+            fb_results = self.sub_models[nb].predict(
+                X_test=X_test[nb],
+                y_test=y_test
+            )
+            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
+
+
+# 8-9. Multi-stimulus eCCA | ms-eCCA
 # msCCA is only part of ms-eCCA. Personally, i dont like this design
 def mscca_compute(avg_template, Q, train_info, n_components=1, ratio=None):
     """Multi-stimulus CCA.
@@ -296,7 +469,7 @@ def mscca_compute(avg_template, Q, train_info, n_components=1, ratio=None):
         for neb in range(n_events):
             A += avg_template[nea] @ Q[nea] @ Q[neb].T @ avg_template[neb].T
     B = np.einsum('ecp,ehp->ch', avg_template, avg_template)
-    W = utils.solve_gep(A=A, B=B, n_components=1, ratio=None)
+    W = utils.solve_gep(A=A, B=B, n_components=n_components, ratio=ratio)
     
     # signal templats
     template = np.einsum('kc,ecp->ekp', W,avg_template)
@@ -345,13 +518,12 @@ class MS_CCA(BasicCCA):
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using ms-CCA algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Returns:
             rou (ndarray): (test_trials, n_events). Decision coefficients.
@@ -370,6 +542,67 @@ class MS_CCA(BasicCCA):
                     X=self.W @ X_test[nte],
                     Y=self.template[ne]
                 )
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
+
+
+class FB_MS_CCA(BasicCCA):
+    def fit(self, X_train, y_train, Q):
+        """Train filter-bank ms-CCA model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+            Q (ndarray): (n_events, n_points, 2*n_harmonics).
+                QR decomposition of sinusoidal template.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.Q = Q
+        self.n_bands = X_train.shape[0]
+
+        # train ms-CCA models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = MS_CCA(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train,
+                Q=self.Q
+            )
+        return self
+
+
+    def predict(self, X_test):
+        """Using filter-bank ms-CCA algorithm to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+
+        Returns:
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+            y_predict (ndarray): (test_trials,). Predict labels.
+        """
+        # basic information
+        n_test = X_test.shape[1]
+
+        # apply MS_CCA().predict() in each sub-band
+        self.fb_rou = [[] for nb in range(self.n_bands)]
+        self.fb_y_predict = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            fb_results = self.sub_models[nb].predict(X_test=X_test[nb])
+            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
             self.y_predict[nte] = np.argmax(self.rou[nte,:])
         return self.rou, self.y_predict
 
@@ -407,8 +640,6 @@ def msecca_compute(avg_template, sine_template, train_info, n_components=1, rati
     """
     # basic information
     n_events = train_info['n_events']  # Ne
-    n_chans = train_info['n_chans']  # Nc
-    n_points = train_info['n_points']  # Np
     events_group = train_info['events_group']  # dict
 
     # GEPs' conditions
@@ -549,7 +780,48 @@ class MS_ECCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (5-6) Multiset CCA | MsetCCA1
+class FB_MS_ECCA(FB_MS_CCA):
+    def fit(self, X_train, y_train, sine_template, events_group=None, d=None):
+        """Train filter-bank ms-eCCA model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+            sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+            events_group (dict): {'event_id':[start index,end index]}
+            d (int): The range of events to be merged.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.sine_template = sine_template
+        self.n_bands = X_train.shape[0]
+        self.d = d
+        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        if events_group:  # given range
+            self.events_group = events_group
+        else:
+            self.events_group = utils.augmented_events(len(event_type), d)
+
+        # train ms-eCCA models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = MS_ECCA(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train,
+                sine_template=self.sine_template,
+                events_group=self.events_group,
+                d=self.d
+            )
+        return self
+
+
+# 10-11 Multiset CCA | MsetCCA1
 def msetcca1_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     """Multiset CCA (1).
 
@@ -693,11 +965,11 @@ class MSETCCA2(BasicCCA):
     pass
 
 
-# %% (8) Subject transfer based CCA | stCCA
+# 13. Subject transfer based CCA | stCCA
 
 
 
-# %% Cross-subject transfer learning | CSSFT
+# Cross-subject transfer learning | CSSFT
 def cssft_compute():
     pass
 
@@ -705,230 +977,3 @@ def cssft_compute():
 class CSSFT(BasicCCA):
     pass
 
-
-# %% Filter-bank CCA series | FB-
-class FB_CCA(BasicCCA):
-    def fit(self, X_train, y_train):
-        """Train filter-bank CCA model.
-
-        Args:
-            X_train (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
-            y_train (ndarray): (n_events,). Labels for X_train.
-        """
-        self.X_train = X_train
-        self.y_train = y_train
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank CCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_bands = X_test.shape[0]
-        n_test = X_test.shape[1]
-
-        # apply CCA().predict() in each sub-band
-        self.sub_models = [[] for nb in range(n_bands)]
-        self.fb_rou = [[] for nb in range(n_bands)]
-        self.fb_y_predict = [[] for nb in range(n_bands)]
-        for nb in range(self.n_bands):
-            self.sub_models[nb] = CCA(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train,
-                y_train=self.y_train
-            )
-            fb_results = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
-
-
-class FB_ECCA(BasicCCA):
-    def fit(self, X_train, y_train, sine_template):
-        """Load in filter-bank eCCA templates.
-
-        Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        self.sine_template = sine_template
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank eCCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Returns:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_bands = X_test.shape[0]
-        n_test = X_test.shape[1]
-        
-        # apply ECCA().predict() in each sub-band
-        self.sub_models = [[] for nb in range(n_bands)]
-        self.fb_rou = [[] for nb in range(n_bands)]
-        self.fb_y_predict = [[] for nb in range(n_bands)]
-        for nb in range(self.n_bands):
-            self.sub_models[nb] = ECCA(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train[nb],
-                y_train=self.y_train,
-                sine_template=self.sine_template
-            )
-            fb_results = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
-
-
-class FB_MS_CCA(BasicCCA):
-    def fit(self, X_train, y_train, Q):
-        """Train filter-bank ms-CCA model.
-
-        Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            Q (ndarray): (n_events, n_points, 2*n_harmonics).
-                QR decomposition of sinusoidal template.
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        self.Q = self.Q
-        self.n_bands = X_train.shape[0]
-
-        # train ms-CCA models & templates
-        self.sub_models = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.sub_models[nb] = MS_CCA(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train[nb],
-                y_train=self.y_train,
-                Q=self.Q
-            )
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank ms-CCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Returns:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_test = X_test.shape[1]
-
-        # apply MS_CCA().predict() in each sub-band
-        self.fb_rou = [[] for nb in range(self.n_bands)]
-        self.fb_y_predict = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            fb_results = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-            self.fb_rou[nb], self.fb_y_predict[nb] = fb_results[0], fb_results[1]
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
-
-
-class FB_MS_ECCA(FB_MS_CCA):
-    def fit(self, X_train, y_train, sine_template, events_group=None, d=None):
-        """Train filter-bank ms-eCCA model.
-
-        Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
-            events_group (dict): {'event_id':[start index,end index]}
-            d (int): The range of events to be merged.
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        self.sine_template = sine_template
-        self.n_bands = X_train.shape[0]
-        self.d = d
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        if events_group:  # given range
-            self.events_group = events_group
-        else:
-            self.events_group = utils.augmented_events(len(event_type), d)
-
-        # train ms-eCCA models & templates
-        self.sub_models = [[] for nb in range(self.n_bands)]
-        for nb in range(n_bands):
-            self.sub_models[nb] = MS_ECCA(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train[nb],
-                y_train=self.y_train,
-                sine_template=self.sine_template,
-                events_group=self.events_group,
-                d=self.d
-            )
-        return self
-
-
-# %%
