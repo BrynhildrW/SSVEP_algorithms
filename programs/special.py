@@ -224,7 +224,7 @@ class DSP(BasicDSP):
                     X=f_test,
                     Y=self.wX[ne]
                 )
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+            self.y_predict[nte] = self.train_info['event_type'][np.argmax(self.rou[nte,:])]
         return self.rou, self.y_predict
 
 
