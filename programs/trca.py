@@ -37,7 +37,7 @@ import scipy.linalg as sLA
 from abc import abstractmethod, ABCMeta
 
 
-# %% Basic TRCA object
+# Basic TRCA object
 class BasicTRCA(metaclass=ABCMeta):
     def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
         """Config model dimension.
@@ -67,6 +67,7 @@ class BasicTRCA(metaclass=ABCMeta):
         pass
 
 
+<<<<<<< Updated upstream
 class BasicFBTRCA(metaclass=ABCMeta):
     def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
         """Config model dimension.
@@ -141,8 +142,11 @@ class BasicFBTRCA(metaclass=ABCMeta):
 
 
 # %% 1. (ensemble) TRCA | (e)TRCA
+=======
+# (1) (ensemble) TRCA | (e)TRCA
+>>>>>>> Stashed changes
 def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
-    """Task-related component analysis (TRCA).
+    """(Ensemble) Task-related component analysis ((e)TRCA).
 
     Args:
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
@@ -211,6 +215,7 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         start_idx += dims
 
     # signal templates
+<<<<<<< Updated upstream
     wX = []  # Ne*(Nk,Np)
     ewX = np.zeros((n_events, w_concat.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     if standard:
@@ -220,6 +225,17 @@ def trca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         for ne in range(n_events):
             ewX[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
     return {'Q':Q, 'S':S, 'w':w, 'w_concat':w_concat, 'wX':wX, 'ewX':ewX}
+=======
+    template = []  # Ne*(Nk,Np)
+    ensemble_template = np.zeros((n_events, w_concat.shape[0], n_points))  # (Ne,Ne*Nk,Np)
+    if standard:  # TRCA method
+        for ne in range(n_events):
+            template.append(w[ne] @ class_center[ne])  # (Nk,Np)
+    if ensemble:  # eTRCA method
+        for ne in range(n_events):
+            ensemble_template[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
+    return (Q, S, w, w_concat, template, ensemble_template)
+>>>>>>> Stashed changes
 
 
 class TRCA(BasicTRCA):
@@ -267,12 +283,12 @@ class TRCA(BasicTRCA):
                 Test dataset. test_trials could be 1 if necessary.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients of TRCA.
+            rou (ndarray): (test_trials, n_events). Decision coefficients from TRCA.
                 Not empty when self.standard is True.
-            y_standard (ndarray): (test_trials,). Predict labels of TRCA.
-            erou (ndarray): (test_trials, n_events). Decision coefficients of eTRCA.
+            y_standard (ndarray): (test_trials,). Predicted labels from TRCA.
+            erou (ndarray): (test_trials, n_events). Decision coefficients from eTRCA.
                 Not empty when self.ensemble is True.
-            y_ensemble (ndarray): (test_trials,). Predict labels of eTRCA.
+            y_ensemble (ndarray): (test_trials,). Predicted labels from eTRCA.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -290,7 +306,7 @@ class TRCA(BasicTRCA):
                         X=self.w[nem] @ X_test[nte],
                         Y=self.wX[nem]
                     )
-                self.y_standard[nte] = np.argmax(self.rou[nte,:])
+                self.y_standard[nte] = self.train_info['event_type'][np.argmax(self.rou[nte,:])]
         if self.ensemble:
             for nte in range(n_test):
                 for nem in range(n_events):
@@ -298,10 +314,11 @@ class TRCA(BasicTRCA):
                         X=self.w_concat @ X_test[nte],
                         Y=self.ewX[nem]
                     )
-                self.y_ensemble[nte] = np.argmax(self.erou[nte,:])
+                self.y_ensemble[nte] = self.train_info['event_type'][np.argmax(self.erou[nte,:])]
         return self.rou, self.y_standard, self.erou, self.y_ensemble
 
 
+<<<<<<< Updated upstream
 class FB_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train):
         """Train filter-bank (e)TRCA model.
@@ -333,14 +350,18 @@ class FB_TRCA(BasicFBTRCA):
 
 
 # %% 2. multi-stimulus (e)TRCA | ms-(e)TRCA
+=======
+# (2) multi-stimulus (e)TRCA | ms-(e)TRCA
+>>>>>>> Stashed changes
 def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
-    """Multi-stimulus TRCA (ms-TRCA).
+    """Multi-stimulus (e)TRCA (ms-(e)TRCA).
 
     Args:
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
             Training dataset. train_trials could be 1 if neccessary.
         y_train (ndarray): (train_trials,). Labels for X_train.
-        train_info (dict): {'n_events':int,
+        train_info (dict): {'event_type':ndarray (n_events,),
+                            'n_events':int,
                             'n_train':ndarray (n_events,),
                             'n_chans':int,
                             'n_points':int,
@@ -361,6 +382,7 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         ewX (ndarray): (n_events, total_components, n_points). ms-eTRCA templates.
     """
     # basic information
+    event_type = train_info['event_type']
     n_events = train_info['n_events']  # Ne
     n_train = train_info['n_train']  # [Nt1,Nt2,...]
     n_chans = train_info['n_chans']  # Nc
@@ -372,14 +394,14 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     # S: covariance of template | same with TRCA
     total_S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    for ne in range(n_events):
-        class_center[ne] = X_train[y_train==ne].mean(axis=0)  # (Nc,Np)
+    for ne,et in enumerate(event_type):
+        class_center[ne] = X_train[y_train==et].mean(axis=0)  # (Nc,Np)
         total_S[ne] = class_center[ne] @ class_center[ne].T
 
     # Q: covariance of original data | same with TRCA
     total_Q = np.zeros_like(total_S)  # (Ne,Nc,Nc)
-    for ne in range(n_events):
-        temp = X_train[y_train==ne]  # (Nt,Nc,Np)
+    for ne,et in enumerate(event_type):
+        temp = X_train[y_train==et]  # (Nt,Nc,Np)
         for ntr in range(n_train[ne]):
             total_Q[ne] += temp[ntr] @ temp[ntr].T
 
@@ -401,7 +423,7 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         w.append(spatial_filter)  # (Nk,Nc)
     w_concat = np.zeros((np.sum(ndim), n_chans))  # (Ne*Nk,Nc)
     start_idx = 0
-    for ne, dims in enumerate(ndim):
+    for ne,dims in enumerate(ndim):
         w_concat[start_idx:start_idx+dims] = w[ne]
         start_idx += dims
 
@@ -413,12 +435,17 @@ def mstrca_compute(X_train, y_train, train_info, n_components=1, ratio=None):
             wX.append(w[ne] @ class_center[ne])  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
+<<<<<<< Updated upstream
             ewX[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
     return {'Q':total_Q, 'S':total_S, 'w':w, 'w_concat':w_concat, 'wX':wX, 'ewX':ewX}
+=======
+            ensemble_template[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
+    return (total_Q, total_S, w, w_concat, template, ensemble_template)
+>>>>>>> Stashed changes
 
 
 class MS_TRCA(TRCA):
-    def fit(self, X_train, y_train, events_group=None, d=None):
+    def fit(self, X_train, y_train, events_group=None, d=2):
         """Train ms-(e)TRCA model.
 
         Args:
@@ -461,6 +488,7 @@ class MS_TRCA(TRCA):
         return self
 
 
+<<<<<<< Updated upstream
 class FB_MS_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train, events_group=None, d=None):
         """Train filter-bank ms-(e)TRCA model.
@@ -498,8 +526,11 @@ class FB_MS_TRCA(BasicFBTRCA):
 
 
 # %% 3. (e)TRCA-R
+=======
+# (3) (e)TRCA-R
+>>>>>>> Stashed changes
 def trcar_compute(X_train, y_train, projection, train_info, n_components=1, ratio=None):
-    """TRCA-R.
+    """(e)TRCA-R.
 
     Args:
         X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
@@ -507,8 +538,7 @@ def trcar_compute(X_train, y_train, projection, train_info, n_components=1, rati
         y_train (ndarray): (train_trials,). Labels for X_train.
         projection (ndarray): (n_events, n_points, n_points).
             Orthogonal projection matrices.
-        train_info (dict): {'event_type':ndarray (n_events,),
-                            'n_events':int,
+        train_info (dict): {'n_events':int,
                             'n_train':ndarray (n_events,),
                             'n_chans':int,
                             'n_points':int,
@@ -538,15 +568,15 @@ def trcar_compute(X_train, y_train, projection, train_info, n_components=1, rati
     # S: covariance of projected template
     S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    for ne in range(n_events):
-        class_center[ne] = X_train[y_train==ne].mean(axis=0)  # (Nc,Np)
+    for ne,et in enumerate(event_type):
+        class_center[ne] = X_train[y_train==et].mean(axis=0)  # (Nc,Np)
         XP = class_center[ne] @ projection[ne]  # (Nc,Np)
         S[ne] = XP @ XP.T
 
     # Q: covariance of original data
     Q = np.zeros_like(S)  # (Ne,Nc,Nc)
-    for ne in range(n_events):
-        temp = X_train[y_train==ne]  # (Nt,Nc,Np)
+    for ne,et in enumerate(event_type):
+        temp = X_train[y_train==et]  # (Nt,Nc,Np)
         for ntr in range(n_train[ne]):
             Q[ne] += temp[ntr] @ temp[ntr].T
 
@@ -575,8 +605,13 @@ def trcar_compute(X_train, y_train, projection, train_info, n_components=1, rati
             wX.append(w[ne] @ class_center[ne])  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
+<<<<<<< Updated upstream
             ewX[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
     return {'Q':Q, 'S':S, 'w':w, 'w_concat':w_concat, 'wX':wX, 'ewX':ewX}
+=======
+            ensemble_template[ne] = w_concat @ class_center[ne]  # (Ne*Nk,Np)
+    return (Q, S, w, w_concat, template, ensemble_template)
+>>>>>>> Stashed changes
 
 
 class TRCA_R(TRCA):
@@ -619,6 +654,7 @@ class TRCA_R(TRCA):
         return self
 
 
+<<<<<<< Updated upstream
 class FB_TRCA_R(BasicFBTRCA):
     def fit(self, X_train, y_train, projection):
         """Train filter-bank (e)TRCA-R model.
@@ -653,6 +689,9 @@ class FB_TRCA_R(BasicFBTRCA):
 
 
 # %% 4. similarity constrained (e)TRCA | sc-(e)TRCA
+=======
+# (4) similarity constrained (e)TRCA | sc-(e)TRCA
+>>>>>>> Stashed changes
 def sctrca_compute(X_train, y_train, sine_template, train_info, n_components=1, ratio=None):
     """Similarity-constrained TRCA (sc-TRCA).
 
@@ -716,8 +755,8 @@ def sctrca_compute(X_train, y_train, sine_template, train_info, n_components=1, 
 
     # block covariance matrix Q: blkdiag(Q1,Q2)
     Q = np.zeros_like(S)  # (Ne,Nc+2Nh,Nc+2Nh)
-    for ne in range(n_events):
-        temp = X_train[y_train==ne]  # (Nt,Nc,Np)
+    for ne,et in enumerate(event_type):
+        temp = X_train[y_train==et]  # (Nt,Nc,Np)
         Q[ne,n_chans:,n_chans:] = n_train[ne] * S[ne,n_chans:,n_chans:]  # Q2
         for ntr in range(n_train[ne]):
             Q[ne,:n_chans,:n_chans] += temp[ntr] @ temp[ntr].T  # Q1
@@ -851,7 +890,7 @@ class SC_TRCA(BasicTRCA):
                         self.rou_eeg[nte,nem],
                         self.rou_sin[nte,nem]
                     ])
-                self.y_standard[nte] = np.argmax(self.rou[nte,:])
+                self.y_standard[nte] = self.train_info['event_type'][np.argmax(self.rou[nte,:])]
         if self.ensemble:
             for nte in range(n_test):
                 for nem in range(n_events):
@@ -868,10 +907,196 @@ class SC_TRCA(BasicTRCA):
                         self.erou_eeg[nte,nem],
                         self.erou_sin[nte,nem]
                     ])
-                self.y_ensemble[nte] = np.argmax(self.erou[nte,:])
+                self.y_ensemble[nte] = self.train_info['event_type'][np.argmax(self.erou[nte,:])]
         return self.rou, self.y_standard, self.erou, self.y_ensemble
 
 
+<<<<<<< Updated upstream
+=======
+# (5) group TRCA | gTRCA
+
+
+
+# (6) cross-correlation TRCA | xTRCA
+
+
+
+# (7) latency-aligned TRCA | LA-TRCA
+
+
+
+# (8) optimized TRCA | op-TRCA
+
+
+
+# Filter-bank TRCA series | FB-
+class BasicFBTRCA(metaclass=ABCMeta):
+    def __init__(self, standard=True, ensemble=True, n_components=1, ratio=None):
+        """Config model dimension.
+
+        Args:
+            standard (bool, optional): Standard TRCA model. Defaults to True.
+            ensemble (bool, optional): Ensemble TRCA model. Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Set to 'None' if ratio is not 'None'.
+            ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+                Defaults to be 'None' when n_components is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+        self.standard = standard
+        self.ensemble = ensemble
+
+
+    @abstractmethod
+    def fit(self, X_train, y_train):
+        pass
+
+
+    def predict(self, X_test, y_test):
+        """Using filter-bank TRCA algorithms to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+            y_test (ndarray): (test_trials,). Labels for X_test.
+
+        Return:
+            rou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank TRCA.
+                Not empty when self.standard is True.
+            y_standard (ndarray): (test_trials,). Predict labels of filter-bank TRCA.
+            erou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank eTRCA.
+                Not empty when self.ensemble is True.
+            y_ensemble (ndarray): (test_trials,). Predict labels of filter-bank eTRCA.
+        """
+        # basic information
+        n_test = X_test.shape[1]
+
+        # apply predict() method in each sub-band
+        self.fb_rou = [[] for nb in range(self.n_bands)]
+        self.fb_y_standard = [[] for nb in range(self.n_bands)]
+        self.fb_erou = [[] for nb in range(self.n_bands)]
+        self.fb_y_ensemble = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            fb_results = self.sub_models[nb].predict(
+                X_test=X_test[nb],
+                y_test=y_test
+            )
+            self.fb_rou[nb], self.fb_y_standard[nb] = fb_results[0], fb_results[1]
+            self.fb_erou[nb], self.fb_y_ensemble[nb] = fb_results[2], fb_results[3]
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.erou = utils.combine_fb_feature(self.fb_erou)
+        self.y_standard = np.empty((n_test))
+        self.y_ensemble = np.empty_like(self.y_standard)
+        for nte in range(n_test):
+            self.y_standard[nte] = np.argmax(self.rou[nte,:])
+            self.y_ensemble[nte] = np.argmax(self.erou[nte,:])
+        return self.rou, self.y_standard, self.erou, self.y_ensemble
+
+
+class FB_TRCA(BasicFBTRCA):
+    def fit(self, X_train, y_train):
+        """Train filter-bank (e)TRCA model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.n_bands = X_train.shape[0]
+
+        # train TRCA models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = TRCA(
+                standard=self.standard,
+                ensemble=self.ensemble,
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train
+            )
+        return self
+
+
+class FB_MS_TRCA(BasicFBTRCA):
+    def fit(self, X_train, y_train, events_group=None, d=None):
+        """Train filter-bank ms-(e)TRCA model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+            events_group (dict): {'event_id':[start index,end index]}
+            d (int): The range of events to be merged.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.events_group = events_group
+        self.d = d
+        self.n_bands = X_train.shape[0]
+
+        # train ms-TRCA models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = MS_TRCA(
+                standard=self.standard,
+                ensemble=self.ensemble,
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train,
+                events_group=self.events_group,
+                d=self.d
+            )
+        return self
+
+
+class FB_TRCA_R(BasicFBTRCA):
+    def fit(self, X_train, y_train, projection):
+        """Train filter-bank (e)TRCA-R model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+            projection (ndarray): (n_events, n_points, n_points). Orthogonal projection matrices.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.projection = projection
+        self.n_bands = X_train.shape[0]
+
+        # train TRCA-R models & templates
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = TRCA_R(
+                standard=self.standard,
+                ensemble=self.ensemble,
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train,
+                projection=self.projection
+            )
+        return self
+
+
+>>>>>>> Stashed changes
 class FB_SC_TRCA(BasicFBTRCA):
     def fit(self, X_train, y_train, sine_template):
         """Train filter-bank sc-(e)TRCA model.
@@ -903,6 +1128,7 @@ class FB_SC_TRCA(BasicFBTRCA):
                 sine_template=self.sine_template
             )
         return self
+<<<<<<< Updated upstream
 
 
 
@@ -1434,3 +1660,5 @@ class FB_TL_TRCA(BasicFBTRCA):
                 sine_template=sine_template
             )
         return self
+=======
+>>>>>>> Stashed changes
