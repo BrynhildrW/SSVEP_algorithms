@@ -8,13 +8,13 @@ Other design.
             DOI: 10.1109/TBME.2019.2958641
     (2) DCPM: https://ieeexplore.ieee.org/document/8930304/
             DOI: 10.1109/TBME.2019.2958641
-    (3) PT projection: None
-            DOI: None
+    (3) PT projection: https://iopscience.iop.org/article/10.1088/1741-2552/abcb6e
+            DOI: 10.1088/1741-2552/abcb6e
     (4) TDCA: https://ieeexplore.ieee.org/document/9541393/
             DOI: 10.1109/TNSRE.2021.3114340
 
 
-update: 2022/10/22
+update: 2023/6/7
 
 """
 
@@ -25,7 +25,84 @@ import numpy as np
 
 from scipy import linalg as sLA
 
-# %% (1) Discriminant Spatial Patterns | DSP
+from abc import abstractmethod, ABCMeta
+
+# %% Basic object
+class BasicDSP(metaclass=ABCMeta):
+    def __init__(self, n_components=1, ratio=None):
+        """Config model dimension.
+
+        Args:
+            n_components (int, optional): Number of eigenvectors picked as filters.
+                Defaults to 1. Set to 'None' if ratio is not 'None'.
+            ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
+                Defaults to None when n_component is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+
+
+    @abstractmethod
+    def fit(self, X_train, y_train):
+        pass
+    
+    
+    @abstractmethod
+    def predict(self, X_test):
+        pass
+
+
+class BasicFBDSP(metaclass=ABCMeta):
+    def __init__(self, n_components=1, ratio=None):
+        """Config model dimension.
+
+        Args:
+            n_components (int, optional): Number of eigenvectors picked as filters.
+                Defaults to 1. Set to 'None' if ratio is not 'None'.
+            ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
+                Defaults to None when n_component is not 'None'.
+        """
+        # config model
+        self.n_components = n_components
+        self.ratio = ratio
+
+
+    @abstractmethod
+    def fit(self, X_train, y_train):
+        pass
+
+
+    def predict(self, X_test):
+        """Using filter-bank DSP algorithms to predict test data.
+
+        Args:
+            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
+                Test dataset. test_trials could be 1 if neccessary.
+
+        Return:
+            rou (ndarray): (test_trials, n_events). Decision coefficients.
+                Not empty when self.standard is True.
+            y_predict (ndarray): (test_trials,). Predict labels.
+        """
+        # basic information
+        n_test = X_test.shape[1]
+
+        # apply predict() method in each sub-band
+        self.fb_rou = [[] for nb in range(self.n_bands)]
+        self.fb_y_predict = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.fb_rou[nb], self.fb_y_predict[nb] = self.sub_models[nb].predict(X_test=X_test[nb])
+
+        # integration of multi-bands' results
+        self.rou = utils.combine_fb_feature(self.fb_rou)
+        self.y_predict = np.empty((n_test))
+        for nte in range(n_test):
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
+        return self.rou, self.y_predict
+
+
+# %% 1. Discriminant Spatial Patterns | DSP
 def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     """Discriminant Spatial Patterns (DSP).
 
@@ -43,11 +120,11 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
         ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
             Defaults to None when n_component is not 'None'.
 
-    Returns:
+    Returns: | all contained in a dict
         Sb (ndarray): (n_chans, n_chans). Scatter matrix of between-class difference.
         Sw (ndarray): (n_chans, n_chans). Scatter matrix of within-class difference.
         w (ndarray): (n_components, n_chans). Common spatial filter.
-        template (ndarray): (n_events, n_components, n_points). DSP templates.
+        wX (ndarray): (n_events, n_components, n_points). DSP wXs.
     """
     # basic information
     event_type = train_info['event_type']
@@ -86,25 +163,11 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     )  # (Nk,Nc)
 
     # signal templates
-    template = np.einsum('kc,ecp->ekp', w,class_center)  # (Ne,Nk,Np)
-    return Sb, Sw, w, template
+    wX = np.einsum('kc,ecp->ekp', w,class_center)  # (Ne,Nk,Np)
+    return {'Sb':Sb, 'Sw':Sw, 'w':w, 'wX':wX}
 
 
-class DSP(object):
-    def __init__(self, n_components=1, ratio=None):
-        """Config model dimension.
-
-        Args:
-            n_components (int, optional): Number of eigenvectors picked as filters.
-                Defaults to 1. Set to 'None' if ratio is not 'None'.
-            ratio (float, optional): The ratio of the sum of eigenvalues to the total (0-1).
-                Defaults to None when n_component is not 'None'.
-        """
-        # config model
-        self.n_components = n_components
-        self.ratio = ratio
-
-
+class DSP(BasicDSP):
     def fit(self, X_train, y_train):
         """Train DSP model.
 
@@ -124,30 +187,31 @@ class DSP(object):
                            'n_points':self.X_train.shape[-1]}
 
         # train DSP models & templates
-        self.Sb, self.Sw, self.w, self.template = dsp_compute(
+        results = dsp_compute(
             X_train=self.X_train,
             y_train = self.y_train,
             train_info = self.train_info,
             n_components=self.n_components,
             ratio=self.ratio
         )
+        self.Sb, self.Sw = results['Sb'], results['Sw']
+        self.w, self.wX = results['w'], results['wX']
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using DSP algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if necessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (test_trials, n_events). Decision coefficients of DSP.
+            y_predict (ndarray): (test_trials,). Predict labels of DSP.
         """
         # basic information
-        n_test = y_test.shape[0]
+        n_test = X_test.shape[0]
         n_events = self.train_info['n_events']
 
         # pattern matching
@@ -158,17 +222,45 @@ class DSP(object):
             for ne in range(n_events):
                 self.rou[nte,ne] = utils.pearson_corr(
                     X=f_test,
-                    Y=self.template[ne]
+                    Y=self.wX[ne]
                 )
             self.y_predict[nte] = np.argmax(self.rou[nte,:])
         return self.rou, self.y_predict
 
 
-# %% (2) Discriminant Canonical Pattern Matching | DCPM
+class FB_DSP(BasicFBDSP):
+    def fit(self, X_train, y_train):
+        """Train filter-bank DSP model.
+
+        Args:
+            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
+                Training dataset. train_trials could be 1 if neccessary.
+            y_train (ndarray): (train_trials,). Labels for X_train.
+        """
+        # basic information
+        self.X_train = X_train
+        self.y_train = y_train
+        self.n_bands = X_train.shape[0]
+
+        # train DSP models & wXs
+        self.sub_models = [[] for nb in range(self.n_bands)]
+        for nb in range(self.n_bands):
+            self.sub_models[nb] = DSP(
+                n_components=self.n_components,
+                ratio=self.ratio
+            )
+            self.sub_models[nb].fit(
+                X_train=self.X_train[nb],
+                y_train=self.y_train
+            )
+        return self
+
+
+# %% 2. Discriminant Canonical Pattern Matching | DCPM
 
 
 
-# %% (3) PT projection
+# %% 3. PT projection
 def pt_proj(X, theta):
     """
     Compute the PT projection matrix
@@ -192,7 +284,7 @@ def pt_proj(X, theta):
     return projection.T
 
 
-# %% Task-discriminant component analysis | TDCA
+# %% 4. Task-discriminant component analysis | TDCA
 def aug_2(data, projection, extra_length, mode='train'):
     """Construct secondary augmented data.
 
@@ -275,7 +367,7 @@ class TDCA(object):
                            'n_chans':self.X_train_aug2.shape[-2],
                            'n_points':self.X_train_aug2.shape[-1]}
 
-        # train DSP models & templates
+        # train DSP models & wXs
         results = dsp_compute(
             X_train=self.X_train_aug2,
             y_train=self.y_train,
@@ -284,7 +376,7 @@ class TDCA(object):
             ratio=self.ratio
         )
         self.Sb, self.Sw = results[0], results[1]
-        self.w, self.template = results[2], results[3]
+        self.w, self.wX = results[2], results[3]
         return self
 
 
@@ -317,74 +409,13 @@ class TDCA(object):
                 )
                 self.rou[nte,ne] = utils.pearson_corr(
                     X=self.w @ temp_test_aug2,
-                    Y=self.template[ne]
+                    Y=self.wX[ne]
                 )
                 self.y_predict[nte] = np.argmax(self.rou[nte,:])
         return self.rou, self.y_predict
 
 
-# %% Filter-bank TRCA series | FB-
-class FB_DSP(DSP):
-    def fit(self, X_train, y_train):
-        """Train filter-bank DSP model.
-
-        Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if neccessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-        """
-        # basic information
-        self.X_train = X_train
-        self.y_train = y_train
-        self.n_bands = X_train.shape[0]
-
-        # train DSP models & templates
-        self.sub_models = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.sub_models[nb] = DSP(
-                n_components=self.n_components,
-                ratio=self.ratio
-            )
-            self.sub_models[nb].fit(
-                X_train=self.X_train[nb],
-                y_train=self.y_train
-            )
-        return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank DSP algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_test = X_test.shape[1]
-        
-        # apply DSP().predict() in each sub-band
-        self.fb_rou = [[] for nb in range(self.n_bands)]
-        self.fb_y_predict = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.fb_rou[nb], self.fb_y_predict[nb] = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
-
-
-class FB_TDCA(TDCA):
+class FB_TDCA(BasicFBDSP):
     def fit(self, X_train, y_train, projection, extra_length):
         """Train TDCA model.
 
@@ -403,7 +434,7 @@ class FB_TDCA(TDCA):
         self.extra_length = extra_length
         self.n_bands = X_train.shape[0]
 
-        # train TDCA models & templates
+        # train TDCA models & wXs
         self.sub_models = [[] for nb in range(self.n_bands)]
         for nb in range(self.n_bands):
             self.sub_models[nb] = TDCA(
@@ -417,35 +448,3 @@ class FB_TDCA(TDCA):
                 extra_length=self.extra_length
             )
         return self
-
-
-    def predict(self, X_test, y_test):
-        """Using filter-bank TDCA algorithm to predict test data.
-
-        Args:
-            X_test (ndarray): (n_bands, n_events*n_test(test_trials), n_chans, n_points).
-                Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
-
-        Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
-        """
-        # basic information
-        n_test = X_test.shape[1]
-
-        # apply TDCA().predict() in each sub-band
-        self.fb_rou = [[] for nb in range(self.n_bands)]
-        self.fb_y_predict = [[] for nb in range(self.n_bands)]
-        for nb in range(self.n_bands):
-            self.fb_rou[nb], self.fb_y_predict[nb] = self.sub_models[nb].predict(
-                X_test=X_test[nb],
-                y_test=y_test
-            )
-
-        # integration of multi-bands' results
-        self.rou = utils.combine_fb_feature(self.fb_rou)
-        self.y_predict = np.empty((n_test))
-        for nte in range(n_test):
-            self.y_predict[nte] = np.argmax(self.rou[nte,:])
-        return self.rou, self.y_predict
