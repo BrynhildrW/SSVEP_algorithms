@@ -135,7 +135,7 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     # between-class difference Hb -> scatter matrix Sb
     class_center = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    for ne,et in enumerate(event_type):
+    for ne, et in enumerate(event_type):
         class_center[ne] = X_train[y_train==et].mean(axis=0)  # (:,Nc,Np)
     total_center = X_train.mean(axis=0, keepdims=True)  # (1,Nc,Np)
     Hb = class_center - total_center  # (Ne,Nc,Np)
@@ -147,7 +147,7 @@ def dsp_compute(X_train, y_train, train_info, n_components=1, ratio=None):
 
     # within-class difference Hw -> scatter matrix Sw
     Sw = np.zeros_like(Sb)  # (Nc,Nc)
-    for ne,et in enumerate(event_type):
+    for ne, et in enumerate(event_type):
         Hw = X_train[y_train==et] - class_center[ne]  # (Nt,Nc,Np)-(Nc,Np)
         for ntr in range(n_train[ne]):  # samples for each event
             Sw += Hw[ntr] @ Hw[ntr].T
@@ -224,7 +224,7 @@ class DSP(BasicDSP):
                     X=f_test,
                     Y=self.wX[ne]
                 )
-            self.y_predict[nte] = self.train_info['event_type'][np.argmax(self.rou[nte,:])]
+            self.y_predict[nte] = np.argmax(self.rou[nte,:])
         return self.rou, self.y_predict
 
 

@@ -14,12 +14,12 @@ Supported objects
     Target functions (1-D): SNR, FS, pCORR
     Optimization methods: Traversal, Recursion, Mix
 
-3. MCSRCA: multi-channel & single-event (Future Version)
+3. MSRCA: multi-channel & single-event (Multi-channel SRCA)
     Target functions (2-D): DSP coef, 
     Optimization methods: Traversal, Recursion, Mix
     Combination optimization methods: SA(Simulated annealing), IBI(Item-by-item)
 
-4. MCESRCA: multi-channel & multi-event (Future Version)
+4. MESRCA: multi-channel & multi-event (Multi-channel Ensemble-SRCA)
     Target functions:
     Optimization methods: Traversal, Recursion, Mix
     Combination optimization methods: SA, IBI
@@ -49,7 +49,7 @@ from itertools import combinations
 from time import perf_counter
 from copy import deepcopy
 
-# 1-D target functions | single channel
+# %% 1-D target functions | single channel
 # SNR (mean) in time domain
 def snr_sequence(X_train, y_train, kwargs):
     """Signal-to-Noise ratio (sequence) in time domain.
@@ -106,7 +106,7 @@ def fs_sequence(X_train, y_train, kwargs):
     return utils.fisher_score(dataset)
 
 
-# 2-D target functions | multiple channels, single event
+# %% 2-D target functions | multiple channels, single event
 # Target function values of TRCA | single event
 def trca_val(X_train, y_train, kwargs):
     """f(w)=(w @ S @ w.T)/(w @ Q @ w.T).
@@ -183,7 +183,7 @@ def trca_acc(dataset, kwargs):
 
 
 
-# 2-D target functions | multiple channels, multiple events
+# %% 2-D target functions | multiple channels, multiple events
 # Target function values of DSP
 def dsp_val(X_train, y_train, kwargs):
     """f(w)=(w @ S_b @ w.T)/(w @ S_w @ w.T).
@@ -267,7 +267,7 @@ def dsp_acc(X_train, y_train, kwargs):
     return acc.mean()
 
 
-# SRCA operation
+# %% SRCA operation
 def mse_regression(rs_model, rs_target, ts_model):
     """Linear regression for task-state target channel based on
         Mean squared error (Frobenius Norm).
@@ -430,7 +430,7 @@ def srca_process(rs_model, rs_target, ts_model, ts_target, regression='MSE'):
     return ts_target - ts_target_estimation
 
 
-# Main classes
+# %% Main classes
 class SRCA(object):
     """Spatial Regression Component Analysis for single-channel, single-event optimization.
     Target functions (1-D):
@@ -994,8 +994,7 @@ class MultiESRCA(object):
             # self.check_progress_3()
 
 
-
-# Terminal function
+# %% Terminal function
 def apply_SRCA(rest_data, task_data, target_chan, model_chans, chan_info, regression='MSE'):
     """Apply SRCA model to EEG data.
 

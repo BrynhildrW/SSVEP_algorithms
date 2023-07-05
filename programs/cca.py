@@ -331,8 +331,8 @@ class ECCA(BasicCCA):
         self.sine_template = sine_template
         event_type = np.unique(self.y_train)
         n_events = len(event_type)
-        n_chans = X_train.shape[-2]
-        n_points = X_train.shape[-1]
+        n_chans = self.X_train.shape[-2]
+        n_points = self.X_train.shape[-1]
         self.train_info = {'event_type':event_type,
                            'n_events':n_events,
                            'n_chans':n_chans,
@@ -340,25 +340,28 @@ class ECCA(BasicCCA):
 
         # config average template (class center)
         self.avg_template = np.zeros((n_events, n_chans, n_points))
-        for ne in range(n_events):
-            self.avg_template[ne] = X_train[y_train==ne].mean(axis=0)
+        for ne,et in enumerate(event_type):
+            temp = self.X_train[self.y_train==et]
+            if temp.ndim < 3:
+                self.avg_template[ne] = temp
+            else:
+                self.avg_template[ne] = temp.mean(axis=0)
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using eCCA algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if neccessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Returns:
             rou (ndarray): (test_trials, n_events). Decision coefficients.
             y_predict (ndarray): (test_trials,). Predict labels.
         """
         # basic information
-        n_test = y_test.shape[0]
+        n_test = X_test.shape[0]
         n_events = self.train_info['n_events']
 
         # pattern matching

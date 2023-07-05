@@ -1,19 +1,13 @@
-# 跨个体迁移 TRCA
-## Cross-subject transfer learning TRCA, TL-TRCA
+# 相位差异约束 CCA
+## Phase Difference Constrained CCA, pdCCA
 ***
 
-[论文链接][TL-TRCA]
+[论文链接][pdCCA]
 
-2023 年新鲜出炉的这一篇 TRCA 改进算法看上去好像集合了诸多文献的要义：[sc-(e)TRCA][ref1] 的正余弦模板拼接、[PT 投影][ref2]的最小二乘投影以及 [gTRCA][ref3] 的多受试者数据整合。可惜没能用上 [tlCCA][ref3] 的最小二乘受试者融合权重分配技术。为什么要说“好像”，是因为实际测试结果以及文献汇报的结果似乎没有想象得那么出众。当然这并不妨碍作者提出了一些富有新意的改进思路。
+没想到总有一天，我也会期待 Wong 发表的论文。抛开数学墙的问题不谈，他的研究具有一种少见的严谨，其公式推导虽然复杂，但绝对靠谱。（~~点名批评 TDCA~~）这次 Wong 发表在 TNSRE 上的无监督算法走起了亲民路线，在文章的开头他就给我们展示了一张“太长不看”风格的算法示意图。
 
-![TL-TRCA示意图](TL-TRCA.png)
+![pdCCA示意图](pdCCA-1.png)
 
 
 
-***
-
-[TL-TRCA]: https://ieeexplore.ieee.org/document/10057002/
-[ref1]: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
-[ref2]: https://iopscience.iop.org/article/10.1088/1741-2552/abcb6e
-[ref3]: http://www.nature.com/articles/s41598-019-56962-2
-
+[pdCCA]: https://ieeexplore.ieee.org/document/10040695/

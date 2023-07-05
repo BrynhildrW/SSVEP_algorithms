@@ -283,6 +283,25 @@ def combine_fb_feature(features):
 
 
 # 4. algorithm evaluation
+def label_align(y_predict, event_type):
+    """Label alignment.
+        For example, y_train = [1,2,5], y_predict=[0,1,2]
+        (Correct but with hidden danger in codes).
+        This function will transform y_predict to [1,2,5].
+
+    Args:
+        y_predict (ndarray): (n_test,). Predict labels.
+        event_type (ndarray): (n_events,). Event ID arranged in ascending order.
+
+    Returns:
+        new_predict (ndarray): (n_test,). Corrected labels.
+    """
+    new_predict = np.zeros_like(y_predict)
+    for npr,ypr in enumerate(y_predict):
+        new_predict[npr] = event_type[int(ypr)]
+    return new_predict
+
+
 def acc_compute(y_predict, y_test):
     """Compute accuracy.
 
@@ -326,8 +345,10 @@ def itr_compute(number, time, acc):
         result (float)
     """
     part_a = log(number,2)
-    if acc==1.0 or acc==100:  # avoid special situation
+    if int(acc)==1 or acc==100:  # avoid special situation
         part_b, part_c = 0, 0
+    elif float(acc)==0.0:
+        return 0
     else:
         part_b = acc*log(acc,2)
         part_c = (1-acc)*log((1-acc)/(number-1),2)
