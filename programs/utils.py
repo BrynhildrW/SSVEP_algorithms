@@ -52,16 +52,16 @@ update: 2023/05/23
 
 """
 
-# basic moduls
+# %% basic moduls
 import numpy as np
-from numpy import (sin, sqrt, einsum)
+from numpy import sin, sqrt, einsum
 
 from scipy import linalg as sLA
 
 from math import (pi, log, pow)
 
 
-# 1. data preprocessing
+# %% 1. data preprocessing
 def zero_mean(X):
     """Zero-mean normalization.
 
@@ -75,7 +75,7 @@ def zero_mean(X):
     return X
 
 
-# 2. data preparation
+# %% 2. data preparation
 def sin_wave(freq, n_points, phase, sfreq=1000):
     """Construct sinusoidal waveforms.
 
@@ -150,52 +150,52 @@ def Imn(m,n):
     return Z
 
 
-def augmented_events(n_events, d):
+def augmented_events(
+    event_type: np.ndarray,
+    d: int
+):
     """Generate indices for merged events for each target event.
-    Special function for ms- series algorithms.
+    Special function for ms- algorithms.
 
     Args:
-        n_events (int)
+        event_type (ndarray): Unique labels.
         d (int): The range of events to be merged.
 
     Returns:
         events_group (dict): {'events':[start index,end index]}
     """
     events_group = {}
-    for ne in range(n_events):
+    n_events = len(event_type)
+    for ne,et in enumerate(event_type):
         if ne <= d/2:
-            events_group[str(ne)] = [0,d]
+            events_group[str(et)] = [0,d]
         elif ne >= int(n_events-d/2):
-            events_group[str(ne)] = [n_events-d,n_events]
+            events_group[str(et)] = [n_events-d,n_events]
         else:
             m = int(d/2)  # forward augmentation
-            events_group[str(ne)] = [ne-m,ne-m+d]
+            events_group[str(et)] = [ne-m,ne-m+d]
     return events_group
 
 
-def selected_events(n_events, d, method='A2'):
+def selected_events(n_events, select_num, select_method='A2'):
     """Generate indices for selected events of total dataset.
     Special function for stCCA.
 
     Args:
-        n_events (int)
-        d (int): The range of events to be merged.
-        method (str): 'A1', 'A2', and 'A3' according to the reference.
+        n_events (int): Number of total events.
+        select_num (int): Number of selected events.
+        method (str, optional): 'A1', 'A2', and 'A3'.
+            Defaults to '2'. Details in https://ieeexplore.ieee.org/document/9177172/
 
     Returns:
-        events_indices (list)
+        select_events (list of int): Indices of selected events.
     """
-    events_indices = []
-    if method == 'A1':
-        for ne in range(d):
-            events_indices.append(1 + int((n_events-1)*ne/(d-1)))
-    elif method == 'A2':
-        for ne in range(d):
-            events_indices.append(int(n_events*(2*ne+1)/(2*d)))
-    elif method == 'A3':
-        for ne in range(d):
-            events_indices.append(int((n_events*2*(ne+1))/(2*d)))
-    return events_indices
+    if select_method == '1':
+        return [1 + int((n_events-1)*sen/(select_num-1)) for sen in range(select_num)]
+    elif select_method == '2':
+        return [int(n_events*(2*sen+1)/(2*select_num)) for sen in range(select_num)]
+    elif select_method == '3':
+        return [int(n_events*2*(sen+1)/(2*select_num)) for sen in range(select_num)]
 
 
 def reshape_dataset(data):
@@ -235,7 +235,7 @@ def reshape_dataset(data):
     return X_total, np.array(y_total)
 
 
-# 3. feature integration
+# %% 3. feature integration
 def sign_sta(x):
     """Standardization of decision coefficient based on sign(x).
 
@@ -282,7 +282,7 @@ def combine_fb_feature(features):
     return coef
 
 
-# 4. algorithm evaluation
+# %% 4. algorithm evaluation
 def label_align(y_predict, event_type):
     """Label alignment.
         For example, y_train = [1,2,5], y_predict=[0,1,2]
@@ -294,12 +294,12 @@ def label_align(y_predict, event_type):
         event_type (ndarray): (n_events,). Event ID arranged in ascending order.
 
     Returns:
-        new_predict (ndarray): (n_test,). Corrected labels.
+        correct_predict (ndarray): (n_test,). Corrected labels.
     """
-    new_predict = np.zeros_like(y_predict)
+    correct_predict = np.zeros_like(y_predict)
     for npr,ypr in enumerate(y_predict):
-        new_predict[npr] = event_type[int(ypr)]
-    return new_predict
+        correct_predict[npr] = event_type[int(ypr)]
+    return correct_predict
 
 
 def acc_compute(y_predict, y_test):
@@ -356,7 +356,7 @@ def itr_compute(number, time, acc):
     return result
 
 
-# 5. spatial distances
+# %% 5. spatial distances
 def pearson_corr(X, Y):
     """Pearson correlation coefficient (1-D or 2-D).
     
@@ -503,7 +503,7 @@ def s_estimator(X):
     return s_estimator
 
 
-# 6. temporally smoothing functions
+# %% 6. temporally smoothing functions
 def tukeys_kernel(x, r=3):
     """Tukeys tri-cube kernel function.
     Args:
@@ -550,7 +550,7 @@ def laplacian_matrix(W):
     return D-W
 
 
-# 7. reduced QR decomposition
+# %% 7. reduced QR decomposition
 def qr_projection(X):
     """Orthogonal projection based on QR decomposition of X.
 
@@ -565,7 +565,7 @@ def qr_projection(X):
     return P
 
 
-# 8. Eigenvalue problems
+# %% 8. Eigenvalue problems
 def pick_subspace(descend_order, e_val_sum, ratio):
     """Config the number of subspaces.
 
