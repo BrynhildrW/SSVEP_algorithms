@@ -7,7 +7,9 @@ Github 的在线 Markdown 公式编译模块有 bug，欢迎移步我的FlowUs�
 本人联系方式 215707269@qq.com，欢迎各位指教/催更/友好探讨。
 
 [CCA 及其改进算法][cca]
+
 [TRCA 及其改进算法][trca]
+
 [数据扩增/迁移算法][transfer]
 
 [cca]: https://flowus.cn/brynhildrw/share/7cca304a-f180-4c56-81fe-a3f3b746fd8c
