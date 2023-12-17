@@ -1,4 +1,4 @@
-# 个体迁移学习 CCA
+# 跨个体迁移学习 CCA
 ## Subject Transfer based CCA, stCCA
 ***
 ### [论文链接][stCCA]
@@ -38,7 +38,7 @@ $$
 
 ![stCCA训练目标](stCCA-1.png)
 
-具体来说，stCCA 的模型分为两个主要部分：个体空间滤波器（Intra-Subject Spatial Filter）与 跨个体 SSVEP 模板（Inter-Subject SSVEP Template），二者分别对应于两个前提假设。首先是个体内空间滤波器，Wong 提出的前提假设为：对于一个固定的受试者而言，面向不同频率刺激数据构建的空间滤波器是具有较高相似度，即可以共享的。因此 Wong 利用 msCCA 方法计算受试者的类别非特异、个体特异（class-nonspecific, subject-specific）空间滤波器（transferred spatial filters），以实现基于参数的迁移学习。上述过程在源域和目标域都会进行，此处以目标域受试者 $\tau$ 为例展示目标函数及训练结果 $\hat{\pmb{u}}^{(\tau)} \in \mathbb{R}^{1 \times N_c^{(\tau)}}$、$\hat{\pmb{v}}^{(\tau)} \in \mathbb{R}^{1 \times 2N_h}$：
+具体来说，stCCA 的模型分为两个主要部分：个体空间滤波器（Intra-Subject Spatial Filter）与 跨个体 SSVEP 模板（Inter-Subject SSVEP Template），二者分别对应于两个前提假设。首先是个体内空间滤波器，Wong 提出的前提假设为：对于一个固定的受试者而言，面向不同频率刺激数据构建的空间滤波器是具有较高相似度，即可以共享的。因此 Wong 利用 msCCA 方法计算受试者的类别非特异、个体特异（Class-Nonspecific, Subject-Specific）空间滤波器（Transferred Spatial Filters），以实现基于参数的迁移学习。上述过程在源域和目标域都会进行，此处以目标域受试者 $\tau$ 为例展示目标函数及训练结果 $\hat{\pmb{u}}^{(\tau)} \in \mathbb{R}^{1 \times N_c^{(\tau)}}$、$\hat{\pmb{v}}^{(\tau)} \in \mathbb{R}^{1 \times 2N_h}$：
 $$
     \hat{\pmb{u}}^{(\tau)}, \hat{\pmb{v}}^{(\tau)} = \underset{\pmb{u}^{(\tau)},\pmb{v}^{(\tau)}} \argmax \dfrac{\pmb{u}^{(\tau)} \left( \sum_{k=1}^{N_e^{(\tau)}} \bar{\pmb{X}}_{c_k}^{(\tau)} {\pmb{Y}_{c_k}}^T \right) {\pmb{v}^{(\tau)}}^T} {\sqrt{\pmb{u}^{(\tau)} \left( \sum_{k=1}^{N_e^{(\tau)}} \bar{\pmb{X}}_{c_k}^{(\tau)} {\bar{\pmb{X}}_{c_k}^{(\tau)}}^T \right) {\pmb{u}^{(\tau)}}^T} \sqrt{\pmb{v}^{(\tau)} \left( \sum_{k=1}^{N_e^{(\tau)}} \pmb{Y}_{c_k} {\pmb{Y}_{c_k}}^T \right) {\pmb{v}^{(\tau)}}^T}}
     \tag{3}
@@ -89,7 +89,7 @@ $$
     \end{cases}, \ \ \rho_k = \sum_{i=1}^2 {\rm sign} \left( \rho_{k,i} \right) {\rho_{k,i}}^2
     \tag{6}
 $$
-文中还提出了一种衡量 BCI 性能的新指标：cost-performance ratio，其中文翻译似乎是“性价比”？我们最好还是使用 CPR 来简称（~~不然就太 low 了~~）。CPR 的主要作用是量化训练样本数目对于 ITR 指标的增益：
+文中还提出了一种衡量 BCI 性能的新指标：Cost-Performance Ratio，其中文翻译似乎是“性价比”？我们最好还是使用 CPR 来简称（~~不然就太 low 了~~）。CPR 的主要作用是量化训练样本数目对于 ITR 指标的增益：
 $$
     {\rm CPR} = \dfrac{\triangle {\rm ITR}} {N_t \times N_e^{(\tau)}}
     \tag{7}

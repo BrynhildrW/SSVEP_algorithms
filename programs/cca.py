@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 @ author: Brynhildr Wu
 @ email: brynhildrwu@gmail.com
@@ -29,6 +30,18 @@ Canonical correlation analysis (CCA) series.
             DOI: 
 
 
+Notations:
+    n_events: Ne
+    n_train: Nt
+    n_test: Nte
+    train_trials: Ne*Nt
+    test_trials: Ne*Nte
+    n_chans: Nc
+    n_points: Np
+    n_components: Nk
+    n_harmonics: Nh
+    n_bands: Nb
+
 update: 2023/07/04
 
 """
@@ -49,7 +62,7 @@ class BasicCCA(metaclass=ABCMeta):
     def __init__(self,
         n_components: Optional[int] = 1,
         ratio: Optional[float] = None):
-        """Config model dimension.
+        """Basic configuration.
 
         Args:
             n_components (int): Number of eigenvectors picked as filters.
@@ -66,11 +79,11 @@ class BasicCCA(metaclass=ABCMeta):
     def fit(self,
         X_train: ndarray,
         y_train: ndarray):
-        """Load in training dataset.
+        """Load in training dataset and train model.
 
         Args:
-            X_train (ndarray): (train_trials, ..., n_points). Training dataset.
-            y_train (ndarray): (train_trials,). Labels for X_train.
+            X_train (ndarray): (Ne*Nt,...,Np). Training dataset.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
         """
         pass
 
@@ -78,6 +91,15 @@ class BasicCCA(metaclass=ABCMeta):
     @abstractmethod
     def predict(self,
         X_test: ndarray) -> Tuple[ndarray]:
+        """Predict test data.
+
+        Args:
+            X_test (ndarray): (Ne*Nte,...,Np). Test dataset.
+
+        Return:
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
+        """
         pass
 
 
@@ -85,7 +107,7 @@ class BasicFBCCA(metaclass=ABCMeta):
     def __init__(self,
         n_components: Optional[int] = 1,
         ratio: Optional[float] = None):
-        """Config model dimension.
+        """Basic configuration.
 
         Args:
             n_components (int): Number of eigenvectors picked as filters.
@@ -102,27 +124,25 @@ class BasicFBCCA(metaclass=ABCMeta):
     def fit(self,
         X_train: ndarray,
         y_train: ndarray):
-        """Load in training dataset.
+        """Load in training dataset and train model.
 
         Args:
-            X_train (ndarray): (train_trials, ..., n_points). Training dataset.
-            y_train (ndarray): (train_trials,). Labels for X_train.
+            X_train (ndarray): (Nb,Ne*Nt,...,Np). Training dataset.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
         """
         pass
 
 
-    @abstractmethod
     def predict(self,
         X_test: ndarray) -> Tuple[ndarray]:
         """Using filter-bank algorithms to predict test data.
 
         Args:
-            X_test (ndarray): (n_bands, test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
+            X_test (ndarray): (Nb,Ne*Nte,Nc,Np). Test dataset.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients of filter-bank CCA.
-            y_predict (ndarray): (test_trials,). Predict labels of filter-bank CCA.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[1]
@@ -149,41 +169,32 @@ def cca_compute(
     template: ndarray,
     n_components: Optional[int] = 1,
     ratio: Optional[float] = None) -> dict[str, ndarray]:
-    """Canonical correlation analysis.
+    """Canonical correlation analysis (CCA).
 
     Args:
-        data (ndarray): (n_chans, n_points).
-            Real EEG data of a single trial.
-        template (ndarray): (2*n_harmonics or m, n_points).
-            Artificial sinusoidal template or averaged template.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        data (ndarray): (Nc,Np). Real EEG data (single trial).
+        template (ndarray): (2Nh or m,Np). Sinusoidal template or averaged template.
+        n_components (int): Number of eigenvectors picked as filters.
             Eigenvectors are referring to eigenvalues sorted in descend order.
-            Set to 'None' if ratio is not 'None'.
-        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
-            Defaults to be 'None'.
+            Set to None if ratio is not None.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total (0-1).
+            Defaults to None when n_component is not None.
 
     Return: CCA model (dict).
-        Cxx (ndarray): (n_chans, n_chans).
-            Covariance of EEG data.
-        Cxy (ndarray): (n_chans, 2*n_harmonics).
-            Covariance of EEG data & sinusoidal template.
-        Cyy (ndarray): (2*n_harmonics, 2*n_harmonics).
-            Covariance of sinusoidal template.
-        u (ndarray): (n_components, n_chans).
-            Spatial filter for EEG.
-        v (ndarray): (n_components, 2*n_harmonics).
-            Spatial filter for template.
-        uX (ndarray): (n_components, n_points).
-            Filtered EEG signal
-        vY (ndarray): (n_components, n_points).
-            Filtered sinusoidal template.
+        Cxx (ndarray): (Nc,Nc). Covariance of EEG.
+        Cxy (ndarray): (Nc,2*Nh). Covariance of EEG & sinusoidal template.
+        Cyy (ndarray): (2*Nh,2*Nh). Covariance of sinusoidal template.
+        u (ndarray): (Nk,Nc). Spatial filter for EEG.
+        v (ndarray): (Nk,2*Nh). Spatial filter for template.
+        uX (ndarray): (Nk,Np). Filtered EEG signal
+        vY (ndarray): (Nk,Np). Filtered sinusoidal template.
     """
     # GEPs' conditions
     Cxx = data @ data.T  # (Nc,Nc)
     Cyy = template @ template.T  # (2Nh,2Nh)
     Cxy = data @ template.T  # (Nc,2Nh)
 
-    # EEG part: (n_components(Nk),Nc)
+    # Spatial filter for EEG: (Nk,2Nh)
     u = utils.solve_gep(
         A=Cxy @ sLA.solve(Cyy,Cxy.T),
         B=Cxx,
@@ -191,7 +202,7 @@ def cca_compute(
         ratio=ratio
     )
 
-    # template part: (Nk,2Nh)
+    # Spatial filter for template: (Nk,2Nh)
     v = utils.solve_gep(
         A=Cxy.T @ sLA.solve(Cxx,Cxy),
         B=Cyy,
@@ -200,8 +211,8 @@ def cca_compute(
     )
 
     # filter data
-    uX = u @ data
-    vY = v @ template
+    uX = u @ data  # (Nk,Np)
+    vY = v @ template  # (Nk,Np)
 
     # CCA model
     model = {
@@ -212,16 +223,21 @@ def cca_compute(
     return model
 
 
+def cca_coef():
+    pass
+
+
 class CCA(BasicCCA):
     def fit(self,
         X_train: ndarray,
         y_train: ndarray):
         """Load in CCA template. CCA is an unsupervised algorithm, 
-            so there's no real training dataset in fact.
+            so there's no EEG training dataset.
 
         Args:
-            X_train (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
-            y_train (ndarray): (n_events,). Labels for X_train.
+            X_train (ndarray): (Ne,2Nh,Np)
+                Sinusoidal template.
+            y_train (ndarray): (Ne,). Labels for X_train.
         """
         # basic information
         self.X_train = X_train
@@ -240,12 +256,12 @@ class CCA(BasicCCA):
         """Using CCA to predict test data.
 
         Args:
-            X_test (ndarray): (test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
+            X_test (ndarray): (Ne*Nte,Nc,Np).
+                Test dataset. Ne*Nte could be 1 if necessary.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -257,13 +273,13 @@ class CCA(BasicCCA):
         self.y_predict = np.empty((n_test))
         for nte in range(n_test):
             for ne in range(n_events):
-                cca_model = cca_compute(
+                model = cca_compute(
                     data=X_test[nte],
                     template=self.X_train[ne],
                     n_components=self.n_components,
                     ratio=self.ratio
                 )
-                self.rou[nte,ne] = utils.pearson_corr(cca_model['uX'], cca_model['vY'])
+                self.rou[nte,ne] = utils.pearson_corr(model['uX'], model['vY'])
             self.y_predict[nte] = event_type[np.argmax(self.rou[nte,:])]
         return self.rou, self.y_predict
 
@@ -275,9 +291,8 @@ class FB_CCA(BasicCCA):
         """Train filter-bank CCA model.
 
         Args:
-            X_train (ndarray): (n_bands, n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
-            y_train (ndarray): (n_events,). Labels for X_train.
+            X_train (ndarray): (Nb,Ne,2*Nh,Np). Sinusoidal template.
+            y_train (ndarray): (Ne,). Labels for X_train.
         """
         # basic information
         self.X_train = X_train
@@ -303,37 +318,43 @@ def mec_compute(
     data: ndarray,
     template: ndarray,
     n_components: Optional[int] = 1,
-    ratio: Optional[float] = None) -> ndarray:
+    ratio: Optional[float] = None) -> dict[str, ndarray]:
     """Minimum energy combination.
 
     Args:
-        data (ndarray): (n_chans, n_points). Real EEG data of a single trial.
-        template (ndarray): (2*n_harmonics or m, n_points).
-            Artificial sinusoidal template or averaged template.
+        data (ndarray): (Nc,Np). Real EEG data (single trial).
+        template (ndarray): (2Nh or m,Np). Sinusoidal template or averaged template.
         n_components (int): Number of eigenvectors picked as filters. Nk.
             Eigenvectors are referring to eigenvalues sorted in descend order.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
             Defaults to be 'None'.
-    
-    Return:
-        W (ndarray): (n_components, n_chans). Spatial filter
+
+    Return: mec model (dict)
+        w (ndarray): (Nk,Nc). Spatial filter.
+        wX (ndarray): (Nk,Np). Filtered EEG data.
     """
     # projection = template.T @ sLA.inv(template @ template.T) @ template  # slow way
     projection = template.T @ template / np.sum(template[0]**2)  # fast way
     X_hat = data - data @ projection  # (Nc,Np)
 
     # GEP's conditions
-    A = X_hat @ X_hat.T
+    A = X_hat @ X_hat.T  # (Nc,Nc)
 
-    # spatial filter: (Nk,Nc)
-    W = utils.solve_ep(
+    # spatial filter & template: (Nk,Nc)
+    w = utils.solve_ep(
         A=A,
         n_components=n_components,
         ratio=ratio,
         mode='Min'
     )
-    return W
+    wX = w @ data  # (Nk,Np)
+
+    # MEC model
+    model = {
+        'w':w, 'wX':wX
+    }
+    return model
 
 
 # %% 3. Maximum Contrast Combination | MCC
@@ -353,15 +374,16 @@ def ecca_compute(
     avg_template: ndarray,
     sine_template: ndarray,
     X_test: ndarray,
+    coef_idx: Optional[List] = [1,2,3,4,5],
     n_components: Optional[int] = 1,
     ratio: Optional[float] = None) -> dict[str, Any]:
     """CCA with individual calibration data.
 
     Args:
-        avg_template (ndarray): (n_chans, n_points). Trial-averaged data.
-        sine_template (ndarray): (2*n_harmonics, n_points). Sinusoidal template.
-        X_test (ndarray): (n_chans, n_points). Test-trial EEG.
-        n_components (int): Number of eigenvectors picked as filters.
+        avg_template (ndarray): (Nc,Np). Template averaged across trials.
+        sine_template (ndarray): (2*Nh,Np). Sinusoidal template.
+        X_test (ndarray): (Nc,Np). Single trial test data.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
             Defaults to be 'None'.
@@ -370,11 +392,11 @@ def ecca_compute(
         u_xy, v_xy (ndarray): Spatial filters created from CCA(X_test, sine_template).
         u_xa, v_xa (ndarray): Spatial filters created from CCA(X_test, avg_template).
         u_ay, v_ay (ndarray): Spatial filters created from CCA(avg_template, sine_template).
-        coef (List): 5 feature coefficients.
+        coef (List[float]): 5 feature coefficients.
         rou (float): Integrated feature coefficient.
     """
     # standard CCA process: CCA(X_test, sine_template)
-    coef = [[] for i in range(5)]
+    coef = []
     cca_model_xy = cca_compute(
         data=X_test,
         template=sine_template,
@@ -383,7 +405,8 @@ def ecca_compute(
     )
     Cxx, Cyy = cca_model_xy['Cxx'], cca_model_xy['Cyy']
     u_xy = cca_model_xy['u']
-    coef[0] = utils.pearson_corr(cca_model_xy['uX'], cca_model_xy['vY'])
+    if 1 in coef_idx:
+        coef.append(utils.pearson_corr(cca_model_xy['uX'], cca_model_xy['vY']))
 
     # correlation between X_test and average templates: CCA(X_test, avg_template)
     Caa = avg_template @ avg_template.T
@@ -400,8 +423,10 @@ def ecca_compute(
         n_components=n_components,
         ratio=ratio
     )
-    coef[1] = utils.pearson_corr(u_xa@X_test, v_xa@avg_template)
-    coef[2] = utils.pearson_corr(u_xy@X_test, u_xy@avg_template)
+    if 2 in coef_idx:
+        coef.append(utils.pearson_corr(u_xa@X_test, v_xa@avg_template))
+    if 3 in coef_idx:
+        coef.append(utils.pearson_corr(u_xy@X_test, u_xy@avg_template))
     # slower but clearer way (maybe):
     # cca_model_xa = cca_compute(
     #     data=X_test,
@@ -426,7 +451,8 @@ def ecca_compute(
         n_components=n_components,
         ratio=ratio
     )
-    coef[3] = utils.pearson_corr(u_ay@X_test, u_ay@avg_template)
+    if 4 in coef_idx:
+        coef.append(utils.pearson_corr(u_ay@X_test, u_ay@avg_template))
     # slower but clearer way (maybe):
     # cca_model_ay = cca_compute(
     #     data=avg_template,
@@ -438,7 +464,8 @@ def ecca_compute(
     # # the covariance matrix (Caa, Cyy) have been computed before.
 
     # similarity between filters corresponding to X_test and avg_template
-    coef[4] = utils.pearson_corr(u_xa@avg_template, v_xa@avg_template)
+    if 5 in coef_idx:
+        coef.append(utils.pearson_corr(u_xa@avg_template, v_xa@avg_template))
 
     # combined features
     rou = utils.combine_feature(coef)
@@ -457,20 +484,20 @@ class ECCA(BasicCCA):
     def fit(self,
         X_train: ndarray,
         y_train: ndarray,
-        sine_template: ndarray):
+        sine_template: ndarray,
+        coef_idx: Optional[List] = [1,2,3,4,5]):
         """Load in eCCA templates.
 
         Args:
-            X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
+            X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
         """
         # basic information
         self.X_train = X_train
         self.y_train = y_train
         self.sine_template = sine_template
+        self.coef_idx = coef_idx
         event_type = np.unique(self.y_train)
         n_events = len(event_type)
         n_chans = self.X_train.shape[-2]
@@ -489,7 +516,7 @@ class ECCA(BasicCCA):
             if temp.ndim == 2:  # (Nc,Np), Nt=1
                 self.avg_template[ne] = temp
             elif temp.ndim > 2:  # (Nt,Nc,Np)
-                self.avg_template[ne] = temp.mean(axis=0)
+                self.avg_template[ne] = np.mean(temp, axis=0)
         return self
 
 
@@ -498,12 +525,11 @@ class ECCA(BasicCCA):
         """Using eCCA to predict test data.
 
         Args:
-            X_test (ndarray): (test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -515,14 +541,15 @@ class ECCA(BasicCCA):
         self.y_predict = np.empty((n_test))
         for nte in range(n_test):
             for ne in range(n_events):
-                ecca_model = ecca_compute(
+                model = ecca_compute(
                     avg_template=self.avg_template[ne],
                     sine_template=self.sine_template[ne],
                     X_test=X_test[nte],
+                    coef_idx=self.coef_idx,
                     n_components=self.n_components,
                     ratio=self.ratio
                 )
-                self.rou[nte,ne] = ecca_model['rou']
+                self.rou[nte,ne] = model['rou']
             self.y_predict[nte] = event_type[np.argmax(self.rou[nte,:])]
         return self.rou, self.y_predict
 
@@ -535,11 +562,9 @@ class FB_ECCA(BasicFBCCA):
         """Load in filter-bank eCCA templates.
 
         Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_bands, n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
+            X_train (ndarray): (Nb,Ne*Nt,Nc,Np). Training dataset. Nt>=2.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Nb,Ne,2*Nh,Np). Sinusoidal template.
         """
         # basic information
         self.X_train = X_train
@@ -572,33 +597,26 @@ def msecca_compute(
     """Multi-stimulus eCCA.
 
     Args:
-        avg_template (ndarray): (n_events, n_chans, n_points). Trial-averaged data.
-        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
-        train_info (dict): {'event_type':ndarray (n_events,),
+        avg_template (ndarray): (Ne,Nc,Np). Template averaged across trials.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
                             'n_chans':int,
                             'n_points':int,
                             'events_group':{'event_id':[start index,end index]}}
-        n_components (int): Number of eigenvectors picked as filters.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
             Defaults to be 'None'.
 
     Return: ms-eCCA model (dict)
-        Cxx (ndarray): (n_events, n_chans, n_chans).
-            Covariance of averaged EEG template.
-        Cxy (ndarray): (n_events, n_chans, 2*n_harmonics).
-            Covariance between EEG and sinusoidal template.
-        Cyy (ndarray): (n_events, 2*n_harmonics, 2*n_harmonics).
-            Covariance of sinusoidal template.
-        u (List[ndarray]): n_events*(n_components, n_chans).
-            Spatial filters for EEG.
-        v (List[ndarray]): n_events*(n_components, 2*n_harmonics).
-            Spatial filters for sinusoidal templates.
-        uX (List[ndarray]): n_events*(n_components, n_points).
-            ms-CCA templates for EEG part.
-        vY (List[ndarray]): n_events*(n_components, n_points).
-            ms-CCA templates for sinusoidal template part.
+        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG template.
+        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal template.
+        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal template.
+        u (List[ndarray]): Ne*(Nk,Nc). Spatial filters for EEG.
+        v (List[ndarray]): Ne*(Nk,2*Nh). Spatial filters for sinusoidal templates.
+        uX (List[ndarray]): Ne*(Nk,Np). ms-CCA templates for EEG part.
+        vY (List[ndarray]): Ne*(Nk,Np). ms-CCA templates for sinusoidal template part.
     """
     # basic information
     event_type = train_info['event_type']
@@ -608,9 +626,9 @@ def msecca_compute(
     n_2harmonics = sine_template.shape[1]
 
     # GEPs' conditions
-    # Cxx = np.einsum('ecp,ehp->ech', avg_template,avg_template)  # (Ne,Nc,Nc)
-    # Cyy = np.einsum('ecp,ehp->ech', sine_template,sine_template)  # (Ne,2Nh,2Nh)
-    # Cxy = np.einsum('ecp,ehp->ech', avg_template,sine_template)  # (Ne,Nc,2Nh)
+    # Cxx = np.einsum('ecp,ehp->ech', avg_template,avg_template)
+    # Cyy = np.einsum('ecp,ehp->ech', sine_template,sine_template)
+    # Cxy = np.einsum('ecp,ehp->ech', avg_template,sine_template)
     Cxx = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     Cxy = np.zeros((n_events, n_chans, n_2harmonics))  # (Ne,Nc,2Nh)
     Cyy = np.zeros((n_events, n_2harmonics, n_2harmonics))  # (Ne,2Nh,2Nh)
@@ -620,10 +638,11 @@ def msecca_compute(
         Cyy[ne] = sine_template[ne] @ sine_template[ne].T
 
     # GEPs with merged data
-    u, v = [], []
+    u, uX, v, vY = [], [], [], []
+    correct = [False for ne in range(n_events)]
     for ne,et in enumerate(event_type):
         # GEPs' conditions
-        st, ed = events_group[et][0], events_group[et][1]
+        st, ed = events_group[str(et)][0], events_group[str(et)][1]
         temp_Cxx = np.sum(Cxx[st:ed], axis=0)  # (Nc,Nc)
         temp_Cxy = np.sum(Cxy[st:ed], axis=0)  # (Nc,2Nh)
         temp_Cyy = np.sum(Cyy[st:ed], axis=0)  # (2Nh,2Nh)
@@ -635,28 +654,34 @@ def msecca_compute(
             n_components=n_components,
             ratio=ratio
         )
-        u.append(temp_u)
 
         # sinusoidal template part: (Nk,2Nh)
         temp_v = utils.solve_gep(
-            A=temp_Cxy.T @ sLA.solve(temp_Cxx,temp_Cxy.T),
+            A=temp_Cxy.T @ sLA.solve(temp_Cxx,temp_Cxy),
             B=temp_Cyy,
             n_components=n_components,
             ratio=ratio
         )
+
+        # correct direction
+        temp_uX = temp_u @ avg_template[ne]  # (Nk,Np)
+        temp_vY = temp_v @ sine_template[ne]  # (Nk,Np)
+        if utils.pearson_corr(temp_uX, temp_vY) < 0:
+            temp_u *= -1
+            temp_uX *= -1
+            correct[ne] = True
+        u.append(temp_u)
         v.append(temp_v)
 
-    # signal templates
-    uX, vY = [], []
-    for ne in range(n_events):
-        uX.append(u[ne] @ avg_template[ne])  # (Nk,Np)
-        vY.append(v[ne] @ sine_template[ne])  # (Nk,Np)
+        # signal templates
+        uX.append(temp_uX)
+        vY.append(temp_vY)
 
     # ms-eCCA model
     model = {
         'Cxx':Cxx, 'Cxy':Cxy, 'Cyy':Cyy,
         'u':u, 'v':v,
-        'uX':uX, 'vY':vY
+        'uX':uX, 'vY':vY , 'correct':correct
     }
     return model
 
@@ -671,10 +696,9 @@ class MS_ECCA(BasicCCA):
         """Train ms-eCCA model.
 
         Args:
-            X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
+            X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
             events_group (dict): {'event_id':[start index,end index]}
             d (int): The range of events to be merged.
         """
@@ -691,11 +715,13 @@ class MS_ECCA(BasicCCA):
         n_events = len(event_type)
         n_chans = X_train.shape[-2]
         n_points = X_train.shape[-1]
-        self.train_info = {'event_type':event_type,
-                           'n_events':n_events,
-                           'n_chans':n_chans,
-                           'n_points':n_points,
-                           'events_group':self.events_group}
+        self.train_info = {
+            'event_type':event_type,
+            'n_events':n_events,
+            'n_chans':n_chans,
+            'n_points':n_points,
+            'events_group':self.events_group
+        }
 
         # config average template | (Ne,Nc,Np)
         self.avg_template = np.zeros((n_events, n_chans, n_points))
@@ -704,7 +730,7 @@ class MS_ECCA(BasicCCA):
             if temp.ndim == 2:  # (Nc,Np), Nt=1
                 self.avg_template[ne] = temp
             elif temp.ndim > 2:  # (Nt,Nc,Np)
-                self.avg_template[ne] = temp.mean(axis=0)
+                self.avg_template[ne] = np.mean(temp, axis=0)
 
         # train_ms-CCA filters and templates
         model = msecca_compute(
@@ -717,6 +743,7 @@ class MS_ECCA(BasicCCA):
         self.Cxx, self.Cxy, self.Cyy = model['Cxx'], model['Cxy'], model['Cyy']
         self.u, self.v = model['u'], model['v']
         self.uX, self.vY = model['uX'], model['vY']
+        self.correct = model['correct']
         return self
 
 
@@ -725,12 +752,11 @@ class MS_ECCA(BasicCCA):
         """Using ms-eCCA algorithm to predict test data.
 
         Args:
-            X_test (ndarray): (test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -745,14 +771,8 @@ class MS_ECCA(BasicCCA):
         for nte in range(n_test):
             f_test = self.u @ X_test[nte]
             for ne in range(n_events):
-                self.rou_eeg[nte,ne] = utils.pearson_corr(
-                    X=f_test,
-                    Y=self.uX[ne]
-                )
-                self.rou_sin[nte,ne] = utils.pearson_corr(
-                    X=f_test,
-                    Y=self.vY[ne]
-                )
+                self.rou_eeg[nte,ne] = utils.pearson_corr(f_test, self.uX[ne])
+                self.rou_sin[nte,ne] = utils.pearson_corr(f_test, self.vY[ne])
                 self.rou[nte,ne] = utils.combine_feature([
                     self.rou_eeg[nte,ne],
                     self.rou_sin[nte,ne]
@@ -771,11 +791,9 @@ class FB_MS_ECCA(BasicFBCCA):
         """Train filter-bank ms-eCCA model.
 
         Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_bands, n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
+            X_train (ndarray): (Nb,Ne*Nt,Nc,Np). Training dataset. Nt>=1.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Nb,Ne,2*Nh,Np). Sinusoidal template.
             events_group (dict): {'event_id':[start index,end index]}
             d (int): The range of events to be merged.
         """
@@ -818,25 +836,23 @@ def mscca_compute(
     """Multi-stimulus CCA.
 
     Args:
-        avg_template (ndarray): (n_events, n_chans, n_points). Trial-averaged data.
-        sine_template (ndarray): (n_events, 2*n_harmonics, n_points). Sinusoidal template.
-        train_info (dict): {'event_type':ndarray (n_events,),
+        avg_template (ndarray): (Ne,Nc,Np). Template averaged across trials.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
                             'n_chans':int,
                             'n_points':int}
-        n_components (int): Number of eigenvectors picked as filters.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
             Set to 'None' if ratio is not 'None'.
         ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
             Defaults to be 'None'.
 
     Return: msCCA model (dict).
-        Czz (ndarray): (n_events, n_chans, n_chans).
-            Covariance of averaged EEG template.
-        Czy (ndarray): (n_events, n_chans, 2*n_harmonics).
-            Covariance between EEG and sinusoidal template.
-        Cyy (ndarray): (n_events, 2*n_harmonics, 2*n_harmonics). 
-        w (ndarray): (n_components, n_chans). Common spatial filter.
-        wX (ndarray): (n_events, n_components, n_points). msCCA templates.
+        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG template.
+        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal template.
+        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal template.
+        w (ndarray): (Nk,Nc). Common spatial filter.
+        wX (ndarray): (Ne,Nk,Np). msCCA templates.
     """
     # basic information
     n_events = train_info['n_events']  # Ne
@@ -891,11 +907,9 @@ class MS_CCA(BasicCCA):
         """Train ms-CCA model.
 
         Args:
-            X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
+            X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
         """
         # basic information
         self.X_train = X_train
@@ -905,10 +919,12 @@ class MS_CCA(BasicCCA):
         n_events = len(event_type)
         n_chans = self.X_train.shape[-2]
         n_points = self.X_train.shape[-1]
-        self.train_info = {'event_type':event_type,
-                           'n_events':n_events,
-                           'n_chans':n_chans,
-                           'n_points':n_points}
+        self.train_info = {
+            'event_type':event_type,
+            'n_events':n_events,
+            'n_chans':n_chans,
+            'n_points':n_points
+        }
 
         # config average template | (Ne,Nc,Np)
         self.avg_template = np.zeros((n_events, n_chans, n_points))
@@ -917,7 +933,7 @@ class MS_CCA(BasicCCA):
             if temp.ndim == 2:  # (Nc,Np), Nt=1
                 self.avg_template[ne] = temp
             elif temp.ndim > 2:  # (Nt,Nc,Np)
-                self.avg_template[ne] = temp.mean(axis=0)
+                self.avg_template[ne] = np.mean(temp, axis=0)
 
         # train ms-CCA filters & templates
         model = mscca_compute(
@@ -937,12 +953,11 @@ class MS_CCA(BasicCCA):
         """Using ms-CCA algorithm to predict test data.
 
         Args:
-            X_test (ndarray): (test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -955,10 +970,7 @@ class MS_CCA(BasicCCA):
         for nte in range(n_test):
             f_test = self.u @ X_test[nte]
             for ne in range(n_events):
-                self.rou[nte,ne] = utils.pearson_corr(
-                    X=f_test,
-                    Y=self.uX[ne]
-                )
+                self.rou[nte,ne] = utils.pearson_corr(f_test, self.uX[ne])
             self.y_predict[nte] = event_type[np.argmax(self.rou[nte,:])]
         return self.rou, self.y_predict
 
@@ -971,11 +983,9 @@ class FB_MS_CCA(BasicFBCCA):
         """Train filter-bank ms-CCA model.
 
         Args:
-            X_train (ndarray): (n_bands, train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
-            sine_template (ndarray): (n_bands, n_events, 2*n_harmonics, n_points).
-                Sinusoidal template.
+            X_train (ndarray): (Nb,Ne*Nt,Nc,Np). Training dataset. Nt>=1.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            sine_template (ndarray): (Nb,Ne,2*Nh,Np). Sinusoidal template.
         """
         # basic information
         self.X_train = X_train
@@ -998,7 +1008,7 @@ class FB_MS_CCA(BasicFBCCA):
         return self
 
 
-# 10-11 Multiset CCA | MsetCCA1
+# %% 10-11 Multiset CCA | MsetCCA1
 def msetcca1_compute(
     X_train: ndarray,
     y_train: ndarray,
@@ -1008,11 +1018,10 @@ def msetcca1_compute(
     """Multiset CCA (1).
 
     Args:
-        X_train (ndarray): (n_events*n_train(train_trials), n_chans, n_points).
-            Training dataset. train_trials could be 1 if necessary.
-        y_train (ndarray): (train_trials,). Labels for X_train.
+        X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
+        y_train (ndarray): (Ne*Nt,). Labels for X_train.
         train_info (dict): {'n_events':int,
-                            'n_train':ndarray (n_events,),
+                            'n_train':ndarray (Ne,),
                             'n_chans':int,
                             'n_points':int}
         n_components (int, optional): Number of eigenvectors picked as filters.
@@ -1021,23 +1030,18 @@ def msetcca1_compute(
             Defaults to None when n_component is not 'None'.
 
     Return: MsetCCA1 model (dict)
-        R (List[ndarray]): n_events*(n_train*n_chans, n_train*n_chans).
-            Covariance of original data (various trials).
-        S (List[ndarray]): n_events*(n_train*n_chans, n_train*n_chans).
-            Covariance of original data (same trials).
-        w (List[ndarray]): n_events*(1, n_train*n_chans).
-            Spatial filters for training dataset.
-        wX (List[ndarray]): n_events*(n_train, n_points).
-            MsetCCA(1) templates.
+        R (List[ndarray]): Ne*(Nt*Nc,Nt*Nc). Covariance of original data (various trials).
+        S (List[ndarray]): Ne*(Nt*Nc,Nt*Nc). Covariance of original data (same trials).
+        w (List[ndarray]): Ne*(Nk, Nt*Nc). Spatial filters for training dataset.
+        wX (List[ndarray]): Ne*(Nt*Nk, Np). MsetCCA(1) templates.
     """
     # basic information
     event_type = train_info['event_type']
-    n_events = train_info['n_events']  # Ne
     n_train = train_info['n_train']  # [Nt1,Nt2,...]
     n_chans = train_info['n_chans']  # Nc
     n_points = train_info['n_points']  # Np
 
-    # GEPs with block-concatenated data
+    # GEPs with block-concatenated data | Nt maybe different for each stimulus
     R, S, w = [], [], []
     for ne,et in enumerate(event_type):
         n_sample = n_train[ne]
@@ -1061,18 +1065,19 @@ def msetcca1_compute(
             n_components=n_components,
             ratio=ratio
         )
-        R.append(temp_R)
-        S.append(temp_S)
-        w.append(temp_w)
+        R.append(temp_R)  # Ne*(Nt*Nc,Nt*Nc)
+        S.append(temp_S)  # Ne*(Nt*Nc,Nt*Nc)
+        w.append(temp_w)  # Ne*(Nk,Nt*Nc), Nk maybe different for each stimulus
 
     # signal templates
-    wX = []
+    wX = []  # Ne*(Nt,Np)
     for ne,et in enumerate(event_type):
-        n_sample = n_train[ne]
-        temp_wX = np.zeros((n_sample, n_points))
-        temp = X_train[y_train==et]
+        n_sample = n_train[ne]  # Nt>=2
+        n_dim = w[ne].shape[0]  # Nk
+        temp_wX = np.zeros((n_sample*n_dim, n_points))  # (Nt*Nk,Np)
+        temp = X_train[y_train==et]  # (Nt,Nc,Np)
         for nsa in range(n_sample):
-            temp_wX[nsa] = w[ne][:,nsa*n_chans:(nsa+1)*n_chans] @ temp[nsa]
+            temp_wX[nsa*n_dim:(nsa+1)*n_dim,:] = w[ne][:,nsa*n_chans:(nsa+1)*n_chans] @ temp[nsa]
         wX.append(temp_wX)
 
     # MsetCCA1 model
@@ -1084,46 +1089,48 @@ class MSETCCA1(BasicCCA):
     def fit(self,
         X_train: ndarray,
         y_train: ndarray):
-        """Train MsetCCA(1) model.
+        """Train MsetCCA1 model.
 
         Args:
-            X_train (ndarray): (train_trials, n_chans, n_points).
-                Training dataset. train_trials could be 1 if necessary.
-            y_train (ndarray): (train_trials,). Labels for X_train.
+            X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
         """
         # basic information
         self.X_train = X_train
         self.y_train = y_train
         event_type = np.unique(y_train)  # [0,1,2,...Ne-1]
-        self.train_info = {'event_type':event_type,
-                           'n_events':len(event_type),
-                           'n_train':np.array([np.sum(self.y_train==et) for et in event_type]),
-                           'n_chans':X_train.shape[-2],
-                           'n_points':X_train.shape[-1]}
+        self.train_info = {
+            'event_type':event_type,
+            'n_events':len(event_type),
+            'n_train':np.array([np.sum(self.y_train==et) for et in event_type]),
+            'n_chans':X_train.shape[-2],
+            'n_points':X_train.shape[-1]
+        }
 
         # train MsetCCA(1) filters and templates
-        results = msetcca1_compute(
+        model = msetcca1_compute(
             X_train=self.X_train,
             y_train=self.y_train,
-            train_info=self.train_info
-        )  # n_components & ratio must be 1, None
-        self.R, self.S = results['R'], results['S']
-        self.w, self.wX = results['w'], results['wX']
+            train_info=self.train_info,
+            n_components=self.n_components,
+            ratio=self.ratio
+        )
+        self.R, self.S = model['R'], model['S']
+        self.w, self.wX = model['w'], model['wX']
         return self
 
 
     def predict(self,
         X_test: ndarray) -> Tuple[ndarray]:
-        """Using MsetCCA(1) algorithm to predict test data.
+        """Using MsetCCA1 algorithm to predict test data.
 
         Args:
-            X_test (ndarray): (test_trials, n_chans, n_points).
-                Test dataset. test_trials could be 1 if necessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+            y_test (ndarray): (Ne*Nte,). Labels for X_test.
 
         Return:
-            rou (ndarray): (test_trials, n_events). Decision coefficients.
-            y_predict (ndarray): (test_trials,). Predict labels.
+            rou (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            y_predict (ndarray): (Ne*Nte,). Predict labels.
         """
         # basic information
         n_test = X_test.shape[0]
@@ -1135,16 +1142,13 @@ class MSETCCA1(BasicCCA):
         self.y_predict = np.empty((n_test))
         for nte in range(n_test):
             for ne in range(n_events):
-                U, V = cca_compute(
+                model = cca_compute(
                     data=X_test[nte],
                     template=self.template[ne],
                     n_components=self.n_components,
                     ratio=self.ratio
                 )
-                self.rou[nte,ne] = utils.pearson_corr(
-                    X=U @ X_test[nte],
-                    Y=V @ self.wX[ne]
-                )
+                self.rou[nte,ne] = utils.pearson_corr(model['uX'], model['vY'])
             self.y_predict[nte] = np.argmax(self.rou[nte,:])
         return self.rou, self.y_predict
 
@@ -1157,15 +1161,4 @@ class MSETCCA2(BasicCCA):
     pass
 
 
-# 13. Subject transfer based CCA | stCCA
-
-
-
-# Cross-subject transfer learning | CSSFT
-def cssft_compute():
-    pass
-
-
-class CSSFT(BasicCCA):
-    pass
-
+# %%
