@@ -134,20 +134,19 @@ class DSP(object):
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using DSP algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if necessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:
             rou (ndarray): (test_trials, n_events). Decision coefficients.
             y_predict (ndarray): (test_trials,). Predict labels.
         """
         # basic information
-        n_test = y_test.shape[0]
+        n_test = X_test.shape[0]
         n_events = self.train_info['n_events']
 
         # pattern matching

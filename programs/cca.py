@@ -6,27 +6,37 @@
 Canonical correlation analysis (CCA) series.
     (1) CCA: http://ieeexplore.ieee.org/document/4203016/
             DOI: 10.1109/TBME.2006.889197
-    (2) eCCA: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
+    (2) MEC:
+    
+    (3) MCC:
+    
+    (4) MSI:
+    
+    (5) tMSI:
+    
+    (6) eMSI:
+    
+    (7) eCCA: http://www.pnas.org/lookup/doi/10.1073/pnas.1508080112
             DOI: 10.1073/pnas.1508080112
-    (3) msCCA: https://ieeexplore.ieee.org/document/9006809/
+    (8) msCCA: https://ieeexplore.ieee.org/document/9006809/
             DOI: 10.1109/TBME.2020.2975552
-    (4) ms-eCCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
+    (9) ms-eCCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
             DOI: 10.1088/1741-2552/ab2373
-    (5) MsetCCA1: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
+    (10) MsetCCA1: https://www.worldscientific.com/doi/abs/10.1142/S0129065714500130
             DOI: 10.1142/S0129065714500130
-    (6) MsetCCA2: https://ieeexplore.ieee.org/document/8231203/
+    (11) MsetCCA2: https://ieeexplore.ieee.org/document/8231203/
             DOI: 10.1109/TBME.2017.2785412
-    (7) MwayCCA: 
+    (12) MwayCCA: 
             DOI: 
-    (8) stCCA: https://ieeexplore.ieee.org/document/9177172/
+    (13) stCCA: https://ieeexplore.ieee.org/document/9177172/
             DOI: 10.1109/TNSRE.2020.3019276
-    (9)
+    (14)
 
 update: 2022/11/15
 
 """
 
-# %% basic modules
+# basic modules
 import utils
 
 import numpy as np
@@ -35,7 +45,7 @@ import scipy.linalg as sLA
 from abc import abstractmethod, ABCMeta
 
 
-# %% Basic CCA object
+# Basic CCA object
 class BasicCCA(metaclass=ABCMeta):
     def __init__(self, n_components=1, ratio=None):
         """Config model dimension.
@@ -61,7 +71,7 @@ class BasicCCA(metaclass=ABCMeta):
         pass
 
 
-# %% (1) standard CCA | CCA
+# (1) standard CCA | CCA
 def cca_compute(data, template, n_components=1, ratio=None):
     """Canonical correlation analysis.
 
@@ -151,7 +161,22 @@ class CCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (2) Extended CCA | eCCA
+# (2) Minimum Energy Combination | MEC
+
+
+# (3) Maximum Contrast Combination | MCC
+
+
+# (4) MSI | MSI
+
+
+# (5) tMSI
+
+
+# (6) extend-MSI | eMSI
+
+
+# (7) Extended CCA | eCCA
 def ecca_compute(avg_template, sine_template, X_test, n_components=1, ratio=None):
     """CCA with individual calibration data.
 
@@ -266,7 +291,7 @@ class ECCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (3-4) Multi-stimulus eCCA | ms-eCCA
+# (8-9) Multi-stimulus eCCA | ms-eCCA
 # msCCA is only part of ms-eCCA. Personally, i dont like this design
 def mscca_compute(avg_template, Q, train_info, n_components=1, ratio=None):
     """Multi-stimulus CCA.
@@ -549,7 +574,7 @@ class MS_ECCA(BasicCCA):
         return self.rou, self.y_predict
 
 
-# %% (5-6) Multiset CCA | MsetCCA1
+# (10-11) Multiset CCA | MsetCCA1
 def msetcca1_compute(X_train, y_train, train_info, n_components=1, ratio=None):
     """Multiset CCA (1).
 
@@ -693,11 +718,11 @@ class MSETCCA2(BasicCCA):
     pass
 
 
-# %% (8) Subject transfer based CCA | stCCA
+# (8) Subject transfer based CCA | stCCA
 
 
 
-# %% Cross-subject transfer learning | CSSFT
+# Cross-subject transfer learning | CSSFT
 def cssft_compute():
     pass
 
@@ -706,7 +731,10 @@ class CSSFT(BasicCCA):
     pass
 
 
-# %% Filter-bank CCA series | FB-
+# 
+
+
+# Filter-bank CCA series | FB-
 class FB_CCA(BasicCCA):
     def fit(self, X_train, y_train):
         """Train filter-bank CCA model.
@@ -931,4 +959,4 @@ class FB_MS_ECCA(FB_MS_CCA):
         return self
 
 
-# %%
+# 

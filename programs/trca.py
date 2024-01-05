@@ -183,13 +183,12 @@ class TRCA(BasicTRCA):
         return self
 
 
-    def predict(self, X_test, y_test):
+    def predict(self, X_test):
         """Using (e)TRCA algorithm to predict test data.
 
         Args:
             X_test (ndarray): (n_events*n_test(test_trials), n_chans, n_points).
                 Test dataset. test_trials could be 1 if necessary.
-            y_test (ndarray): (test_trials,). Labels for X_test.
 
         Return:
             rou (ndarray): (test_trials, n_events). Decision coefficients of TRCA.

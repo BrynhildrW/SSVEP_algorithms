@@ -557,7 +557,7 @@ def solve_ep(A, n_components=None, ratio=None, mode='Max'):
 
 def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     """Solve generalized problems | generalized Rayleigh quotient:
-        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw
+        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw -> B^{-1}Aw = lambda w
 
     Args:
         A (ndarray): (m,m).
@@ -570,7 +570,7 @@ def solve_gep(A, B, n_components=None, ratio=None, mode='Max'):
     Returns:
         w (ndarray): (n_components,m). Picked eigenvectors.
     """
-    e_val, e_vec = sLA.eigh(A,B)
+    e_val, e_vec = sLA.eig(sLA.solve(a=B, b=A, assume_a='sym'))  # ax=b -> x=a^{-1}b
     e_val_sum = np.sum(e_val)
     descend_order = sorted(enumerate(e_val), key=lambda x:x[1], reverse=True)
     w_index = [do[0] for do in descend_order]

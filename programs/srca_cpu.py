@@ -108,7 +108,7 @@ def fs_sequence(X_train, y_train, kwargs):
 
 # 2-D target functions | multiple channels, single event
 # Target function values of TRCA | single event
-def trca_val(X_train, kwargs):
+def trca_val(X_train, y_train, kwargs):
     """f(w)=(w @ S @ w.T)/(w @ Q @ w.T).
 
     Args:
@@ -241,7 +241,7 @@ def dsp_acc(X_train, y_train, kwargs):
     ratio = kwargs['ratio']
 
     # cross-validation
-    sss = StratifiedShuffledSplit(
+    sss = StratifiedShuffleSplit(
         n_splits=kwargs['n_repeat'],
         test_size=1-kwargs['n_train']/len(y_train),
         random_state=0
@@ -263,7 +263,7 @@ def dsp_acc(X_train, y_train, kwargs):
             X_test=X_part_test,
             y_test=y_part_test
         )
-        acc[nrep] = utils.acc_compute(y_dsp, y_test)
+        acc[nrep] = utils.acc_compute(y_dsp, y_part_test)
     return acc.mean()
 
 
