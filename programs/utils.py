@@ -7,10 +7,13 @@
     (1-1) centralization()
     (1-2) normalization()
     (1-3) standardization()
+<<<<<<< HEAD
     (1-4) fast_stan_2d()
     (1-5) fast_stan_3d()
     (1-6) fast_stan_4d()
     (1-7) fast_stan_5d()
+=======
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 2. Data preparation
     (2-1) sin_wave()
@@ -20,15 +23,24 @@
     (2-5) selected_events()
     (2-6) reshape_dataset()
 
+<<<<<<< HEAD
 3. Feature integration
     (3-1) sign_sta()
     (3-2) combine_feature()
 
 4. Algorithm evaluation
+=======
+3. feature integration
+    (3-1) sign_sta()
+    (3-2) combine_feature()
+
+4. algorithm evaluation
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     (4-1) acc_compute()
     (4-2) confusion_matrix()
     (4-3) itr_compute()
 
+<<<<<<< HEAD
 5. Spatial distances
     (5-1) pearson_corr()
     (5-2) fast_corr_2d()
@@ -43,28 +55,55 @@
     (5-11) s_estimator()
 
 6. Temporally smoothing functions
+=======
+5. spatial distances
+    (5-1) pearson_corr()
+    (5-2) fisher_score()
+    (5-3) euclidean_dist()
+    (5-4) cosine_sim()
+    (5-5) minkowski_dist()
+    (5-6) mahalanobis_dist()
+    (5-7) nega_root()
+    (5-8) s_estimator()
+
+6. temporally smoothing functions
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     (6-1) tukeys_kernel()
     (6-2) weight_matrix()
     (6-3) laplacian_matrix
 
+<<<<<<< HEAD
 7. Reduced QR decomposition
     (7-1) qr_projection()
 
 8. Eigenvalue problems
+=======
+7. reduced QR decomposition
+    (7-1) qr_projection()
+
+8. eigenvalue problems
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     (8-1) pick_subspace()
     (8-2) solve_ep()
     (8-3) solve_gep()
 
+<<<<<<< HEAD
 9. Signal generation
+=======
+9. signal generation
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     (9-1) get_resample_sequence()
     (9-2) extract_periodic_impulse()
     (9-3) create_conv_matrix()
     (9-4) correct_conv_matrix()
 
+<<<<<<< HEAD
 10. Filter bank
     (10-1) generate_filter_bank
     (10-2) (class) FilterBank
 
+=======
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 Notations:
     n_events: Ne
     n_train: Nt
@@ -76,6 +115,11 @@ Notations:
     n_components: Nk
     n_harmonics: Nh
     n_bands: Nb
+<<<<<<< HEAD
+=======
+
+update: 2023/07/06
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 """
 
@@ -88,17 +132,30 @@ from numpy import sin, sqrt, einsum
 from scipy import linalg as sLA
 from scipy.signal import sosfiltfilt, cheby1, cheb1ord
 from sklearn.base import BaseEstimator, TransformerMixin, clone
+<<<<<<< HEAD
 from sklearn.metrics import confusion_matrix
+=======
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 from math import pi, log
 
 import warnings
+<<<<<<< HEAD
 from numba import njit
 
 
 # %% 1. data preprocessing
 def centralization(X: ndarray) -> ndarray:
     """Transform vector x into y, s.t. mean(y) = 0.
+=======
+
+
+# %% 1. data preprocessing
+def centralization(
+        X: ndarray) -> ndarray:
+    """Transform vector x into y
+        s.t. mean(y) = 0.
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     Args:
         X (ndarray): (...,Np).
@@ -107,6 +164,7 @@ def centralization(X: ndarray) -> ndarray:
         Y (ndarray): Data after centralization.
     """
     return X - X.mean(axis=-1, keepdims=True)
+<<<<<<< HEAD
 
 
 def normalization(X: ndarray) -> ndarray:
@@ -210,6 +268,40 @@ def fast_stan_5d(X: ndarray) -> ndarray:
                     X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] - np.mean(X[d1, d2, d3, d4, :])
                     X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] / np.std(X[d1, d2, d3, d4, :])
     return X
+=======
+
+
+def normalization(
+        X: ndarray) -> ndarray:
+    """Transform vector x into y
+        s.t. y = (x - min(x)) / (max(x) - min(x)).
+        The range of y is [0,1].
+
+    Args:
+        X (ndarray): (...,Np).
+
+    Returns:
+        Y (ndarray): Data after normalization.
+    """
+    X_min = np.min(X, axis=-1, keepdims=True)  # (...,1)
+    X_max = np.max(X, axis=-1, keepdims=True)  # (...,1)
+    return (X - X_min) / (X_max - X_min)
+
+
+def standardization(
+        X: ndarray) -> ndarray:
+    """Transform vector x into y
+        s.t. var(y) = 1.
+
+    Args:
+        X (ndarray): (...,Np).
+
+    Returns:
+        Y (ndarray): Data after standardization.
+    """
+    X = centralization(X)
+    return X / np.std(X, axis=-1, keepdims=True)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 
 # %% 2. data preparation
@@ -259,7 +351,13 @@ def sine_template(
     return Y
 
 
+<<<<<<< HEAD
 def Imn(m: int, n: int) -> ndarray:
+=======
+def Imn(
+        m: int,
+        n: int) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Concatenate identical matrices into a big matrix.
 
     Args:
@@ -275,7 +373,13 @@ def Imn(m: int, n: int) -> ndarray:
     return Z
 
 
+<<<<<<< HEAD
 def augmented_events(event_type: ndarray, d: int) -> Dict[str, List[int]]:
+=======
+def augmented_events(
+        event_type: ndarray,
+        d: int) -> Dict[str, List[int]]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Generate indices for merged events for each target event.
         Special function for ms- algorithms.
 
@@ -325,7 +429,13 @@ def neighbor_edge(
         return current_index - half_length, current_index + half_length + 1
 
 
+<<<<<<< HEAD
 def neighbor_events(distribution: ndarray, width: int) -> Dict[str, List[int]]:
+=======
+def neighbor_events(
+        distribution: ndarray,
+        width: int) -> Dict[str, List[int]]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Generate indices for merged events for each target event.
         Refers to: 10.1109/TIM.2022.3219497 (DOI).
 
@@ -454,7 +564,12 @@ def reshape_dataset(
 
 
 # %% 3. feature integration
+<<<<<<< HEAD
 def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
+=======
+def sign_sta(
+        x: float) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Standardization of decision coefficient based on sign(x).
 
     Args:
@@ -486,6 +601,7 @@ def combine_feature(
 
 
 # %% 4. algorithm evaluation
+<<<<<<< HEAD
 def label_align(y_pred: ndarray, event_type: ndarray) -> ndarray:
     """Label alignment.
         For example, y_train = [1,2,5], y_pred=[0,1,2]
@@ -494,18 +610,41 @@ def label_align(y_pred: ndarray, event_type: ndarray) -> ndarray:
 
     Args:
         y_pred (ndarray): (Nte,). Predict labels.
+=======
+def label_align(
+        y_predict: ndarray,
+        event_type: ndarray) -> ndarray:
+    """Label alignment.
+        For example, y_train = [1,2,5], y_predict=[0,1,2]
+        (Correct but with hidden danger in codes).
+        This function will transform y_predict to [1,2,5].
+
+    Args:
+        y_predict (ndarray): (Nte,). Predict labels.
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         event_type (ndarray): (Ne,). Event ID arranged in ascending order.
 
     Returns:
         correct_predict (ndarray): (Nte,). Corrected labels.
     """
+<<<<<<< HEAD
     correct_predict = np.zeros_like(y_pred)
     for npr, ypr in enumerate(y_pred):
+=======
+    correct_predict = np.zeros_like(y_predict)
+    for npr, ypr in enumerate(y_predict):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         correct_predict[npr] = event_type[int(ypr)]
     return correct_predict
 
 
+<<<<<<< HEAD
 def acc_compute(y_true: ndarray, y_pred: ndarray) -> float:
+=======
+def acc_compute(
+        y_predict: ndarray,
+        y_test: ndarray) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Compute accuracy.
 
     Args:
@@ -515,9 +654,34 @@ def acc_compute(y_true: ndarray, y_pred: ndarray) -> float:
     Returns:
         acc (float)
     """
+<<<<<<< HEAD
     return np.sum(y_pred == y_true) / len(y_true)
 
 
+=======
+    return np.sum(y_predict == y_test) / len(y_test)
+
+
+def confusion_matrix(
+        rho: ndarray) -> ndarray:
+    """Compute confusion matrix.
+
+    Args:
+        rho (ndarray): (Ne(real),Nte,Ne(model)). Decision coefficients.
+
+    Returns:
+        cm (ndarray): (Ne,Ne).
+    """
+    n_events = rho.shape[0]
+    n_test = rho.shape[1]
+    cm = np.zeros((n_events, n_events))  # (Ne,Ne)
+    for ner in range(n_events):
+        for nte in range(n_test):
+            cm[ner, np.argmax(rho[ner, nte, :])] += 1
+    return cm / n_test
+
+
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 def itr_compute(
         number: int,
         time: Union[int, float],
@@ -548,6 +712,7 @@ def itr_compute(
 def pearson_corr(
         X: ndarray,
         Y: ndarray,
+<<<<<<< HEAD
         parallel: bool = False) -> Union[float, ndarray]:
     """Pearson correlation coefficient.
 
@@ -645,6 +810,44 @@ def fisher_score(X: ndarray, y: ndarray) -> ndarray:
         y (ndarray): (Ne*Nt,). Labels of X.
 
     Returns:
+=======
+        common_filter: bool = False) -> Union[float, ndarray]:
+    """Pearson correlation coefficient.
+
+    Args:
+        X (ndarray): (Nk,Np). Spatial filtered single-trial data.
+        Y (ndarray): (Ne,Nk,Np) or (Nk,Np). Templates while common_filter=True or False.
+        common_filter (bool): An accelerator. Defaults to False.
+            If False, X could only be compared with Y of one event (Nk,Np);
+            If True, X could be compared with Y of any event, i.e. (Ne,Nk,Np).
+
+    Returns:
+        corr_coef (Union[float, ndarray]).
+    """
+    X, Y = standardization(X), standardization(Y)
+    n_points = X.shape[-1]
+
+    # reshape data into vector-style: reshape() is 5 times faster than flatten()
+    X = np.reshape(X, -1, order='C')  # (Ne*Nk*Np,) or (Nk*Np,)
+    if common_filter:
+        # (Ne,Ne*Nk*Np) or (Ne,Nk*Np)
+        Y = np.reshape(Y, (Y.shape[0], -1), order='C')
+    else:
+        Y = np.reshape(Y, -1, order='C')  # (Nk*Np,)
+    return Y @ X / n_points
+
+
+def fisher_score(
+        X: ndarray,
+        y: ndarray) -> ndarray:
+    """Fisher Score (sequence).
+
+    Args:
+        X (ndarray): (Ne*Nt,Np). Dataset.
+        y (ndarray): (Ne*Nt,). Labels of X.
+
+    Returns:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         fs (ndarray): (Np,). Fisher-Score sequence.
     """
     # data information
@@ -674,7 +877,13 @@ def fisher_score(X: ndarray, y: ndarray) -> ndarray:
     return ite_d / itr_d
 
 
+<<<<<<< HEAD
 def euclidean_dist(X: ndarray, Y: ndarray) -> float:
+=======
+def euclidean_dist(
+        X: ndarray,
+        Y: ndarray) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Euclidean distance.
 
     Args:
@@ -688,7 +897,13 @@ def euclidean_dist(X: ndarray, Y: ndarray) -> float:
     return dist
 
 
+<<<<<<< HEAD
 def cosine_sim(x: ndarray, y: ndarray) -> float:
+=======
+def cosine_sim(
+        x: ndarray,
+        y: ndarray) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Cosine similarity.
 
     Args:
@@ -720,7 +935,13 @@ def minkowski_dist(
     return dist
 
 
+<<<<<<< HEAD
 def mahalanobis_dist(X: ndarray, y: ndarray) -> float:
+=======
+def mahalanobis_dist(
+        X: ndarray,
+        y: ndarray) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Mahalanobis distance.
 
     Args:
@@ -736,7 +957,12 @@ def mahalanobis_dist(X: ndarray, y: ndarray) -> float:
     return dist
 
 
+<<<<<<< HEAD
 def nega_root(X: ndarray) -> ndarray:
+=======
+def nega_root(
+        X: ndarray) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Compute the negative root of a square matrix.
 
     Args:
@@ -751,7 +977,12 @@ def nega_root(X: ndarray) -> ndarray:
     return nr_X
 
 
+<<<<<<< HEAD
 def s_estimator(X: ndarray) -> float:
+=======
+def s_estimator(
+        X: ndarray) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Construct s-estimator.
 
     Args:
@@ -761,6 +992,7 @@ def s_estimator(X: ndarray) -> float:
         s_estimator (float)
     """
     e_val, _ = sLA.eig(X)
+<<<<<<< HEAD
     e_val = e_val / np.sum(e_val)  # normalized eigenvalues
     entropy = np.sum([i * log(i, 2) for i in e_val])
     return 1 + entropy / log(X.shape[0], 2)
@@ -768,6 +1000,18 @@ def s_estimator(X: ndarray) -> float:
 
 # %% 6. temporally smoothing functions
 def tukeys_kernel(x: float, r: Union[int, float] = 3) -> float:
+=======
+    norm_e_val = e_val/einsum('ii->', X)
+    numerator = np.sum([x * log(x) for x in norm_e_val])
+    s_estimator = 1 + numerator / X.shape[0]
+    return s_estimator
+
+
+# %% 6. temporally smoothing functions
+def tukeys_kernel(
+        x: float,
+        r: Union[int, float] = 3) -> float:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Tukeys tri-cube kernel function.
     Args:
         x (float)
@@ -803,7 +1047,12 @@ def weight_matrix(
     return W
 
 
+<<<<<<< HEAD
 def laplacian_matrix(W: ndarray) -> ndarray:
+=======
+def laplacian_matrix(
+        W: ndarray) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Laplace matrix for time smoothing.
 
     Args:
@@ -817,7 +1066,12 @@ def laplacian_matrix(W: ndarray) -> ndarray:
 
 
 # %% 7. reduced QR decomposition
+<<<<<<< HEAD
 def qr_projection(X: ndarray) -> ndarray:
+=======
+def qr_projection(
+        X: ndarray) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Orthogonal projection based on QR decomposition of X.
 
     Args:
@@ -970,7 +1224,13 @@ def extract_periodic_impulse(
     return periodic_impulse
 
 
+<<<<<<< HEAD
 def create_conv_matrix(periodic_impulse: ndarray, response_length: int) -> ndarray:
+=======
+def create_conv_matrix(
+        periodic_impulse: ndarray,
+        response_length: int) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Create the convolution matrix of the periodic impulse.
 
     Args:
@@ -1029,7 +1289,11 @@ def generate_filter_bank(
         order: Optional[int] = None,
         gpass: float = 3,
         gstop: float = 40,
+<<<<<<< HEAD
         rp: float = 0.5) -> List[ndarray]:
+=======
+        rp: float = 0.5) -> List:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     """Generate Chebyshev type I filters according to input paramters.
 
     Args:
@@ -1057,6 +1321,7 @@ def generate_filter_bank(
 
 class FilterBank(BaseEstimator, TransformerMixin):
     """Basic filter-bank object"""
+<<<<<<< HEAD
     def __init__(
         self,
         base_estimator: BaseEstimator,
@@ -1064,6 +1329,13 @@ class FilterBank(BaseEstimator, TransformerMixin):
         with_filter_bank: bool = True,
         version: Optional[str] = None
     ):
+=======
+    def __init__(self,
+                 base_estimator: BaseEstimator,
+                 filter_bank: Optional[List] = None,
+                 with_filter_bank: bool = True,
+                 version: Optional[str] = None):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
@@ -1081,6 +1353,7 @@ class FilterBank(BaseEstimator, TransformerMixin):
         self.with_filter_bank = with_filter_bank
         self.version = version
 
+<<<<<<< HEAD
     def fit(
         self,
         X_train: ndarray,
@@ -1088,6 +1361,13 @@ class FilterBank(BaseEstimator, TransformerMixin):
         bank_weights: Optional[ndarray] = None,
         **kwargs
     ):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray,
+            bank_weights: Optional[ndarray] = None,
+            **kwargs):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Load in training dataset and pass it to sub-esimators.
 
         Args:
@@ -1105,6 +1385,7 @@ class FilterBank(BaseEstimator, TransformerMixin):
 
         self.bank_weights = bank_weights
         if self.version == 'SSVEP':
+<<<<<<< HEAD
             self.bank_weights = np.array([(nb + 1)**(-1.25) + 0.25
                                           for nb in range(self.Nb)])
 
@@ -1119,31 +1400,60 @@ class FilterBank(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X_test: ndarray, **kwargs) -> Dict[str, ndarray]:
+=======
+            self.bank_weights = np.array(
+                [(nb + 1)**(-1.25) + 0.25 for nb in range(self.Nb)])
+
+        self.sub_estimator = [clone(self.base_estimator) for nb in range(self.Nb)]
+        for nse, se in enumerate(self.sub_estimator):
+            se.fit(X_train=X_train[nse], y_train=y_train, **kwargs)
+        return self
+
+    def transform(self,
+                  X_test: ndarray,
+                  **kwargs) -> Tuple[ndarray, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform test dataset to multi-band discriminant features.
 
         Args:
             X_test (ndarray): (Ne*Nte,...,Np) or (Nb,Ne*Nt,...,Np).
                 Sklearn-style test dataset.
 
+<<<<<<< HEAD
         Returns: Dict[str, ndarray]
+=======
+        Returns:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             fb_rho (ndarray): (Nb,Ne*Nte,Ne). Multi-band decision coefficients.
             rho (ndarray): (Ne*Nte,Ne). Intergrated decision coefficients.
         """
         if not self.with_filter_bank:
             X_test = self.fb_transform(X_test)
+<<<<<<< HEAD
         sub_features = [se.transform(X_test[nse], **kwargs)
                         for nse, se in enumerate(self.sub_estimator)]
         fb_rho = np.stack(sub_features, axis=0)
+=======
+        features = [se.transform(X_test[nse], **kwargs) for nse, se in enumerate(self.sub_estimator)]
+        fb_rho = np.stack(features, axis=0)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         if self.bank_weights is None:
             rho = fb_rho.mean(axis=0)
         else:
             rho = np.einsum('b,bte->te', self.bank_weights, fb_rho)
+<<<<<<< HEAD
         features = {
             'fb_rho': fb_rho, 'rho': rho
         }
         return features
 
     def fb_transform(self, X_train: ndarray) -> ndarray:
+=======
+        return fb_rho, rho
+
+    def fb_transform(self,
+                     X_train: ndarray) -> ndarray:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform single-band X_train into multi-band X_train.
 
         Args:
@@ -1152,6 +1462,10 @@ class FilterBank(BaseEstimator, TransformerMixin):
         Returns:
             X_fb (ndarray): (Nb,Ne*Nt,...,Np). Multi-band X_train.
         """
+<<<<<<< HEAD
         X_fb = np.stack([sosfiltfilt(sos, X_train, axis=-1)
                          for sos in self.filter_bank])
+=======
+        X_fb = np.stack([sosfiltfilt(sos, X_train, axis=-1) for sos in self.filter_bank])
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         return X_fb

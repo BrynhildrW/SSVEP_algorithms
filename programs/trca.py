@@ -14,10 +14,19 @@ Task-related component analysis (TRCA) series.
             DOI: 10.1088/1741-2552/abfdfa
     5. TS-CORRCA: https://ieeexplore.ieee.org/document/8387802/
             DOI: 10.1109/TNSRE.2018.2848222
+<<<<<<< HEAD
     6. xTRCA:
             DOI:
     7. LA-TRCA:
             DOI:
+=======
+    6. gTRCA:
+            DOI:
+    7. xTRCA:
+            DOI:
+    8. LA-TRCA:
+            DOI:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 Notations:
     n_events: Ne
@@ -30,11 +39,20 @@ Notations:
     n_components: Nk
     n_harmonics: Nh
     n_bands: Nb
+<<<<<<< HEAD
+=======
+
+update: 2023/07/04
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
 """
 
 # %% Basic modules
 import utils
+from utils import FilterBank
+
+from abc import abstractmethod
+from typing import Optional, List, Tuple, Union, Dict
 
 from abc import abstractmethod
 from typing import Optional, List, Tuple, Dict
@@ -47,12 +65,19 @@ from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
 # %% Basic TRCA object
 class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
+<<<<<<< HEAD
     def __init__(
         self,
         standard: bool = True,
         ensemble: bool = True,
         n_components: int = 1
     ):
+=======
+    def __init__(self,
+                 standard: bool = True,
+                 ensemble: bool = True,
+                 n_components: int = 1):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
@@ -66,12 +91,19 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.ensemble = ensemble
 
     @abstractmethod
+<<<<<<< HEAD
     def fit(
         self,
         X_train: ndarray,
         y_train: ndarray,
         sine_template: Optional[ndarray] = None
     ):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: Optional[ndarray] = None):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Load in training dataset and train model.
 
         Args:
@@ -84,7 +116,12 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         pass
 
     @abstractmethod
+<<<<<<< HEAD
     def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
+=======
+    def transform(self,
+                  X_test: ndarray) -> Dict[str, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform test dataset to discriminant features.
 
         Args:
@@ -92,11 +129,22 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
 
         Returns: Dict[str, ndarray]
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients.
+<<<<<<< HEAD
             erho (ndarray): (Ne*Nte,Ne). Ensemble decision coefficients.
         """
         pass
 
     def predict(self, X_test: ndarray) -> Tuple[ndarray, ndarray]:
+=======
+                Not empty when self.standard is True.
+            erho (ndarray): (Ne*Nte,Ne). Ensemble decision coefficients.
+                Not empty when self.ensemble is True.
+        """
+        pass
+
+    def predict(self,
+                X_test: ndarray) -> Tuple[ndarray, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Predict test data.
 
         Args:
@@ -107,6 +155,7 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
             y_ensemble (ndarray): (Ne*Nte,). Predict labels (ensemble).
         """
         self.features = self.transform(X_test)
+<<<<<<< HEAD
         event_type = self.train_info['event_type']
         self.y_standard = event_type[np.argmax(self.features['rho'], axis=-1)]
         self.y_ensemble = event_type[np.argmax(self.features['erho'], axis=-1)]
@@ -115,6 +164,16 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
 
 class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
     def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
+=======
+        self.y_standard = self.event_type[np.argmax(self.features['rho'], axis=-1)]
+        self.y_ensemble = self.event_type[np.argmax(self.features['erho'], axis=-1)]
+        return self.y_standard, self.y_ensemble
+
+
+class BasicFBTRCA(FilterBank, ClassifierMixin):
+    def transform(self,
+                  X_test: ndarray) -> Dict[str, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform test dataset to discriminant features.
 
         Args:
@@ -127,12 +186,20 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
             fb_erho (ndarray): (Nb,Ne*Nte,Ne). Decision ensemble coefficients.
             erho (ndarray): (Ne*Nte,Ne). Decision ensemble coefficients of all bands.
         """
+<<<<<<< HEAD
         if not self.with_filter_bank:  # tranform X_test
             X_test = self.fb_transform(X_test)  # (Nb,Ne*Nte,Nc,Np)
         sub_features = [se.transform(X_test[nse])
                         for nse, se in enumerate(self.sub_estimator)]
         fb_rho = np.stack([sf['rho'] for sf in sub_features], axis=0)
         fb_erho = np.stack([sf['erho'] for sf in sub_features], axis=0)
+=======
+        if not self.with_filter_bank:
+            X_test = self.fb_transform(X_test)
+        sub_features = [se.transform(X_test[nse]) for nse, se in enumerate(self.sub_estimator)]
+        fb_rho = np.stack([sf[0] for sf in sub_features], axis=0)  # (Nb,Ne*Nte,Ne)
+        fb_erho = np.stack([sf[1] for sf in sub_features], axis=0)  # (Nb,Ne*Nte,Ne)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         rho = np.einsum('b,bte->te', self.bank_weights, fb_rho)
         erho = np.einsum('b,bte->te', self.bank_weights, fb_erho)
         features = {
@@ -141,7 +208,12 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
         }
         return features
 
+<<<<<<< HEAD
     def predict(self, X_test: ndarray) -> Tuple[ndarray, ndarray]:
+=======
+    def predict(self,
+                X_test: ndarray) -> Tuple[ndarray, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Using filter-bank TRCA-like algorithm to predict test data.
 
         Args:
@@ -177,7 +249,11 @@ def _trca_kernel(
                             'n_points':int,
                             'standard':True,
                             'ensemble':True}
+<<<<<<< HEAD
         n_components (int): Number of eigenvectors picked as filters. Nk.
+=======
+        n_components (int, optional): Number of eigenvectors picked as filters. Nk.
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -199,6 +275,7 @@ def _trca_kernel(
     # S & Q: covariance of template & original data
     S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     Q = np.zeros_like(S)  # (Ne,Nc,Nc)
+<<<<<<< HEAD
     X_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
     for ne, et in enumerate(event_type):
         temp = X_train[y_train == et]
@@ -213,6 +290,28 @@ def _trca_kernel(
     w = np.zeros((n_events, n_components, n_chans))
     for ne in range(n_events):
         w[ne] = utils.solve_gep(A=S[ne], B=Q[ne], n_components=n_components)
+=======
+    avg_template = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne, et in enumerate(event_type):
+        temp = X_train[y_train == et]
+        avg_template[ne] = np.mean(temp, axis=0)  # (Nc,Np)
+        S[ne] = avg_template[ne] @ avg_template[ne].T
+        for ntr in range(n_train[ne]):
+            Q[ne] += temp[ntr] @ temp[ntr].T
+    # S = np.einsum('ecp,ehp->ech', avg_template,avg_template)
+    # Q = np.einsum('etcp,ethp->ech', train_data,train_data)
+
+    # GEPs | train spatial filters
+    # w, ndim = [], []
+    w = np.zeros((n_events, n_components, n_chans))
+    for ne in range(n_events):
+        spatial_filter = utils.solve_gep(
+            A=S[ne],
+            B=Q[ne],
+            n_components=n_components
+        )
+        w[ne] = spatial_filter  # (Nk,Nc)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     ew = np.reshape(w, (n_events*n_components, n_chans), order='C')
 
     # signal templates
@@ -220,10 +319,17 @@ def _trca_kernel(
     ewX = np.zeros((n_events, ew.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     if standard:
         for ne in range(n_events):
+<<<<<<< HEAD
             wX[ne] = w[ne] @ X_mean[ne]  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
             ewX[ne] = ew @ X_mean[ne]  # (Ne*Nk,Np)
+=======
+            wX[ne] = w[ne] @ avg_template[ne]  # (Nk,Np)
+    if ensemble:
+        for ne in range(n_events):
+            ewX[ne] = ew @ avg_template[ne]  # (Ne*Nk,Np)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     # (e)TRCA model
     training_model = {
@@ -236,14 +342,22 @@ def _trca_kernel(
 
 def _trca_feature(
         X_test: ndarray,
+<<<<<<< HEAD
         trca_model: Dict[str, ndarray],
+=======
+        trca_model: dict,
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         standard: bool = True,
         ensemble: bool = True) -> Dict[str, ndarray]:
     """The pattern matching process of (e)TRCA.
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+<<<<<<< HEAD
         trca_model (Dict[str, ndarray]): See details in _trca_kernel().
+=======
+        trca_model (dict): See details in _trca_kernel().
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
@@ -260,12 +374,28 @@ def _trca_feature(
     if standard:
         for nte in range(n_test):
             for nem in range(n_events):
+<<<<<<< HEAD
                 X_temp = w[nem] @ X_test[nte]  # (Nk,Np)
                 rho[nte, nem] = utils.pearson_corr(X=X_temp, Y=wX[nem])
     if ensemble:
         for nte in range(n_test):
             X_temp = ew @ X_test[nte]
             erho[nte, :] = utils.pearson_corr(X=X_temp, Y=ewX, parallel=True)
+=======
+                temp_X = w[nem] @ X_test[nte]  # (Nk,Np)
+                rho[nte, nem] = utils.pearson_corr(
+                    X=temp_X,
+                    Y=wX[nem]
+                )
+    if ensemble:
+        for nte in range(n_test):
+            temp_X = ew @ X_test[nte]
+            erho[nte, :] = utils.pearson_corr(
+                X=temp_X,
+                Y=ewX,
+                common_filter=True
+            )
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     features = {
         'rho': rho, 'erho': erho
     }
@@ -273,7 +403,13 @@ def _trca_feature(
 
 
 class TRCA(BasicTRCA):
+<<<<<<< HEAD
     def fit(self, X_train: ndarray, y_train: ndarray):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Train (e)TRCA model.
 
         Args:
@@ -287,8 +423,12 @@ class TRCA(BasicTRCA):
         self.train_info = {
             'event_type': event_type,
             'n_events': len(event_type),
+<<<<<<< HEAD
             'n_train': np.array([np.sum(self.y_train == et)
                                  for et in event_type]),
+=======
+            'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1],
             'standard': self.standard,
@@ -302,8 +442,15 @@ class TRCA(BasicTRCA):
             train_info=self.train_info,
             n_components=self.n_components
         )
+<<<<<<< HEAD
 
     def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
+=======
+        return self
+
+    def transform(self,
+                  X_test: ndarray) -> Dict[str, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform test dataset to discriminant features.
 
         Args:
@@ -313,12 +460,17 @@ class TRCA(BasicTRCA):
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of TRCA.
             erho (ndarray): (Ne*Nte,Ne). Ensemble decision coefficients of eTRCA.
         """
+<<<<<<< HEAD
         return _trca_feature(
+=======
+        features = _trca_feature(
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             X_test=X_test,
             trca_model=self.training_model,
             standard=self.standard,
             ensemble=self.ensemble
         )
+<<<<<<< HEAD
 
 
 class FB_TRCA(BasicFBTRCA):
@@ -330,6 +482,18 @@ class FB_TRCA(BasicFBTRCA):
         ensemble: bool = True,
         n_components: int = 1
     ):
+=======
+        return features
+
+
+class FB_TRCA(BasicFBTRCA):
+    def __init__(self,
+                 filter_bank: Optional[List] = None,
+                 with_filter_bank: bool = True,
+                 standard: bool = True,
+                 ensemble: bool = True,
+                 n_components: int = 1):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
@@ -396,6 +560,7 @@ def _mstrca_kernel(
     events_group = train_info['events_group']  # dict
 
     # S & Q: same with TRCA
+<<<<<<< HEAD
     S_total = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     Q_total = np.zeros_like(S_total)  # (Ne,Nc,Nc)
     X_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
@@ -403,6 +568,15 @@ def _mstrca_kernel(
         temp = X_train[y_train == et]  # (Nt,Nc,Np)
         X_mean[ne] = np.mean(temp, axis=0)  # (Nc,Np)
         S_total[ne] = X_mean[ne] @ X_mean[ne].T
+=======
+    total_S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    total_Q = np.zeros_like(total_S)  # (Ne,Nc,Nc)
+    avg_template = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne, et in enumerate(event_type):
+        temp = X_train[y_train == et]  # (Nt,Nc,Np)
+        avg_template[ne] = np.mean(temp, axis=0)  # (Nc,Np)
+        total_S[ne] = avg_template[ne] @ avg_template[ne].T
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         for ntr in range(n_train[ne]):
             Q_total[ne] += temp[ntr] @ temp[ntr].T
 
@@ -410,9 +584,20 @@ def _mstrca_kernel(
     w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     for ne in range(n_events):
         merged_indices = events_group[str(event_type[ne])]
+<<<<<<< HEAD
         Q_temp = np.sum(Q_total[merged_indices], axis=0)  # (Nc,Nc)
         S_temp = np.sum(S_total[merged_indices], axis=0)  # (Nc,Nc)
         w[ne] = utils.solve_gep(A=S_temp, B=Q_temp, n_components=n_components)
+=======
+        temp_Q = np.sum(total_Q[merged_indices, ...], axis=0)  # (Nc,Nc)
+        temp_S = np.sum(total_S[merged_indices, ...], axis=0)  # (Nc,Nc)
+        spatial_filter = utils.solve_gep(
+            A=temp_S,
+            B=temp_Q,
+            n_components=n_components
+        )
+        w[ne] = spatial_filter
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     ew = np.reshape(w, (n_events*n_components, n_chans), order='C')
 
     # signal templates
@@ -420,6 +605,7 @@ def _mstrca_kernel(
     ewX = np.zeros((n_events, ew.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     if standard:
         for ne in range(n_events):
+<<<<<<< HEAD
             wX[ne] = w[ne] @ X_mean[ne]  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
@@ -428,6 +614,16 @@ def _mstrca_kernel(
     # ms-(e)TRCA model
     training_model = {
         'Q': Q_total, 'S': S_total,
+=======
+            wX[ne] = w[ne] @ avg_template[ne]  # (Nk,Np)
+    if ensemble:
+        for ne in range(n_events):
+            ewX[ne] = ew @ avg_template[ne]  # (Ne*Nk,Np)
+
+    # ms-(e)TRCA model
+    training_model = {
+        'Q': total_Q, 'S': total_S,
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         'w': w, 'ew': ew,
         'wX': wX, 'ewX': ewX
     }
@@ -435,6 +631,7 @@ def _mstrca_kernel(
 
 
 class MS_TRCA(TRCA):
+<<<<<<< HEAD
     def fit(
         self,
         X_train: ndarray,
@@ -442,20 +639,31 @@ class MS_TRCA(TRCA):
         events_group: Dict[str, List[int]] = None,
         d: int = 2
     ):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray,
+            events_group: Dict[str, List[int]]):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Train ms-(e)TRCA model.
 
         Args:
             X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
             y_train (ndarray): (Ne*Nt,). Labels for X_train.
+<<<<<<< HEAD
             events_group (Dict[str, List[int]], optional): {'event_id':[idx_1,idx_2,...]}.
                 If None, events_group will be generated according to parameter 'd'.
             d (int): The range of events to be merged.
+=======
+            events_group (dict): {'event_id':[idx_1,idx_2,...]}
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """
         # basic information
         self.X_train = X_train
         self.y_train = y_train
         self.d = d
         event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+<<<<<<< HEAD
         if events_group is not None:
             self.events_group = events_group
         else:
@@ -465,11 +673,21 @@ class MS_TRCA(TRCA):
             'n_events': len(event_type),
             'n_train': np.array([np.sum(self.y_train == et)
                                  for et in event_type]),
+=======
+        self.train_info = {
+            'event_type': event_type,
+            'n_events': len(event_type),
+            'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1],
             'standard': self.standard,
             'ensemble': self.ensemble,
+<<<<<<< HEAD
             'events_group': self.events_group
+=======
+            'events_group': events_group
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         }
 
         # train ms-TRCA models & templates
@@ -479,6 +697,7 @@ class MS_TRCA(TRCA):
             train_info=self.train_info,
             n_components=self.n_components
         )
+<<<<<<< HEAD
 
 
 class FB_MS_TRCA(BasicFBTRCA):
@@ -490,6 +709,18 @@ class FB_MS_TRCA(BasicFBTRCA):
         ensemble: bool = True,
         n_components: int = 1
     ):
+=======
+        return self
+
+
+class FB_MS_TRCA(BasicFBTRCA):
+    def __init__(self,
+                 filter_bank: Optional[List] = None,
+                 with_filter_bank: bool = True,
+                 standard: bool = True,
+                 ensemble: bool = True,
+                 n_components: int = 1):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
@@ -558,6 +789,7 @@ def _trcar_kernel(
     # S & Q: covariance of projected template & original data
     S = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     Q = np.zeros_like(S)  # (Ne,Nc,Nc)
+<<<<<<< HEAD
     X_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
     for ne, et in enumerate(event_type):
         X_temp = X_train[y_train == et]  # (Nt,Nc,Np)
@@ -566,11 +798,30 @@ def _trcar_kernel(
         S[ne] = projected_template @ projected_template.T
         for ntr in range(n_train[ne]):
             Q[ne] += X_temp[ntr] @ X_temp[ntr].T
+=======
+    avg_template = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne, et in enumerate(event_type):
+        temp = X_train[y_train == et]  # (Nt,Nc,Np)
+        avg_template[ne] = np.mean(temp, axis=0)  # (Nc,Np)
+        projected_template = avg_template[ne] @ projection[ne]  # (Nc,Np)
+        S[ne] = projected_template @ projected_template.T
+        for ntr in range(n_train[ne]):
+            Q[ne] += temp[ntr] @ temp[ntr].T
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     # GEPs with projected data
     w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     for ne in range(n_events):
+<<<<<<< HEAD
         w[ne] = utils.solve_gep(A=S[ne], B=Q[ne], n_components=n_components)
+=======
+        spatial_filter = utils.solve_gep(
+            A=S[ne],
+            B=Q[ne],
+            n_components=n_components
+        )
+        w[ne] = spatial_filter
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     ew = np.reshape(w, (n_events*n_components, n_chans), order='C')
 
     # signal templates
@@ -578,10 +829,17 @@ def _trcar_kernel(
     ewX = np.zeros((n_events, ew.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     if standard:
         for ne in range(n_events):
+<<<<<<< HEAD
             wX[ne] = w[ne] @ X_mean[ne]  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
             ewX[ne] = ew @ X_mean[ne]  # (Ne*Nk,Np)
+=======
+            wX[ne] = w[ne] @ avg_template[ne]  # (Nk,Np)
+    if ensemble:
+        for ne in range(n_events):
+            ewX[ne] = ew @ avg_template[ne]  # (Ne*Nk,Np)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     # (e)TRCA-R model
     training_model = {
@@ -593,12 +851,19 @@ def _trcar_kernel(
 
 
 class TRCA_R(TRCA):
+<<<<<<< HEAD
     def fit(
         self,
         X_train: ndarray,
         y_train: ndarray,
         projection: ndarray
     ):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray,
+            projection: ndarray):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Train (e)TRCA-R model.
 
         Args:
@@ -613,8 +878,12 @@ class TRCA_R(TRCA):
         self.train_info = {
             'event_type': event_type,
             'n_events': len(event_type),
+<<<<<<< HEAD
             'n_train': np.array([np.sum(self.y_train == et)
                                  for et in event_type]),
+=======
+            'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1],
             'standard': self.standard,
@@ -630,6 +899,7 @@ class TRCA_R(TRCA):
             train_info=self.train_info,
             n_components=self.n_components
         )
+<<<<<<< HEAD
 
 
 class FB_TRCA_R(BasicFBTRCA):
@@ -641,6 +911,18 @@ class FB_TRCA_R(BasicFBTRCA):
         ensemble: bool = True,
         n_components: int = 1
     ):
+=======
+        return self
+
+
+class FB_TRCA_R(BasicFBTRCA):
+    def __init__(self,
+                 filter_bank: Optional[List] = None,
+                 with_filter_bank: bool = True,
+                 standard: bool = True,
+                 ensemble: bool = True,
+                 n_components: int = 1):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
@@ -689,7 +971,11 @@ def _sctrca_kernel(
                             'ensemble':True}
         n_components (int): Number of eigenvectors picked as filters. Nk.
 
+<<<<<<< HEAD
     Returns: Dict[str, ndarray]
+=======
+    Returns: sc-(e)TRCA model (dict).
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data & average template.
         S (ndarray): (Ne,Nc,Nc). Covariance of template.
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
@@ -709,6 +995,7 @@ def _sctrca_kernel(
     n_points = train_info['n_points']  # Np
     standard = train_info['standard']  # bool
     ensemble = train_info['ensemble']  # bool
+<<<<<<< HEAD
     n_dims = sine_template.shape[1]  # 2*Nh
 
     # covariance matrices: (Ne,Nc+2Nh,Nc+2Nh)
@@ -719,17 +1006,38 @@ def _sctrca_kernel(
         train_trials = n_train[ne]  # Nt
         X_temp = X_train[y_train == et]  # (Nt,Nc,Np)
         X_mean[ne] = np.mean(X_temp, axis=0)  # (Nc,Np)
+=======
+    n_2harmonics = sine_template.shape[1]  # 2*Nh
+
+    # (Ne,Nc+2Nh,Nc+2Nh)
+    S = np.zeros((n_events, n_chans+n_2harmonics, n_chans+n_2harmonics))
+    Q = np.zeros_like(S)  # (Ne,Nc+2Nh,Nc+2Nh)
+    avg_template = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne, et in enumerate(event_type):
+        train_trials = n_train[ne]  # Nt
+        X_temp = X_train[y_train == et]  # (Nt,Nc,Np)
+        avg_template[ne] = np.mean(X_temp, axis=0)  # (Nc,Np)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
         Cyy = sine_template[ne] @ sine_template[ne].T  # (2Nh,2Nh)
         Cxx = np.zeros((n_chans, n_chans))  # (Nc,Nc)
         for tt in range(train_trials):
             Cxx += X_temp[tt] @ X_temp[tt].T
+<<<<<<< HEAD
         Cxmxm = X_mean[ne] @ X_mean[ne].T  # (Nc,Nc)
         Cxmy = X_mean[ne] @ sine_template[ne].T  # (Nc,2Nh)
 
         # block covariance matrix S: [[S11,S12],[S21,S22]]
         S[ne, :n_chans, :n_chans] = Cxmxm  # S11
         S[ne, :n_chans, n_chans:] = (1 - 1 / train_trials) * Cxmy  # S12
+=======
+        Cxmxm = avg_template[ne] @ avg_template[ne].T  # (Nc,Nc)
+        Cxmy = avg_template[ne] @ sine_template[ne].T  # (Nc,2Nh)
+
+        # block covariance matrix S: [[S11,S12],[S21,S22]]
+        S[ne, :n_chans, :n_chans] = Cxmxm  # S11
+        S[ne, :n_chans, n_chans:] = (1-1/train_trials) * Cxmy  # S12
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         S[ne, n_chans:, :n_chans] = S[ne, :n_chans, n_chans:].T  # S21
         S[ne, n_chans:, n_chans:] = Cyy  # S22
 
@@ -737,6 +1045,7 @@ def _sctrca_kernel(
         Q[ne, :n_chans, :n_chans] = Cxx  # Q1
         Q[ne, n_chans:, n_chans:] = train_trials * Cyy  # Q2
 
+<<<<<<< HEAD
     # GEPs | train spatial filters
     u = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     v = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
@@ -746,6 +1055,21 @@ def _sctrca_kernel(
         v[ne] = spatial_filter[:, n_chans:]  # (Nk,2Nh)
     eu = np.reshape(u, (n_events*n_components, n_chans), order='C')
     ev = np.reshape(v, (n_events*n_components, n_dims), order='C')
+=======
+    # GEP | train spatial filters
+    u = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
+    v = np.zeros((n_events, n_components, n_2harmonics))  # (Ne,Nk,2Nh)
+    for ne in range(n_events):
+        spatial_filter = utils.solve_gep(
+            A=S[ne],
+            B=Q[ne],
+            n_components=n_components
+        )
+        u[ne] = spatial_filter[:, :n_chans]  # (Nk,Nc)
+        v[ne] = spatial_filter[:, n_chans:]  # (Nk,2Nh)
+    eu = np.reshape(u, (n_events*n_components, n_chans), order='C')
+    ev = np.reshape(v, (n_events*n_components, n_2harmonics), order='C')
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
 
     # signal templates
     uX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
@@ -754,11 +1078,19 @@ def _sctrca_kernel(
     evY = np.zeros_like(euX)
     if standard:
         for ne in range(n_events):
+<<<<<<< HEAD
             uX[ne] = u[ne] @ X_mean[ne]  # (Nk,Np)
             vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
     if ensemble:
         for ne in range(n_events):
             euX[ne] = eu @ X_mean[ne]  # (Nk*Ne,Np)
+=======
+            uX[ne] = u[ne] @ avg_template[ne]  # (Nk,Np)
+            vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
+    if ensemble:
+        for ne in range(n_events):
+            euX[ne] = eu @ avg_template[ne]  # (Nk*Ne,Np)
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             evY[ne] = ev @ sine_template[ne]  # (Nk*Ne,Np)
 
     # sc-(e)TRCA model
@@ -772,7 +1104,11 @@ def _sctrca_kernel(
 
 def _sctrca_feature(
         X_test: ndarray,
+<<<<<<< HEAD
         sctrca_model: Dict[str, ndarray],
+=======
+        sctrca_model: dict,
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         standard: bool,
         ensemble: bool) -> Dict[str, ndarray]:
     """The pattern matching process of sc-(e)TRCA.
@@ -791,6 +1127,7 @@ def _sctrca_feature(
         erho_eeg (ndarray): (Ne*Nte,Ne). EEG part erho.
         erho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part erho.
     """
+<<<<<<< HEAD
     u, eu = sctrca_model['u'], sctrca_model['eu']
     uX, euX = sctrca_model['uX'], sctrca_model['euX']
     vY, evY = sctrca_model['vY'], sctrca_model['evY']
@@ -798,12 +1135,21 @@ def _sctrca_feature(
     n_test = X_test.shape[0]  # Ne*Nte
 
     rho = np.zeros((n_test, n_events))  # (Ne*Nte,Ne)
+=======
+    u, uX, vY = sctrca_model['u'], sctrca_model['uX'], sctrca_model['vY']
+    eu, euX, evY = sctrca_model['eu'], sctrca_model['euX'], sctrca_model['evY']
+    n_events = u.shape[0]  # Ne
+    n_test = X_test.shape[0]  # Ne*Nte
+
+    rho = np.zeros((n_test, n_events))
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     rho_eeg, rho_sin = np.zeros_like(rho), np.zeros_like(rho)
     erho = np.zeros_like(rho)
     erho_eeg, erho_sin = np.zeros_like(rho), np.zeros_like(rho)
     if standard:
         for nte in range(n_test):
             for nem in range(n_events):
+<<<<<<< HEAD
                 X_temp = u[nem] @ X_test[nte]
                 rho_eeg[nte, nem] = utils.pearson_corr(X=X_temp, Y=uX[nem])
                 rho_sin[nte, nem] = utils.pearson_corr(X=X_temp, Y=vY[nem])
@@ -814,6 +1160,38 @@ def _sctrca_feature(
             erho_eeg[nte] = utils.pearson_corr(X=X_temp, Y=euX, parallel=True)
             erho_sin[nte] = utils.pearson_corr(X=X_temp, Y=evY, parallel=True)
         erho = utils.combine_feature([erho_eeg, erho_sin])
+=======
+                temp_standard = u[nem] @ X_test[nte]
+                rho_eeg[nte, nem] = utils.pearson_corr(
+                    X=temp_standard,
+                    Y=uX[nem]
+                )
+                rho_sin[nte, nem] = utils.pearson_corr(
+                    X=temp_standard,
+                    Y=vY[nem]
+                )
+                rho[nte, nem] = utils.combine_feature([
+                    rho_eeg[nte, nem],
+                    rho_sin[nte, nem]
+                ])
+    if ensemble:
+        for nte in range(n_test):
+            temp_ensemble = eu @ X_test[nte]
+            erho_eeg[nte, :] = utils.pearson_corr(
+                X=temp_ensemble,
+                Y=euX,
+                common_filter=True
+            )
+            erho_sin[nte, :] = utils.pearson_corr(
+                X=temp_ensemble,
+                Y=evY,
+                common_filter=True
+            )
+            erho[nte, :] = utils.combine_feature([
+                erho_eeg[nte, :],
+                erho_sin[nte, :]
+            ])
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
     features = {
         'rho': rho, 'rho_eeg': rho_eeg, 'rho_sin': rho_sin,
         'erho': erho, 'erho_eeg': erho_eeg, 'erho_sin': erho_sin
@@ -822,12 +1200,19 @@ def _sctrca_feature(
 
 
 class SC_TRCA(BasicTRCA):
+<<<<<<< HEAD
     def fit(
         self,
         X_train: ndarray,
         y_train: ndarray,
         sine_template: ndarray
     ):
+=======
+    def fit(self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: ndarray):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Train sc-(e)TRCA model.
 
         Args:
@@ -838,12 +1223,20 @@ class SC_TRCA(BasicTRCA):
         # basic information
         self.X_train = X_train
         self.y_train = y_train
+<<<<<<< HEAD
         event_type = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
         self.train_info = {
             'event_type': event_type,
             'n_events': len(event_type),
             'n_train': np.array([np.sum(self.y_train == et)
                                  for et in event_type]),
+=======
+        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        self.train_info = {
+            'event_type': event_type,
+            'n_events': len(event_type),
+            'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1],
             'standard': self.standard,
@@ -858,8 +1251,15 @@ class SC_TRCA(BasicTRCA):
             train_info=self.train_info,
             n_components=self.n_components
         )
+<<<<<<< HEAD
 
     def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
+=======
+        return self
+
+    def transform(self,
+                  X_test: ndarray) -> Dict[str, ndarray]:
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Transform test dataset to discriminant features.
 
         Args:
@@ -873,12 +1273,17 @@ class SC_TRCA(BasicTRCA):
             erho_eeg (ndarray): (Ne*Nte,Ne). EEG part erho.
             erho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part erho.
         """
+<<<<<<< HEAD
         return _sctrca_feature(
+=======
+        features = _sctrca_feature(
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
             X_test=X_test,
             sctrca_model=self.training_model,
             standard=self.standard,
             ensemble=self.ensemble
         )
+<<<<<<< HEAD
 
 
 class FB_SC_TRCA(BasicFBTRCA):
@@ -890,6 +1295,18 @@ class FB_SC_TRCA(BasicFBTRCA):
         ensemble: bool = True,
         n_components: int = 1
     ):
+=======
+        return features
+
+
+class FB_SC_TRCA(BasicFBTRCA):
+    def __init__(self,
+                 filter_bank: Optional[List] = None,
+                 with_filter_bank: bool = True,
+                 standard: bool = True,
+                 ensemble: bool = True,
+                 n_components: int = 1):
+>>>>>>> 144b677c7c84e6a2b8cba9067520257956199138
         """Basic configuration.
 
         Args:
