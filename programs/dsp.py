@@ -16,7 +16,7 @@ Other design.
 import utils
 
 from abc import abstractmethod
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Dict, Union
 
 import numpy as np
 from numpy import ndarray
@@ -37,11 +37,10 @@ class BasicDSP(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @abstractmethod
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: Optional[ndarray] = None
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: Optional[ndarray] = None):
         """Load in training dataset and train model.
 
         Args:
@@ -64,18 +63,18 @@ class BasicDSP(BaseEstimator, TransformerMixin, ClassifierMixin):
         """
         pass
 
-    def predict(self, X_test: ndarray) -> ndarray:
+    def predict(self, X_test: ndarray) -> Union[int, ndarray]:
         """Predict test data.
 
         Args:
             X_test (ndarray): (Ne*Nte,...,Np). Test dataset.
 
-        Return:
+        Return: Union[int, ndarray]
             y_pred (ndarray): (Ne*Nte,). Predict labels.
         """
-        self.rho = self.transform(X_test)
+        self.features = self.transform(X_test)
         event_type = self.train_info['event_type']
-        self.y_pred = event_type[np.argmax(self.rho, axis=-1)]
+        self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
 
@@ -96,7 +95,7 @@ class BasicFBDSP(utils.FilterBank, ClassifierMixin):
 
 
 # %% 1. Discriminant Spatial Patterns | DSP
-def _dsp_kernel(
+def dsp_kernel(
         X_train: ndarray,
         y_train: ndarray,
         train_info: dict,
@@ -154,6 +153,7 @@ def _dsp_kernel(
     for ne in range(n_events):
         wX[ne] = w @ X_mean[ne]
     # wX = np.einsum('kc,ecp->ekp', w, X_mean)  # (Ne,Nk,Np), clearer but slower
+    wX = utils.fast_stan_3d(wX)
 
     # DSP model
     training_model = {
@@ -163,26 +163,31 @@ def _dsp_kernel(
     return training_model
 
 
-def _dsp_feature(
+def dsp_feature(
         X_test: ndarray,
-        dsp_model: Dict[str, ndarray]) -> ndarray:
+        dsp_model: Dict[str, ndarray]) -> Dict[str, ndarray]:
     """The pattern matching process of DSP.
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         dsp_model (Dict[str, ndarray]): See details in _dsp_kernel().
 
-    Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of DSP.
+    Returns: Dict[str, ndarray]
+        rho (ndarray): (Ne*Nte,Ne). Features of DSP.
     """
-    w, wX = dsp_model['w'], dsp_model['wX']
+    # load in model
+    w, wX = dsp_model['w'], dsp_model['wX']  # (Nk,Nc), (Ne,Nk*Np)
     n_events = wX.shape[0]  # Ne
+    wX = np.reshape(wX, (n_events, -1), 'C')  # (Ne,Nk*Np)
+
+    # pattern matching
     n_test = X_test.shape[0]  # Ne*Nte
     rho = np.zeros((n_test, n_events))
     for nte in range(n_test):
-        temp_X = w @ X_test[nte]
-        rho[nte] = utils.pearson_corr(X=temp_X, Y=wX, parallel=True)
-    return rho
+        X_temp = utils.fast_stan_2d(w @ X_test[nte])  # (Nk,Np)
+        X_temp = np.tile(np.reshape(X_temp, -1, 'C'), (n_events, 1))  # (Ne,Nk*Np)
+        rho[nte] = utils.fast_corr_2d(X=X_temp, Y=wX)
+    return {'rho': rho}
 
 
 class DSP(BasicDSP):
@@ -200,14 +205,13 @@ class DSP(BasicDSP):
         self.train_info = {
             'event_type': event_type,
             'n_events': len(event_type),
-            'n_train': np.array([np.sum(self.y_train == et)
-                                 for et in event_type]),
+            'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1]
         }
 
         # train DSP models & templates
-        self.training_model = _dsp_kernel(
+        self.training_model = dsp_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
             train_info=self.train_info,
@@ -223,7 +227,7 @@ class DSP(BasicDSP):
         Return:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of DSP.
         """
-        return _dsp_feature(
+        return dsp_feature(
             X_test=X_test,
             dsp_model=self.training_model
         )
@@ -231,11 +235,10 @@ class DSP(BasicDSP):
 
 class FB_DSP(BasicFBDSP):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -258,7 +261,7 @@ class FB_DSP(BasicFBDSP):
 
 
 # %% 3. Task-discriminant component analysis | TDCA
-def _tdca_augmentation(
+def tdca_augmentation(
         X: ndarray,
         projection: ndarray,
         extra_length: int,
@@ -273,7 +276,7 @@ def _tdca_augmentation(
             If None, prepared augmented data for test dataset.
 
     Returns:
-        X_aug2 (ndarray): ((m+1)*n_chans, 2*n_points).
+        X_aug2 (ndarray): ((m+1)*Nc, 2*Np).
     """
     # basic information
     n_chans = X.shape[0]  # Nc
@@ -295,11 +298,11 @@ def _tdca_augmentation(
     return X_aug2
 
 
-def _tdca_feature(
+def tdca_feature(
         X_test: ndarray,
         tdca_model: Dict[str, ndarray],
         projection: ndarray,
-        extra_length: int) -> ndarray:
+        extra_length: int) -> Dict[str, ndarray]:
     """The pattern matching process of TDCA.
 
     Args:
@@ -308,8 +311,8 @@ def _tdca_feature(
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
         extra_length (int): m.
 
-    Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of TDCA.
+    Returns: Dict[str, ndarray]
+        rho (ndarray): (Ne*Nte,Ne). Features of TDCA.
     """
     w, wX = tdca_model['w'], tdca_model['wX']
     n_events = wX.shape[0]  # Ne
@@ -317,23 +320,22 @@ def _tdca_feature(
     rho = np.zeros((n_test, n_events))
     for nte in range(n_test):
         for nem in range(n_events):
-            X_test_aug2 = _tdca_augmentation(
+            X_test_aug2 = tdca_augmentation(
                 X=X_test[nte],
                 projection=projection[nem],
                 extra_length=extra_length
-            )
+            )  # ((m+1)*Nc,2*Np)
             rho[nte, nem] = utils.pearson_corr(X=w @ X_test_aug2, Y=wX[nem])
-    return rho
+    return {'rho': rho}
 
 
 class TDCA(BasicDSP):
     def fit(
-        self,
-        X_train: ndarray,
-        X_extra: ndarray,
-        y_train: ndarray,
-        projection: ndarray
-    ):
+            self,
+            X_train: ndarray,
+            X_extra: ndarray,
+            y_train: ndarray,
+            projection: ndarray):
         """Train TDCA model.
 
         Args:
@@ -351,11 +353,13 @@ class TDCA(BasicDSP):
         self.projection = projection
 
         # create secondary augmented data | (Ne*Nt,(el+1)*Nc,2*Np)
-        self.X_train_aug2 = np.tile(np.zeros_like(self.X_train),
-                                    (1, (self.extra_length + 1), 2))
+        self.X_train_aug2 = np.tile(
+            A=np.zeros_like(self.X_train),
+            reps=(1, (self.extra_length + 1), 2)
+        )
         for ntr, label in enumerate(self.y_train):
             event_idx = list(event_type).index(label)
-            self.X_train_aug2[ntr] = _tdca_augmentation(
+            self.X_train_aug2[ntr] = tdca_augmentation(
                 X=self.X_train[ntr],
                 projection=self.projection[event_idx],
                 extra_length=self.extra_length,
@@ -369,7 +373,7 @@ class TDCA(BasicDSP):
                            'n_points': self.X_train_aug2.shape[-1]}
 
         # train DSP models & wXs
-        self.training_model = _dsp_kernel(
+        self.training_model = dsp_kernel(
             X_train=self.X_train_aug2,
             y_train=self.y_train,
             train_info=self.train_info,
@@ -385,7 +389,7 @@ class TDCA(BasicDSP):
         Return:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of DSP.
         """
-        return _tdca_feature(
+        return tdca_feature(
             X_test=X_test,
             tdca_model=self.training_model,
             projection=self.projection,
@@ -395,11 +399,10 @@ class TDCA(BasicDSP):
 
 class FB_TDCA(BasicFBDSP):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:

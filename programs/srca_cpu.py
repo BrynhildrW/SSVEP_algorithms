@@ -31,7 +31,6 @@ from typing import Optional, List, Any, Dict, Tuple
 
 import utils
 
-import trca
 import dsp
 
 import numpy as np
@@ -317,20 +316,19 @@ class SRCA(object):
     opt_methods = ['Traversal', 'Recursion', 'Mix']
 
     def __init__(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        rest_phase: List[int],
-        task_phase: List[int],
-        chan_info: List[str],
-        tar_chan: str,
-        tar_func: str = 'SNR',
-        opt_method: str = 'Recursion',
-        regression_kernel: str = 'MSE',
-        traversal_limit: Optional[int] = None,
-        chan_num_limit: Optional[int] = None,
-        kwargs: Dict[str, Any] = None
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            rest_phase: List[int],
+            task_phase: List[int],
+            chan_info: List[str],
+            tar_chan: str,
+            tar_func: str = 'SNR',
+            opt_method: str = 'Recursion',
+            regression_kernel: str = 'MSE',
+            traversal_limit: Optional[int] = None,
+            chan_num_limit: Optional[int] = None,
+            kwargs: Dict[str, Any] = None):
         """Config basic settings.
 
         Args:
@@ -409,7 +407,7 @@ class SRCA(object):
             rs_target=self.rest_target,
             ts_model=self.task_data[:, chans_indices, :],
             ts_target=self.task_target,
-            regression=self.regression
+            regression_kernel=self.regression_kernel
         )
         srca_coef = np.mean(
             self.tar_functions[self.tar_func](
@@ -516,7 +514,7 @@ class ESRCA(SRCA):
     """ensemble-SRCA for single-channel, multi-event optimization.
     Target functions (1-D):
         (1) SNR (mean) in time domain
-        (2) Fisher score (mean) | only for 2categories
+        (2) Fisher score (mean) | only for 2 categories
     """
     tar_functions = {'SNR': _snr_sequence,
                      'FS': _fs_sequence}
@@ -529,29 +527,28 @@ class TdESRCA(ESRCA):
         (iii) optimization on multiple event
     Target functions (2-D):
         (1) DSP target function value
-        (2) DSP classification accuracy
+        (2) TDCA target function value
     """
     tar_functions = {'DSP-val': _dsp_coef,
                      'TDCA-val': _tdca_coef}
     opt_methods = ['Traversal', 'Recursion', 'Mix']
 
     def __init__(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        rest_phase: List[int],
-        task_phase: List[int],
-        chan_info: List[str],
-        tar_chan: str,
-        tar_chan_list: List[str],
-        tar_func: str = 'DSP-val',
-        opt_method: str = 'Recursion',
-        regression_kernel: str = 'MSE',
-        allow_target_group: bool = False,
-        traversal_limit: Optional[int] = None,
-        chan_num_limit: Optional[int] = None,
-        kwargs: Dict[str, Any] = None
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            rest_phase: List[int],
+            task_phase: List[int],
+            chan_info: List[str],
+            tar_chan: str,
+            tar_chan_list: List[str],
+            tar_func: str = 'DSP-val',
+            opt_method: str = 'Recursion',
+            regression_kernel: str = 'MSE',
+            allow_target_group: bool = False,
+            traversal_limit: Optional[int] = None,
+            chan_num_limit: Optional[int] = None,
+            kwargs: Dict[str, Any] = None):
         """Load in settings.
 
         Args:
@@ -659,21 +656,20 @@ class MultiESRCA(object):
                      'TDCA-val': _tdca_coef}
 
     def __init__(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        rest_phase: List[int],
-        task_phase: List[int],
-        chan_info: List[str],
-        tar_chan_list: List[str],
-        tar_func: str = 'DSP-val',
-        opt_method: str = 'Recursion',
-        regression_kernel: str = 'MSE',
-        allow_target_group: bool = False,
-        traversal_limit: Optional[int] = None,
-        chan_num_limit: Optional[int] = None,
-        kwargs: Dict[str, Any] = None
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            rest_phase: List[int],
+            task_phase: List[int],
+            chan_info: List[str],
+            tar_chan_list: List[str],
+            tar_func: str = 'DSP-val',
+            opt_method: str = 'Recursion',
+            regression_kernel: str = 'MSE',
+            allow_target_group: bool = False,
+            traversal_limit: Optional[int] = None,
+            chan_num_limit: Optional[int] = None,
+            kwargs: Dict[str, Any] = None):
         """Load in settings.
 
         Args:
@@ -813,7 +809,6 @@ class BasicPearsonCorr(object):
         self.avg_template = np.zeros((self.n_events, self.n_chans, self.n_points))
         for ne, et in enumerate(self.event_type):
             self.avg_template[ne] = self.X_train[self.y_train == et].mean(axis=0)
-        return self
 
     def transform(self, X_test: ndarray) -> ndarray:
         """Transform test dataset to discriminant features.

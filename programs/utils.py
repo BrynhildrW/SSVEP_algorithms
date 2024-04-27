@@ -137,6 +137,40 @@ def standardization(X: ndarray) -> ndarray:
     return X / np.std(X, axis=-1, keepdims=True)
 
 
+def mean_and_var(
+        X: ndarray,
+        y: ndarray) -> Tuple[ndarray, ndarray]:
+    """Generate X_mean (trial-averaged templates) and
+        X_var (the trial-sum of variance matrices).
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Input data.
+        y (ndarray): (Ne*Nt,). Labels for X.
+
+    Returns: Tuple[ndarray, ndarray]
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged templates.
+        X_var (ndarray): (Ne,Nc,Nc). Variance matrices.
+    """
+    # basic information
+    event_type = np.unique(y)
+    n_events = len(event_type)
+    n_train = np.array([np.sum(y == et) for et in event_type])
+    n_chans = X.shape[-2]
+    n_points = X.shape[-1]
+
+    # X_mean & X_var
+    X_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    X_var = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    for ne, et in enumerate(event_type):
+        n_trial = n_train[ne]  # Nt
+        X_temp = X[y == et]  # (Nt,Nc,Np)
+        X_mean[ne] = X_temp.mean(axis=0)  # (Nc,Np)
+        for nt in range(n_trial):
+            X_var[ne] += X_temp[nt] @ X_temp[nt].T
+        X_var[ne] /= n_trial
+    return X_mean, X_var
+
+
 @njit(fastmath=True)
 def fast_stan_2d(X: ndarray) -> ndarray:
     """Special version of standardization() for 2-dimensional X.
@@ -165,9 +199,8 @@ def fast_stan_3d(X: ndarray) -> ndarray:
     Returns:
         X (ndarray): (d1,d2,d3).
     """
-    dim_1, dim_2 = X.shape[0], X.shape[1]
-    for d1 in range(dim_1):
-        for d2 in range(dim_2):
+    for d1 in range(X.shape[0]):
+        for d2 in range(X.shape[1]):
             X[d1, d2, :] = X[d1, d2, :] - np.mean(X[d1, d2, :])
             X[d1, d2, :] = X[d1, d2, :] / np.std(X[d1, d2, :])
     return X
@@ -223,7 +256,7 @@ def sin_wave(
     Args:
         freq (Union[int, float]): Frequency / Hz.
         n_points (int): Number of sampling points.
-        phase (float): 0-2.
+        phase (float): Coefficients. 0-2 (pi).
         srate (Union[int, float]): Sampling rate. Defaults to 1000.
 
     Returns:
@@ -244,7 +277,7 @@ def sine_template(
 
     Args:
         freq (Union[int, float]): Basic frequency.
-        phase (Union[int, float]): Initial phase.
+        phase (Union[int, float]): Initial phase (coefficients). 0-2 (pi)..
         n_points (int): Sampling points.
         n_harmonics (int): Number of harmonics.
         srate (Union[int, float]): Sampling rate. Defaults to 1000.
@@ -591,8 +624,8 @@ def fast_corr_2d(X: ndarray, Y: ndarray) -> ndarray:
     Returns:
         corr (ndarray): (d1,).
     """
-    dim_1, dim_2 = X.shape[0], X.shape[1]
-    corr = np.zeros((dim_2))
+    dim_1 = X.shape[0]
+    corr = np.zeros((dim_1))
     for d1 in range(dim_1):
         corr[d1] = X[d1, :] @ Y[d1, :].T
     return corr
@@ -905,80 +938,83 @@ def solve_gep(
 
 # %% 9. Signal generation
 def get_resample_sequence(
-        sequence: ndarray,
-        rrate: int,
-        srate: Union[int, float]) -> List[Tuple[int, float]]:
+        seq: ndarray,
+        srate: Union[int, float] = 1000,
+        rrate: int = 60) -> List[Tuple[int, float]]:
     """Obtain the resampled sequence from original sequence.
 
     Args:
-        sequence (ndarray): (1, signal_length). Stimulus sequence of original sampling rate.
-        rrate (int): Refresh rate of stimulation presentation device.
-        srate (Union[int, float]): Sampling rate.
+        seq (ndarray): (1, signal_length).
+            Stimulus sequence of original sampling rate.
+        srate (int or float): Sampling rate. Defaults to 1000 Hz.
+        rrate (int): Refresh rate of stimulus devices. Defaults to 60 Hz.
 
     Return:
-        resampled_sequence (List[Tuple[int,float]]): (index, value).
+        rsp_seq (List[Tuple[int, float]]): (index, value).
             Resampled values and indices of stimulus sequence.
     """
-    signal_length = sequence.shape[-1]
-    resample_points = int(np.ceil(rrate * signal_length / srate))
-    resample_index = np.round(srate / rrate * np.arange(resample_points) + 0.001)
-    resample_value = [sequence[int(i)] for i in resample_index]
-    resampled_sequence = [(int(ri), rv) for ri, rv in zip(resample_index, resample_value)]
-    return resampled_sequence
+    n_points = seq.shape[-1]
+    rsp_points = int(np.ceil(rrate * n_points / srate))  # resampled n_points
+    rsp_idx = np.round(srate / rrate * np.arange(rsp_points) + 0.001)
+    rsp_val = [seq[int(ri)] for ri in rsp_idx]
+    rsp_seq = [(int(ri), rv) for ri, rv in zip(rsp_idx, rsp_val)]
+    return rsp_seq
 
 
 def extract_periodic_impulse(
         freq: Union[int, float],
         phase: Union[int, float],
-        signal_length: int,
-        srate: Union[int, float],
-        rrate: int) -> ndarray:
+        n_points: int,
+        srate: Union[int, float] = 1000,
+        rrate: int = 60) -> ndarray:
     """Extract periodic impulse sequence from stimulus sequence.
 
     Args:
-        freq (Union[int, float]): Stimulus frequency.
-        phase (Union[int, float]): Stimulus phase.
-        signal_length (int): Total length of reconstructed signal.
-        srate (Union[int, float]): Sampling rate.
-        rrate (int): Refresh rate of stimulation presentation device.
+        freq (int or float): Stimulus frequency.
+        phase (int or float): Stimulus phase (coefficients). 0-2 (pi).
+        n_points (int): Total length of reconstructed signal.
+        srate (int or float): Sampling rate. Defaults to 1000 Hz.
+        rrate (int): Refresh rate of stimulus devices. Defaults to 60 Hz.
 
     Return:
         periodic_impulse (ndarray): (1, signal_length)
     """
     # obtain the actual stimulus strength
-    sine_sequence = sin_wave(
+    cos_seq = sin_wave(
         freq=freq,
-        n_points=signal_length,
+        n_points=n_points,
         phase=0.5 + phase,
         srate=srate
     )
-    resampled_sequence = get_resample_sequence(
-        sequence=sine_sequence,
-        refresh_rate=rrate,
-        srate=srate
+    rsp_seq = get_resample_sequence(
+        seq=cos_seq,
+        srate=srate,
+        rrate=rrate
     )
 
     # pick up the peak values of resampled sequence
-    periodic_impulse = np.zeros_like(sine_sequence)
+    periodic_impulse = np.zeros_like(cos_seq)
     if phase == 0.5:
-        periodic_impulse[0] = resampled_sequence[0][1]
-    for rs in range(1, len(resampled_sequence)-1):
-        left_edge = resampled_sequence[rs][1] >= resampled_sequence[rs-1][1]
-        right_edge = resampled_sequence[rs][1] >= resampled_sequence[rs+1][1]
+        periodic_impulse[0] = rsp_seq[0][1]
+    for rs in range(1, len(rsp_seq)-1):
+        left_edge = rsp_seq[rs][1] >= rsp_seq[rs-1][1]
+        right_edge = rsp_seq[rs][1] >= rsp_seq[rs+1][1]
         if left_edge and right_edge:
-            periodic_impulse[resampled_sequence[rs][0]] = resampled_sequence[rs][1]
+            periodic_impulse[rsp_seq[rs][0]] = rsp_seq[rs][1]
     return periodic_impulse
 
 
-def create_conv_matrix(periodic_impulse: ndarray, response_length: int) -> ndarray:
+def create_conv_matrix(
+        periodic_impulse: ndarray,
+        response_length: int) -> ndarray:
     """Create the convolution matrix of the periodic impulse.
 
     Args:
-        periodic_impulse (ndarray): (1, signal_length). Impulse sequence of stimulus.
+        periodic_impulse (ndarray): (1,Np). Impulse sequence of stimulus.
         response_length (int): Length of impulse response.
 
     Return:
-        H (ndarray): (response_length, signal_length). Convolution matrix.
+        H (ndarray): (response_length,Np). Convolution matrix.
     """
     signal_length = periodic_impulse.shape[-1]
     H = np.zeros((response_length, response_length + signal_length - 1))
@@ -991,31 +1027,33 @@ def correct_conv_matrix(
         H: ndarray,
         freq: Union[int, float],
         srate: Union[int, float],
-        scale: Union[int, float] = 0.8,
-        mode: str = 'dynamic') -> ndarray:
-    """Replace the blank values at the front of the reconstructed data with its subsequent fragment.
+        amp_scale: Union[int, float] = 0.8,
+        concat_method: str = 'dynamic') -> ndarray:
+    """Replace the blank values at the front of the reconstructed data
+        with its subsequent fragment.
 
     Args:
-        H (ndarray): (impulse_length, signal_length). Convolution matrix.
-        freq (Union[int, float]): Stimulus frequency.
-        srate (Union[int, float]): Sampling rate.
-        scale (Union[int, float]): Compression coefficient of subsequent fragment (0-1).
+        H (ndarray): (response_length,Np). Convolution matrix.
+        freq (int or float): Stimulus frequency.
+        srate (int or float): Sampling rate. Defaults to 1000 Hz.
+        amp_scale (float): The multiplying power when calculating the amplitudes of data.
             Defaults to 0.8.
-        mode (str): 'dynamic' or 'static'.
-            'static': Data fragment is intercepted starting from 1 s.
-            'dynamic': Data fragment is intercepted starting from 1 period after the end of all-blank area.
+        concat_method (str): 'dynamic' or 'static'.
+            'static': Concatenated data is starting from 1 s.
+            'dynamic': Concatenated data is starting from 1 period.
 
     Return:
-        correct_H (ndarray): (impulse_length, signal_length). Corrected convolution matrix.
+        H (ndarray): (response_length,Np). Corrected convolution matrix.
     """
-    shift_length = np.where(H[0] != 0)[0][0]  # Tuple -> ndarray -> int
+    shift_length = np.where(H[0] != 0)[0][0] + 1  # Tuple -> ndarray -> int
     shift_matrix = np.eye(H.shape[-1])
-    if mode == 'static':
-        sp = srate  # start point
-    elif mode == 'dynamic':
-        sp = int(np.ceil(srate/freq))
+    if concat_method == 'static':
+        sp = srate
+    elif concat_method == 'dynamic':
+        sp = int(np.ceil(srate / freq))
     try:
-        shift_matrix[sp:sp + shift_length, shift_length] = scale * np.eye(shift_length)
+        ep = sp + shift_length
+        shift_matrix[sp:ep, :shift_length] = amp_scale * np.eye(shift_length)
     except ValueError:
         raise Exception('Signal length is too short!')
     return H @ shift_matrix
@@ -1058,12 +1096,11 @@ def generate_filter_bank(
 class FilterBank(BaseEstimator, TransformerMixin):
     """Basic filter-bank object"""
     def __init__(
-        self,
-        base_estimator: BaseEstimator,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        version: Optional[str] = None
-    ):
+            self,
+            base_estimator: BaseEstimator,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            version: Optional[str] = None):
         """Basic configuration.
 
         Args:
@@ -1082,12 +1119,11 @@ class FilterBank(BaseEstimator, TransformerMixin):
         self.version = version
 
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        bank_weights: Optional[ndarray] = None,
-        **kwargs
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            bank_weights: Optional[ndarray] = None,
+            **kwargs):
         """Load in training dataset and pass it to sub-esimators.
 
         Args:

@@ -73,11 +73,10 @@ class BasicCCA(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @abstractmethod
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: Optional[ndarray] = None
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: Optional[ndarray] = None):
         """Load in training dataset and train model.
 
         Args:
@@ -95,7 +94,7 @@ class BasicCCA(BaseEstimator, TransformerMixin, ClassifierMixin):
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Returns:
-            rho (ndarray): (Ne*Nte,Ne). Decision coefficients.
+            rho (ndarray): (Ne*Nte,Ne). Features.
         """
         pass
 
@@ -105,12 +104,12 @@ class BasicCCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns:
-            y_pred (Union[int, ndarray]): int or (Ne*Nte,). Predict labels.
+        Returns: Union[int, ndarray]
+            y_pred (int or ndarray): int or (Ne*Nte,). Predict label(s).
         """
-        self.rho = self.transform(X_test)
+        self.features = self.transform(X_test)
         event_type = self.train_info['event_type']
-        self.y_pred = event_type[np.argmax(self.rho, axis=-1)]
+        self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
 
@@ -121,8 +120,8 @@ class BasicFBCCA(utils.FilterBank, ClassifierMixin):
         Args:
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np). Test dataset.
 
-        Returns:
-            y_pred (Union[int, ndarray]): int or (Ne*Nte,). Predict labels.
+        Returns: Union[int, ndarray]
+            y_pred (int or ndarray): int or (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
         event_type = self.sub_estimator[0].train_info['event_type']
@@ -131,7 +130,7 @@ class BasicFBCCA(utils.FilterBank, ClassifierMixin):
 
 
 # %% 1. standard CCA | CCA
-def _cca_kernel(
+def cca_kernel(
         X: ndarray,
         Y: ndarray,
         n_components: int = 1) -> Dict[str, Union[int, ndarray]]:
@@ -185,44 +184,40 @@ def _cca_kernel(
     return training_model
 
 
-def _cca_feature(
+def cca_feature(
         X_test: ndarray,
         template: ndarray,
-        train_info: dict,
-        n_components: int = 1) -> ndarray:
+        n_components: int = 1) -> Dict[str, ndarray]:
     """The pattern matching process of CCA.
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         template (ndarray): (Ne,2Nh,Np). Signal templates.
-        train_info (dict): {'event_type':ndarray (Ne,),
-                            'n_events':int'}
         n_components (int): Number of eigenvectors picked as filters. Nk.
 
-    Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of CCA.
+    Returns: Dict[str, ndarray]
+        rho (ndarray): (Ne*Nte,Ne). Features of CCA.
     """
-    n_events = train_info['n_events']  # Ne
+    n_events = template.shape[0]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
     rho = np.zeros((n_test, n_events))  # (Ne*Nte,Ne)
     for nte in range(n_test):
         for nem in range(n_events):
-            cca_model = _cca_kernel(
+            cca_model = cca_kernel(
                 X=X_test[nte],
                 Y=template[nem],
                 n_components=n_components
             )
             rho[nte, nem] = cca_model['coef']
-    return rho
+    return {'rho': rho}
 
 
 class CCA(BasicCCA):
     def fit(
-        self,
-        sine_template: ndarray,
-        X_train: Optional[ndarray] = None,
-        y_train: Optional[ndarray] = None
-    ):
+            self,
+            sine_template: ndarray,
+            X_train: Optional[ndarray] = None,
+            y_train: Optional[ndarray] = None):
         """Train CCA model.
 
         Args:
@@ -254,21 +249,19 @@ class CCA(BasicCCA):
         Returns: Dict[str, ndarray]
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of CCA.
         """
-        return _cca_feature(
+        return cca_feature(
             X_test=X_test,
             template=self.sine_template,
-            train_info=self.train_info,
             n_components=self.n_components
         )
 
 
 class FB_CCA(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -407,7 +400,7 @@ def mcc_kernel(
 
 
 # %% 4. Multivariant synchronization index | MSI
-def _msi_kernel(
+def msi_kernel(
         train_info: dict,
         X_test: ndarray,
         sine_template: ndarray) -> Dict[str, ndarray]:
@@ -454,7 +447,7 @@ def _msi_kernel(
     return training_model
 
 
-def _msi_feature(
+def msi_feature(
         train_info: dict,
         X_test: ndarray,
         sine_template: ndarray) -> ndarray:
@@ -469,13 +462,13 @@ def _msi_feature(
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
 
     Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of MSI.
+        rho (ndarray): (Ne*Nte,Ne). Features of MSI.
     """
     n_events = sine_template.shape[0]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
     rho = np.zeros((n_test, n_events))  # (Ne*Nte,Ne)
     for nte in range(n_test):
-        msi_model = _msi_kernel(
+        msi_model = msi_kernel(
             train_info=train_info,
             X_test=X_test[nte],
             sine_template=sine_template,
@@ -488,11 +481,10 @@ def _msi_feature(
 
 class MSI(BasicCCA):
     def fit(
-        self,
-        sine_template: ndarray,
-        X_train: Optional[ndarray] = None,
-        y_train: Optional[ndarray] = None
-    ):
+            self,
+            sine_template: ndarray,
+            X_train: Optional[ndarray] = None,
+            y_train: Optional[ndarray] = None):
         """Train MSI model.
 
         Args:
@@ -524,7 +516,7 @@ class MSI(BasicCCA):
         Returns: Dict[str, ndarray]
             rho (ndarray): (Ne,). Decision coefficients of MSI.
         """
-        return _msi_feature(
+        return msi_feature(
             train_info=self.train_info,
             X_test=X_test,
             sine_template=self.sine_template
@@ -533,11 +525,10 @@ class MSI(BasicCCA):
 
 class FB_MSI(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -577,7 +568,7 @@ class ITCCA(BasicCCA):
         event_type = np.unique(self.y_train)
         self.train_info = {
             'event_type': event_type,
-            'n_events': len(event_type),
+            'n_events': event_type.shape[0],
             'n_chans': self.X_train.shape[1],
             'n_points': self.X_train.shape[-1]
         }
@@ -599,7 +590,7 @@ class ITCCA(BasicCCA):
         Returns: Dict[str, ndarray]
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of itCCA.
         """
-        return _cca_feature(
+        return cca_feature(
             X_test=X_test,
             template=self.avg_template,
             n_components=self.n_components
@@ -608,11 +599,10 @@ class ITCCA(BasicCCA):
 
 class FB_ITCCA(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -632,7 +622,7 @@ class FB_ITCCA(BasicFBCCA):
 
 
 # %% 8. Extended CCA | eCCA
-def _ecca_kernel(
+def ecca_kernel(
         X_train: ndarray,
         y_train: ndarray,
         sine_template: ndarray,
@@ -644,7 +634,7 @@ def _ecca_kernel(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         X_test (ndarray): (Nc,Np). Single-trial test data.
         train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
@@ -672,7 +662,7 @@ def _ecca_kernel(
     u_xy = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     v_xy = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
     for ne in range(n_events):
-        cca_model = _cca_kernel(
+        cca_model = cca_kernel(
             X=X_test,
             Y=sine_template[ne],
             n_components=n_components
@@ -686,7 +676,7 @@ def _ecca_kernel(
     v_xa = np.zeros_like(u_xa)  # (Ne,Nk,Nc)
     for ne, et in enumerate(event_type):
         avg_template[ne] = np.mean(X_train[y_train == et], axis=0)
-        cca_model = _cca_kernel(
+        cca_model = cca_kernel(
             X=X_test,
             Y=avg_template[ne],
             n_components=n_components
@@ -698,7 +688,7 @@ def _ecca_kernel(
     u_ay = np.zeros_like(u_xy)  # (Ne,Nk,Nc)
     v_ay = np.zeros_like(v_xy)  # (Ne,Nk,2Nh)
     for ne in range(n_events):
-        cca_model = _cca_kernel(
+        cca_model = cca_kernel(
             X=avg_template[ne],
             Y=sine_template[ne],
             n_components=n_components
@@ -716,7 +706,7 @@ def _ecca_kernel(
     return training_model
 
 
-def _ecca_feature(
+def ecca_feature(
         X_train: ndarray,
         y_train: ndarray,
         sine_template: ndarray,
@@ -729,7 +719,7 @@ def _ecca_feature(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
@@ -739,14 +729,14 @@ def _ecca_feature(
         method_list (List[str]): Different coefficient. Labeled as '1' to '5'.
 
     Returns:
-        rho (ndarray): (Ne,). Discriminant coefficients of eCCA.
+        rho (ndarray): (Ne,). Features of eCCA.
     """
     n_events = train_info['n_events']  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
     rho = np.zeros((n_test, n_events))  # (Ne*Nte, Ne)
     for nte in range(n_test):
         temp_rho = []
-        ecca_model = _ecca_kernel(
+        ecca_model = ecca_kernel(
             X_train=X_train,
             y_train=y_train,
             sine_template=sine_template,
@@ -811,18 +801,17 @@ def _ecca_feature(
 
 class ECCA(BasicCCA):
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: ndarray,
-        method_list: List[str] = ['1', '2', '3', '4', '5']
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: ndarray,
+            method_list: List[str] = ['1', '2', '3', '4', '5']):
         """Train eCCA model.
 
         Args:
             X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
             y_train (ndarray): (Ne*Nt,). Labels for X_train.
-            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
             method_list (List[str]): Different coefficient. Labeled as '1' to '5'.
         """
         # basic information
@@ -833,7 +822,7 @@ class ECCA(BasicCCA):
         event_type = np.unique(self.y_train)
         self.train_info = {
             'event_type': event_type,
-            'n_events': len(event_type),
+            'n_events': event_type.shape[0],
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1]
         }
@@ -848,7 +837,7 @@ class ECCA(BasicCCA):
         Returns: Dict[str, ndarray]
             rho (ndarray): (Ne,). Decision coefficients of eCCA.
         """
-        return _ecca_feature(
+        return ecca_feature(
             X_train=self.X_train,
             y_train=self.y_train,
             sine_template=self.sine_template,
@@ -861,11 +850,10 @@ class ECCA(BasicCCA):
 
 class FB_ECCA(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -885,7 +873,7 @@ class FB_ECCA(BasicFBCCA):
 
 
 # %% 9-10. Multi-stimulus eCCA | ms-eCCA
-def _msecca_kernel(
+def msecca_kernel(
         X_train: ndarray,
         y_train: ndarray,
         sine_template: ndarray,
@@ -896,22 +884,21 @@ def _msecca_kernel(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
                             'n_chans':int,
                             'n_points':int,
-                            'events_group':{'event_id':[start index,end index]}}
+                            'events_group':{'event_id':[idx,]}}
         n_components (int): Number of eigenvectors picked as filters. Nk.
 
     Returns: Dict[str, ndarray]
-        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG template.
-        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal template.
-        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal template.
+        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
+        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
+        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
-        uX (ndarray): (Ne,Nk,Np). ms-eCCA templates for EEG signal.
-        vY (ndarray): (Ne,Nk,Np). ms-eCCA templates for sinusoidal signal.
+        uX, vY (ndarray): (Ne,Nk*Np). ms-eCCA templates (reshaped).
     """
     # basic information
     event_type = train_info['event_type']
@@ -959,6 +946,10 @@ def _msecca_kernel(
         if utils.pearson_corr(X=uX[ne], Y=vY[ne]) < 0:
             v[ne] *= -1
             vY[ne] *= -1
+    uX = utils.fast_stan_3d(uX)  # (Ne,Nk,Np)
+    uX = np.reshape(uX, (n_events, -1), 'C')  # (Ne,Nk*Np)
+    vY = utils.fast_stan_3d(vY)  # (Ne,Nk,Np)
+    vY = np.reshape(vY, (n_events, -1), 'C')  # (Ne,Nk*Np)
 
     # ms-eCCA model
     training_model = {
@@ -968,7 +959,7 @@ def _msecca_kernel(
     return training_model
 
 
-def _msecca_feature(
+def msecca_feature(
         X_test: ndarray,
         msecca_model: Dict[str, ndarray]) -> Dict[str, ndarray]:
     """The pattern matching process of ms-eCCA.
@@ -978,21 +969,22 @@ def _msecca_feature(
         msecca_model (dict): See details in _msecca_kernel().
 
     Returns: Dict[str, ndarray]
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of ms-eCCA.
+        rho (ndarray): (Ne*Nte,Ne). Features of ms-eCCA.
         rho_eeg (ndarray): (Ne*Nte,Ne). EEG part rho.
         rho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part rho.
     """
-    u, uX, vY = msecca_model['u'], msecca_model['uX'], msecca_model['vY']
+    u = msecca_model['u']  # (Ne,Nk,Nc)
+    uX, vY = msecca_model['uX'], msecca_model['vY']  # (Ne,Nk*Np)
     n_events = u.shape[0]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
 
     rho_eeg = np.zeros((n_test, n_events))  # (Ne*Nte,Ne)
     rho_sin = np.zeros_like(rho_eeg)
     for nte in range(n_test):
-        for nem in range(n_events):
-            temp_X = u[nem] @ X_test[nte]
-            rho_eeg[nte, nem] = utils.pearson_corr(X=temp_X, Y=uX[nem])
-            rho_sin[nte, nem] = utils.pearson_corr(X=temp_X, Y=vY[nem])
+        X_temp = utils.fast_stan_3d(u @ X_test[nte])  # (Ne,Nk,Np)
+        X_temp = np.reshape(X_temp, (n_events, -1), 'C')  # (Ne,Nk*Np)
+        rho_eeg[nte] = utils.fast_corr_2d(X=X_temp, Y=uX)
+        rho_sin[nte] = utils.fast_corr_2d(X=X_temp, Y=vY)
     rho = utils.combine_feature([rho_eeg, rho_sin])
     features = {
         'rho': rho, 'rho_eeg': rho_eeg, 'rho_sin': rho_sin
@@ -1002,19 +994,18 @@ def _msecca_feature(
 
 class MS_ECCA(BasicCCA):
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: ndarray,
-        events_group: Optional[Dict[str, List[int]]] = None,
-        d: int = 2
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: ndarray,
+            events_group: Optional[Dict[str, List[int]]] = None,
+            d: int = 2):
         """Train ms-eCCA model.
 
         Args:
             X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
             y_train (ndarray): (Ne*Nt,). Labels for X_train.
-            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
             events_group (Dict[str, List[int]], optional): {'event_id':[idx_1,idx_2,...]}.
                 If None, events_group will be generated according to parameter 'd'.
             d (int): The range of events to be merged.
@@ -1038,7 +1029,7 @@ class MS_ECCA(BasicCCA):
         }
 
         # train_ms-eCCA filters and templates
-        self.training_model = _msecca_kernel(
+        self.training_model = msecca_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
             sine_template=self.sine_template,
@@ -1054,37 +1045,22 @@ class MS_ECCA(BasicCCA):
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Returns: Dict[str, ndarray]
-            rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of ms-eCCA.
+            rho (ndarray): (Ne*Nte,Ne). Features of ms-eCCA.
             rho_eeg (ndarray): (Ne*Nte,Ne). EEG part rho.
             rho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part rho.
         """
-        return _msecca_feature(
+        return msecca_feature(
             X_test=X_test,
             msecca_model=self.training_model
         )
 
-    def predict(self, X_test: ndarray) -> ndarray:
-        """Predict test data.
-
-        Args:
-            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
-
-        Returns:
-            y_pred (ndarray): int or (Ne*Nte,). Predict labels.
-        """
-        self.features = self.transform(X_test)
-        event_type = self.train_info['event_type']
-        self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
-        return self.y_pred
-
 
 class FB_MS_ECCA(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -1111,7 +1087,7 @@ class FB_MS_ECCA(BasicFBCCA):
 
         Returns: Dict[str, ndarray]
             fb_rho (ndarray): (Nb,Ne*Nte,Ne). Decision coefficients of each band.
-            rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of ms-eCCA.
+            rho (ndarray): (Ne*Nte,Ne). Features of ms-eCCA.
             fb_rho_eeg (ndarray): (Nb,Ne*Nte,Ne). EEG part rho of each band.
             rho_eeg (ndarray): (Ne*Nte,Ne). EEG part rho.
             fb_rho_sin (ndarray): (Nb,Ne*Nte,Ne). Sinusoidal signal part rho of each band.
@@ -1119,7 +1095,8 @@ class FB_MS_ECCA(BasicFBCCA):
         """
         if not self.with_filter_bank:  # tranform X_test
             X_test = self.fb_transform(X_test)  # (Nb,Ne*Nte,Nc,Np)
-        sub_features = [se.transform(X_test[nse]) for nse, se in enumerate(self.sub_estimator)]
+        sub_features = [se.transform(X_test[nse])
+                        for nse, se in enumerate(self.sub_estimator)]
 
         fb_rho = np.stack([sf['rho'] for sf in sub_features], axis=0)  # (Nb,Ne*Nte,Ne)
         fb_rho_eeg = np.stack([sf['rho_eeg'] for sf in sub_features], axis=0)
@@ -1137,7 +1114,7 @@ class FB_MS_ECCA(BasicFBCCA):
         return features
 
 
-def _mscca_kernel(
+def mscca_kernel(
         X_train: ndarray,
         y_train: ndarray,
         sine_template: ndarray,
@@ -1148,7 +1125,7 @@ def _mscca_kernel(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         train_info (dict): {'event_type':ndarray (Ne,),
                             'n_events':int,
                             'n_chans':int,
@@ -1156,11 +1133,11 @@ def _mscca_kernel(
         n_components (int): Number of eigenvectors picked as filters. Nk.
 
     Returns: Dict[str, ndarray]
-        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG template.
-        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal template.
-        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal template.
+        Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
+        Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
+        Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
         w (ndarray): (Nk,Nc). Common spatial filters.
-        wX (ndarray): (Ne,Nk,Np). msCCA templates.
+        wX (ndarray): (Ne,Nk*Np). msCCA templates (reshaped).
     """
     # basic information
     event_type = train_info['event_type']
@@ -1192,7 +1169,8 @@ def _mscca_kernel(
     wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
     for ne in range(n_events):
         wX[ne] = w @ avg_template[ne]
-    # wX = np.einsum('kc,ecp->ekp', wX, avg_template)  # clearer but slower
+    wX = utils.fast_stan_3d(wX)
+    wX = np.reshape(wX, (n_events, -1), 'C')  # (Ne,Nk*Np)
 
     # msCCA model
     training_model = {
@@ -1202,7 +1180,7 @@ def _mscca_kernel(
     return training_model
 
 
-def _mscca_feature(
+def mscca_feature(
         X_test: ndarray,
         mscca_model: Dict[str, ndarray]) -> ndarray:
     """The pattern matching process of msCCA.
@@ -1212,32 +1190,32 @@ def _mscca_feature(
         mscca_model (dict): See details in _mscca_kernel().
 
     Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of msCCA.
+        rho (ndarray): (Ne*Nte,Ne). Features of msCCA.
     """
-    w, wX = mscca_model['w'], mscca_model['wX']
+    w, wX = mscca_model['w'], mscca_model['wX']  # (Nk,Nc), (Ne,Nk*Np)
     n_events = wX.shape[0]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
 
     rho = np.zeros((n_test, n_events))  # (Ne*Nte,Ne)
     for nte in range(n_test):
-        temp_X = w @ X_test[nte]  # common filter, (Nk,Np)
-        rho[nte] = utils.pearson_corr(X=temp_X, Y=wX, parallel=True)
+        X_temp = utils.fast_stan_2d(w @ X_test[nte])  # (Nk,Np)
+        X_temp = np.tile(np.reshape(X_temp, -1, 'C'), (n_events, 1))  # (Ne,Nk*Np)
+        rho[nte] = utils.fast_corr_2d(X=X_temp, Y=wX)
     return rho
 
 
 class MSCCA(BasicCCA):
     def fit(
-        self,
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: ndarray
-    ):
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            sine_template: ndarray):
         """Train msCCA model.
 
         Args:
             X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=1.
             y_train (ndarray): (Ne*Nt,). Labels for X_train.
-            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal template.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         """
         # basic information
         self.X_train = X_train
@@ -1246,13 +1224,13 @@ class MSCCA(BasicCCA):
         event_type = np.unique(self.y_train)
         self.train_info = {
             'event_type': event_type,
-            'n_events': len(event_type),
+            'n_events': event_type.shape[0],
             'n_chans': self.X_train.shape[-2],
             'n_points': self.X_train.shape[-1]
         }
 
         # train_msCCA filters and templates
-        self.training_model = _mscca_kernel(
+        self.training_model = mscca_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
             sine_template=self.sine_template,
@@ -1268,9 +1246,9 @@ class MSCCA(BasicCCA):
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
         Returns:
-            rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of msCCA.
+            rho (ndarray): (Ne*Nte,Ne). Features of msCCA.
         """
-        return _mscca_feature(
+        return mscca_feature(
             X_test=X_test,
             mscca_model=self.training_model
         )
@@ -1278,11 +1256,10 @@ class MSCCA(BasicCCA):
 
 class FB_MSCCA(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
@@ -1302,7 +1279,7 @@ class FB_MSCCA(BasicFBCCA):
 
 
 # %% 11-12. Multiset CCA | MsetCCA1
-def _msetcca1_kernel(
+def msetcca1_kernel(
         X_train: ndarray,
         y_train: ndarray,
         train_info: dict,
@@ -1335,7 +1312,7 @@ def _msetcca1_kernel(
     for ne, et in enumerate(event_type):
         train_trials = n_train[ne]  # Nt
         X_temp = X_train[y_train == et]  # (Nt,Nc,Np)
-        X_concat = np.reshape(X_temp, (train_trials * n_chans, n_points), order='C')
+        X_concat = np.reshape(X_temp, (train_trials * n_chans, n_points), 'C')
         R_temp = X_concat @ X_concat.T  # (Nt*Nc,Nt*Nc)
         S_temp = block_diag([X_temp[tt] @ X_temp[tt].T
                              for tt in range(train_trials)]).toarray()
@@ -1361,7 +1338,7 @@ def _msetcca1_kernel(
     return training_model
 
 
-def _msetcca1_feature(
+def msetcca1_feature(
         X_test: ndarray,
         msetcca1_model: dict,
         n_components: int = 1) -> ndarray:
@@ -1373,7 +1350,7 @@ def _msetcca1_feature(
         n_components (int): Number of eigenvectors picked as filters. Nk.
 
     Returns:
-        rho (ndarray): (Ne*Nte,Ne). Discriminant coefficients of MsetCCA1.
+        rho (ndarray): (Ne*Nte,Ne). Features of MsetCCA1.
     """
     wX = msetcca1_model['wX']  # List: Ne*(Nt*Nk,Np)
     n_events = len(wX)  # Ne
@@ -1381,7 +1358,7 @@ def _msetcca1_feature(
     rho = np.zeros((n_test, n_events))
     for nte in range(n_test):
         for nem in range(n_events):
-            cca_model = _cca_kernel(
+            cca_model = cca_kernel(
                 X=X_test[nte],
                 Y=wX[nem],
                 n_components=n_components
@@ -1404,14 +1381,14 @@ class MSETCCA1(BasicCCA):
         event_type = np.unique(y_train)  # [0,1,2,...Ne-1]
         self.train_info = {
             'event_type': event_type,
-            'n_events': len(event_type),
+            'n_events': event_type.shape[0],
             'n_train': np.array([np.sum(self.y_train == et) for et in event_type]),
             'n_chans': X_train.shape[-2],
             'n_points': X_train.shape[-1]
         }
 
         # train MsetCCA(1) filters & templates
-        self.training_model = _msetcca1_kernel(
+        self.training_model = msetcca1_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
             train_info=self.train_info,
@@ -1428,7 +1405,7 @@ class MSETCCA1(BasicCCA):
         Returns: ndarray
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of MsetCCA1.
         """
-        return _msetcca1_feature(
+        return msetcca1_feature(
             X_test=X_test,
             msetcca1_model=self.training_model,
             n_components=self.n_components
@@ -1437,11 +1414,10 @@ class MSETCCA1(BasicCCA):
 
 class FB_MSETCCA1(BasicFBCCA):
     def __init__(
-        self,
-        filter_bank: Optional[List] = None,
-        with_filter_bank: bool = True,
-        n_components: int = 1
-    ):
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
         """Basic configuration.
 
         Args:
