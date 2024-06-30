@@ -58,6 +58,7 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
             standard (bool): Standard model. Defaults to True.
             ensemble (bool): Ensemble model. Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         # config model
         self.n_components = n_components
@@ -94,7 +95,8 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         """
         pass
 
-    def predict(self, X_test: ndarray) -> Union[Tuple[ndarray, ndarray], Tuple[int, int]]:
+    def predict(self, X_test: ndarray) -> Union[Tuple[ndarray, ndarray],
+                                                Tuple[int, int]]:
         """Predict test data.
 
         Args:
@@ -105,9 +107,8 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
             y_ensemble (ndarray or int): (Ne*Nte,). Predict label(s) (ensemble).
         """
         self.features = self.transform(X_test)
-        event_type = self.train_info['event_type']
-        self.y_standard = event_type[np.argmax(self.features['rho'], axis=-1)]
-        self.y_ensemble = event_type[np.argmax(self.features['erho'], axis=-1)]
+        self.y_standard = self.event_type[np.argmax(self.features['rho'], axis=-1)]
+        self.y_ensemble = self.event_type[np.argmax(self.features['erho'], axis=-1)]
         return self.y_standard, self.y_ensemble
 
 
@@ -120,28 +121,27 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
                 Test dataset.
 
         Returns: Dict[str, ndarray]
-            fb_rho (ndarray): (Nb,Ne*Nte,Ne). Features of each band.
+            rho_fb (ndarray): (Nb,Ne*Nte,Ne). Features of each band.
             rho (ndarray): (Ne*Nte,Ne). Features of all bands.
-            fb_erho (ndarray): (Nb,Ne*Nte,Ne). Ensemble features of each band.
+            erho_fb (ndarray): (Nb,Ne*Nte,Ne). Ensemble features of each band.
             erho (ndarray): (Ne*Nte,Ne). Ensemble features of all bands.
         """
         if not self.with_filter_bank:  # tranform X_test
             X_test = self.fb_transform(X_test)  # (Nb,Ne*Nte,Nc,Np)
         sub_features = [se.transform(X_test[nse])
                         for nse, se in enumerate(self.sub_estimator)]
-        fb_rho = np.stack([sf['rho'] for sf in sub_features], axis=0)
-        fb_erho = np.stack([sf['erho'] for sf in sub_features], axis=0)
-        rho = np.einsum('b,bte->te', self.bank_weights, fb_rho)
-        erho = np.einsum('b,bte->te', self.bank_weights, fb_erho)
+        rho_fb = np.stack([sf['rho'] for sf in sub_features], axis=0)
+        erho_fb = np.stack([sf['erho'] for sf in sub_features], axis=0)
+        rho = np.einsum('b,bte->te', self.bank_weights, rho_fb)
+        erho = np.einsum('b,bte->te', self.bank_weights, erho_fb)
         features = {
-            'fb_rho': fb_rho, 'rho': rho,
-            'fb_erho': fb_erho, 'erho': erho
+            'fb_rho': rho_fb, 'rho': rho,
+            'fb_erho': erho_fb, 'erho': erho
         }
         return features
 
-    def predict(
-            self,
-            X_test: ndarray) -> Union[Tuple[ndarray, ndarray], Tuple[int, int]]:
+    def predict(self, X_test: ndarray) -> Union[Tuple[ndarray, ndarray],
+                                                Tuple[int, int]]:
         """Using filter-bank TRCA-like algorithm to predict test data.
 
         Args:
@@ -153,7 +153,7 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
             y_ensemble (ndarray or int): (Ne*Nte,). Predict label(s) (ensemble).
         """
         self.features = self.transform(X_test)
-        event_type = self.sub_estimator[0].train_info['event_type']
+        event_type = self.sub_estimator[0].event_type
         self.y_standard = event_type[np.argmax(self.features['rho'], axis=-1)]
         self.y_ensemble = event_type[np.argmax(self.features['erho'], axis=-1)]
         return self.y_standard, self.y_ensemble
@@ -169,7 +169,7 @@ def generate_trca_mat(
         X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
         y (ndarray): (Ne*Nt,). Labels for X.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns: Tuple[ndarray, ndarray, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -196,7 +196,7 @@ def solve_trca_func(
     Args:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
     Returns: Tuple[ndarray, ndarray]
@@ -204,28 +204,29 @@ def solve_trca_func(
         ew (ndarray): (Ne*Nk,Nc). Ensemble spatial filter of eTRCA.
     """
     # basic information
-    n_events, n_chans = Q.shape[0], Q.shape[1]  # Ne,Nc
+    n_events = Q.shape[0]  # Ne
+    n_chans = Q.shape[1]  # Nc
 
     # solve GEPs
     w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     for ne in range(n_events):
-        w[ne] = utils.solve_gep(A=S, B=Q, n_components=n_components)
+        w[ne] = utils.solve_gep(A=S[ne], B=Q[ne], n_components=n_components)
     ew = np.reshape(w, (n_events * n_components, n_chans), 'C')  # (Ne*Nk,Nc)
     return w, ew
 
 
 def generate_trca_template(
-        X_mean: ndarray,
         w: ndarray,
         ew: ndarray,
+        X_mean: ndarray,
         standard: bool = True,
         ensemble: bool = True) -> Tuple[ndarray, ndarray]:
     """Generate (e)TRCA templates.
 
     Args:
-        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
         w (ndarray): (Ne,Nk,Nc). Spatial filters of TRCA.
         ew (ndarray): (Ne*Nk,Nc). Ensemble spatial filter of eTRCA.
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
 
@@ -265,7 +266,8 @@ def trca_kernel(
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -281,9 +283,9 @@ def trca_kernel(
 
     # generate spatial-filtered templates
     wX, ewX = generate_trca_template(
-        X_mean=X_mean,
         w=w,
         ew=ew,
+        X_mean=X_mean,
         standard=standard,
         ensemble=ensemble
     )
@@ -306,7 +308,7 @@ def trca_feature(
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
-        trca_model (Dict[str, ndarray]): See details in _trca_kernel().
+        trca_model (Dict[str, ndarray]): See details in trca_kernel().
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
@@ -335,10 +337,7 @@ def trca_feature(
             X_temp = utils.fast_stan_2d(ew @ X_test[nte])  # (Ne*Nk,Np)
             X_temp = np.tile(np.reshape(X_temp, -1, 'C'), (n_events, 1))  # (Ne,Ne*Nk*Np)
             erho[nte] = utils.fast_corr_2d(X=X_temp, Y=ewX)
-    features = {
-        'rho': rho, 'erho': erho
-    }
-    return features
+    return {'rho': rho, 'erho': erho}
 
 
 class TRCA(BasicTRCA):
@@ -352,8 +351,8 @@ class TRCA(BasicTRCA):
         # basic information
         self.X_train = utils.fast_stan_3d(X_train)
         self.y_train = y_train
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in event_type])
+        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train TRCA filters & templates
@@ -401,6 +400,7 @@ class FB_TRCA(BasicFBTRCA):
             standard (bool): Standard model. Defaults to True.
             ensemble (bool): Ensemble model. Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         self.standard = standard
@@ -422,7 +422,7 @@ def solve_mstrca_func(
         Q: ndarray,
         S: ndarray,
         event_type: ndarray,
-        events_group: dict,
+        events_group: Dict[str, List[int]],
         n_components: int = 1) -> Tuple[ndarray, ndarray]:
     """Solve ms-TRCA target function.
 
@@ -430,9 +430,9 @@ def solve_mstrca_func(
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         event_type (ndarray): (Ne,). All kinds of labels.
-        events_group (dict): {'event_id':[idx_1,idx_2,...]}.
+        events_group (Dict[str, List[int]]): {'event_id':[idx_1,idx_2,...]}.
             Event indices being emerged for each event.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
     Returns: Tuple[ndarray, ndarray]
@@ -456,7 +456,7 @@ def solve_mstrca_func(
 def mstrca_kernel(
         X_train: ndarray,
         y_train: ndarray,
-        events_group: dict,
+        events_group: Dict[str, List[int]],
         standard: bool = True,
         ensemble: bool = True,
         n_components: int = 1) -> Dict[str, ndarray]:
@@ -465,11 +465,12 @@ def mstrca_kernel(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        events_group (dict): {'event_id':[idx_1,idx_2,...]}.
+        events_group (Dict[str, List[int]]): {'event_id':[idx_1,idx_2,...]}.
             Event indices being emerged for each event.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -512,27 +513,31 @@ class MS_TRCA(TRCA):
             self,
             X_train: ndarray,
             y_train: ndarray,
-            events_group: Dict[str, List[int]] = None,
+            events_group: Optional[Dict[str, List[int]]] = None,
             d: int = 2):
         """Train ms-(e)TRCA model.
 
         Args:
             X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
             y_train (ndarray): (Ne*Nt,). Labels for X_train.
-            events_group (Dict[str, List[int]], optional): {'event_id':[idx_1,idx_2,...]}.
+            events_group (Dict[str, List[int]], optional):
+                {'event_id':[idx_1,idx_2,...]}.
                 If None, events_group will be generated according to parameter 'd'.
-            d (int): The range of events to be merged.
+            d (int): The range of events to be merged. Defaults to 2.
         """
         # basic information
         self.X_train = utils.fast_stan_3d(X_train)
         self.y_train = y_train
         self.d = d
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         if events_group is not None:
             self.events_group = events_group
         else:
-            self.events_group = utils.augmented_events(event_type=event_type, d=self.d)
-        n_train = np.array([np.sum(self.y_train == et) for et in event_type])
+            self.events_group = utils.augmented_events(
+                event_type=self.event_type,
+                d=self.d
+            )
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train ms-TRCA models & templates
@@ -592,7 +597,7 @@ def generate_trcar_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns: Tuple[ndarray, ndarray, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -627,7 +632,8 @@ def trcar_kernel(
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -679,8 +685,8 @@ class TRCA_R(TRCA):
         # basic information
         self.X_train = utils.fast_stan_3d(X_train)
         self.y_train = y_train
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in event_type])
+        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
         self.projection = projection
 
@@ -713,6 +719,7 @@ class FB_TRCA_R(BasicFBTRCA):
             standard (bool): Standard model. Defaults to True.
             ensemble (bool): Ensemble model. Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         self.standard = standard
@@ -741,7 +748,7 @@ def generate_sctrca_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns: Tuple[ndarray, ndarray, ndarray]
         Q (ndarray): (Ne,Nc+2Nh,Nc+2Nh). Covariance of X & sine_template.
         S (ndarray): (Ne,Nc+2Nh,Nc+2Nh). Covariance of [[X_mean],[sine_template]].
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -815,24 +822,24 @@ def solve_sctrca_func(
 
 
 def generate_sctrca_template(
-        X_mean: ndarray,
-        sine_template: ndarray,
         u: ndarray,
         v: ndarray,
         eu: ndarray,
         ev: ndarray,
+        X_mean: ndarray,
+        sine_template: ndarray,
         standard: bool = True,
         ensemble: bool = True) -> Tuple[ndarray, ndarray,
                                         ndarray, ndarray]:
     """Generate sc-(e)TRCA templates.
 
     Args:
-        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
-        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
         eu (ndarray): (Ne*Nk,Nc). Concatenated filter (EEG signal).
         ev (ndarray): (Ne*Nk,2*Nh). Concatenated filter (sinusoidal signal).
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
 
@@ -880,7 +887,8 @@ def sctrca_kernel(
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data & average templates.
@@ -910,12 +918,12 @@ def sctrca_kernel(
 
     # generate spatial-filtered templates
     uX, vY, euX, evY = generate_sctrca_template(
-        X_mean=X_mean,
-        sine_template=sine_template,
         u=u,
         v=v,
         eu=eu,
         ev=ev,
+        X_mean=X_mean,
+        sine_template=sine_template,
         standard=standard,
         ensemble=ensemble
     )
@@ -938,7 +946,7 @@ def sctrca_feature(
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
-        sctrca_model (dict): See details in _sctrca_kernel().
+        sctrca_model (dict): See details in sctrca_kernel().
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
@@ -1006,8 +1014,8 @@ class SC_TRCA(BasicTRCA):
         # basic information
         self.X_train = utils.fast_stan_3d(X_train)
         self.y_train = y_train
-        event_type = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in event_type])
+        self.event_type = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train sc-TRCA models & templates
@@ -1060,6 +1068,7 @@ class FB_SC_TRCA(BasicFBTRCA):
             standard (bool): Standard model. Defaults to True.
             ensemble (bool): Ensemble model. Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         self.standard = standard

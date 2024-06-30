@@ -30,7 +30,8 @@ class BasicDSP(BaseEstimator, TransformerMixin, ClassifierMixin):
         """Basic configuration.
 
         Args:
-            n_components (int): Number of eigenvectors picked as filters.
+            n_components (int): Number of eigenvectors picked as filters. Nk.
+                Defaults to 1.
         """
         # config model
         self.n_components = n_components
@@ -73,8 +74,7 @@ class BasicDSP(BaseEstimator, TransformerMixin, ClassifierMixin):
             y_pred (ndarray): (Ne*Nte,). Predict labels.
         """
         self.features = self.transform(X_test)
-        event_type = self.train_info['event_type']
-        self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
+        self.y_pred = self.event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
 
@@ -89,7 +89,7 @@ class BasicFBDSP(utils.FilterBank, ClassifierMixin):
             y_pred (ndarray): (Ne*Nte,). Predict labels.
         """
         self.features = self.transform(X_test)
-        event_type = self.sub_estimator[0].train_info['event_type']
+        event_type = self.sub_estimator[0].event_type
         self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
@@ -148,26 +148,46 @@ def solve_dsp_func(
             Defaults to 1.
 
     Returns:
-        w (ndarray): (Ne,Nk,Nc). Spatial filters of TRCA.
-        ew (ndarray): (Ne*Nk,Nc). Ensemble spatial filter of eTRCA.
+        w (ndarray): (Nk,Nc). Spatial filters of DSP.
     """
+    return utils.solve_gep(A=Sb, B=Sw, n_components=n_components)
+
+
+def generate_dsp_template(X_mean: ndarray, w: ndarray) -> ndarray:
+    """Generate DSP templates.
+
+    Args:
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
+        w (ndarray): (Nk,Nc). Spatial filter of DSP.
+
+    Returns:
+        wX (ndarray): (Ne,Nk,Np). DSP templates.
+    """
+    # basic information
+    n_events = X_mean.shape[0]  # Ne
+    n_points = X_mean.shape[-1]  # Np
+    n_components = w.shape[0]  # Nk
+
+    # spatial filtering process
+    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    for ne in range(n_events):
+        wX[ne] = w @ X_mean[ne]
+    # slower: wX = np.einsum('kc,ecp->ekp', w, X_mean)
+    wX = utils.fast_stan_3d(wX)
+    return wX
+
 
 def dsp_kernel(
         X_train: ndarray,
         y_train: ndarray,
-        train_info: dict,
         n_components: int = 1) -> Dict[str, ndarray]:
     """The modeling process of DSP.
 
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        train_info (dict): {'event_type':ndarray (Ne,),
-                            'n_events':int,
-                            'n_train':ndarray (Ne,),
-                            'n_chans':int,
-                            'n_points':int}
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
@@ -175,22 +195,12 @@ def dsp_kernel(
         w (ndarray): (Nk,Nc). Common spatial filter.
         wX (ndarray): (Ne,Nk,Np). DSP templates.
     """
-    # basic information
-    n_events = train_info['n_events']  # Ne
-    n_points = train_info['n_points']  # Np
+    # solve target functions
+    Sb, Sw, X_mean = generate_dsp_mat(X=X_train, y=y_train)
+    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components)
 
-    # calculate Sb & Sw
-    Sb, Sw, X_mean = utils.generate_sb_sw(X=X_train, y=y_train)
-
-    # GEPs | train spatial filter
-    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components)  # (Nk,Nc)
-
-    # signal templates
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w @ X_mean[ne]
-    # wX = np.einsum('kc,ecp->ekp', w, X_mean)  # (Ne,Nk,Np), clearer but slower
-    wX = utils.fast_stan_3d(wX)
+    # generate spatial-filtered templates
+    wX = generate_dsp_template(X_mean=X_mean, w=w)
 
     # DSP model
     training_model = {
@@ -207,7 +217,7 @@ def dsp_feature(
 
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
-        dsp_model (Dict[str, ndarray]): See details in _dsp_kernel().
+        dsp_model (Dict[str, ndarray]): See details in dsp_kernel().
 
     Returns: Dict[str, ndarray]
         rho (ndarray): (Ne*Nte,Ne). Features of DSP.
@@ -238,22 +248,14 @@ class DSP(BasicDSP):
         # basic information
         self.X_train = X_train
         self.y_train = y_train
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in event_type])
+        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
-        self.train_info = {
-            'event_type': event_type,
-            'n_events': len(event_type),
-            'n_train': n_train,
-            'n_chans': self.X_train.shape[-2],
-            'n_points': self.X_train.shape[-1]
-        }
 
         # train DSP models & templates
         self.training_model = dsp_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
-            train_info=self.train_info,
             n_components=self.n_components,
         )
 
@@ -286,6 +288,7 @@ class FB_DSP(BasicFBDSP):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -388,8 +391,10 @@ class TDCA(BasicDSP):
         self.X_extra = X_extra
         self.extra_length = self.X_extra.shape[-1]
         self.y_train = y_train
-        event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         self.projection = projection
+        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
+        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
+        assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # create secondary augmented data | (Ne*Nt,(el+1)*Nc,2*Np)
         self.X_train_aug2 = np.tile(
@@ -397,25 +402,18 @@ class TDCA(BasicDSP):
             reps=(1, (self.extra_length + 1), 2)
         )
         for ntr, label in enumerate(self.y_train):
-            event_idx = list(event_type).index(label)
+            event_idx = list(self.event_type).index(label)
             self.X_train_aug2[ntr] = tdca_augmentation(
                 X=self.X_train[ntr],
                 projection=self.projection[event_idx],
                 extra_length=self.extra_length,
                 extra_data=self.X_extra[ntr]
             )
-        self.train_info = {'event_type': event_type,
-                           'n_events': len(event_type),
-                           'n_train': np.array([np.sum(self.y_train == et)
-                                                for et in event_type]),
-                           'n_chans': self.X_train_aug2.shape[-2],
-                           'n_points': self.X_train_aug2.shape[-1]}
 
         # train DSP models & wXs
         self.training_model = dsp_kernel(
             X_train=self.X_train_aug2,
             y_train=self.y_train,
-            train_info=self.train_info,
             n_components=self.n_components
         )
 
@@ -450,6 +448,7 @@ class FB_TDCA(BasicFBDSP):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(

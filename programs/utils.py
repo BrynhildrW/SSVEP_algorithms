@@ -21,6 +21,7 @@
     (2-6) reshape_dataset()
     (2-7) generate_mean()
     (2-8) generate_var()
+    (2-9) generate_source_response()
 
 3. Feature integration
     (3-1) sign_sta()
@@ -47,7 +48,7 @@
 6. Temporally smoothing functions
     (6-1) tukeys_kernel()
     (6-2) weight_matrix()
-    (6-3) laplacian_matrix
+    (6-3) laplacian_matrix()
 
 7. Reduced QR decomposition
     (7-1) qr_projection()
@@ -244,7 +245,7 @@ def sine_template(
 
     Args:
         freq (Union[int, float]): Basic frequency.
-        phase (Union[int, float]): Initial phase (coefficients). 0-2 (pi)..
+        phase (Union[int, float]): Initial phase (coefficients). 0-2 (pi).
         n_points (int): Sampling points.
         n_harmonics (int): Number of harmonics.
         srate (Union[int, float]): Sampling rate. Defaults to 1000.
@@ -390,7 +391,8 @@ def reshape_dataset(
         data (ndarray):
             public version: (Ne,Nt,Nc,Np) or (Nb,Ne,Nt,Nc,Np) (filter_bank==True).
             sklearn version: (Ne*Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np)  (filter_bank==True).
-        labels (ndarray, optional): (Ne*Nt,). Labels for data (sklearn version). Defaults to None.
+        labels (ndarray, optional): (Ne*Nt,). Labels for data (sklearn version).
+            Defaults to None.
         target_style (str): 'public' or 'sklearn'. Target style of transformed dataset.
         filter_bank (bool): Multi-band data or single-band data.
 
@@ -477,7 +479,7 @@ def generate_mean(X: ndarray, y: ndarray) -> ndarray:
 
 def generate_var(
         X: ndarray,
-        y: ndarray = None) -> ndarray:
+        y: Optional[ndarray] = None) -> ndarray:
     """Calculate X_var from X & y.
 
     Args:
@@ -513,6 +515,36 @@ def generate_var(
     return X_var
 
 
+def generate_source_response(
+        X: ndarray,
+        y: ndarray,
+        w: ndarray) -> Tuple[ndarray, ndarray]:
+    """Calculate wX on latent subspace.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
+        w (ndarray): (Ne,Nk,Nc). Spatial filters.
+
+    Returns: Tuple[ndarray, ndarray]
+        S (ndarray): (Ne*Nt,Nk,Np). Source responses.
+        S_mean (ndarray): (Ne,Nk,Np). Trial-avereged S.
+    """
+    # basic information
+    n_trials = X.shape[0]  # Ne*Nt
+    n_components = w.shape[-2]  # Nk
+    n_points = X.shape[-1]  # Np
+    event_type = list(np.unique(y))  # (Ne,)
+
+    # backward-propagation
+    S = np.zeros((n_trials, n_components, n_points))
+    for nt in range(X.shape[0]):
+        event_idx = event_type.index(y[nt])
+        S[nt] = w[event_idx] @ X[nt]
+    S_mean = generate_mean(X=S, y=y)  # (Ne,Nk,Np)
+    return S, S_mean
+
+
 # %% 3. feature integration
 def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
     """Standardization of decision coefficient based on sign(x).
@@ -529,7 +561,8 @@ def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
 
 def combine_feature(
         features: List[Union[int, float, ndarray]],
-        func: Callable[[Union[int, float, ndarray]], Union[int, float, ndarray]] = sign_sta) -> ndarray:
+        func: Callable[[Union[int, float, ndarray]],
+                       Union[int, float, ndarray]] = sign_sta) -> ndarray:
     """Coefficient-level integration.
 
     Args:

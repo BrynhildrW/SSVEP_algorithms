@@ -5,6 +5,9 @@
 
 Spatialtemporal domain adaptation based on common latent subspace.
 
+Refers:
+    [1]: http://arxiv.org/abs/1612.01939
+
 Notations:
     n_events: Ne
     n_train: Nt
@@ -22,8 +25,6 @@ Notations:
 
 # %% Basic modules
 import utils
-
-import cca
 import trca
 import dsp
 
@@ -35,18 +36,19 @@ import scipy.linalg as sLA
 
 
 # %% Marginal distribution alignment
-def covar_alignment(C1: ndarray, C2: ndarray) -> ndarray:
-    """Solve problem: Q = min || Q^T C1 Q - C2 ||_F^2.
-        i.e. Q = C1^(-1/2) @ C2^(1/2)
+def coral_solve(Cs: ndarray, Ct: ndarray) -> ndarray:
+    """Solve CORAL problem: Q = min || Q^T Cs Q - Ct ||_F^2.
+        i.e. Q = Cs^(-1/2) @ Ct^(1/2)
+        Refer to [1].
 
     Args:
-        C1 (ndarray): (n,n). Covariance matrix.
-        C2 (ndarray): (n,n). Covariance matrix.
+        Cs (ndarray): (n,n). Second-order statistics of source dataset.
+        Ct (ndarray): (n,n). Second-order statistics of target dataset.
 
     Returns:
         Q (ndarray): (n,n). Linear transformation matrix Q.
     """
-    return utils.nega_root_matrix(C1) @ utils.root_matrix(C2)
+    return np.real(utils.nega_root_matrix(Cs) @ utils.root_matrix(Ct))
 
 
 def standardization(X: ndarray) -> ndarray:
@@ -80,8 +82,10 @@ def joint_trca_kernel(
         y_target (ndarray): (Ne*Nt(t),). Labels for X_target.
         X_source (ndarray): (Ne*Nt(s),Nc,Np). Source dataset of one subject.
         y_source (ndarray): (Ne*Nt(s),). Labels for X_source.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
         theta (float): 0-1. Hyper-parameter to control the use of source dataset.
+            Defaults to 0.5.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -111,7 +115,8 @@ def dependent_trca_kernel(
     Args:
         X (ndarray): (Ne*Nt(t),Nc,Np). Sklearn-style dataset. Nt>=2.
         y (ndarray): (Ne*Nt(t),). Labels for X.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
@@ -133,41 +138,59 @@ def joint_dsp_kernel(
         y_source: ndarray,
         n_components: int = 1,
         theta: float = 0.5) -> Dict[str, ndarray]:
-    """Calculate DSP filters to obtain source response on latent subspace.
+    """Calculate joint-DSP filter to obtain source response on latent subspace.
 
     Args:
         X_target (ndarray): (Ne*Nt(t),Nc,Np). Sklearn-style target dataset. Nt>=2.
         y_target (ndarray): (Ne*Nt(t),). Labels for X_target.
         X_source (ndarray): (Ne*Nt(s),Nc,Np). Source dataset of one subject.
         y_source (ndarray): (Ne*Nt(s),). Labels for X_source.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
         theta (float): 0-1. Hyper-parameter to control the use of source dataset.
+            Defaults to 0.5.
 
     Returns: Dict[str, ndarray]
         Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
         Sw (ndarray): (Nc,Nc). Scatter matrix of within-class difference.
         w (ndarray): (Ne,Nk,Nc). Spatial filter of joint-DSP.
     """
-    # basic information
-    n_events = len(np.unique(y_target))
-
     # Sb & Sw of target & source dataset
-    Sb_target, Sw_target, _ = utils.generate_sb_sw(X=X_target, y=y_target)
-    Sb_source, Sw_source, _ = utils.generate_sb_sw(X=X_source, y=y_source)
-
+    Sb_target, Sw_target, _ = dsp.generate_dsp_mat(X=X_target, y=y_target)
+    Sb_source, Sw_source, _ = dsp.generate_dsp_mat(X=X_source, y=y_source)
     Sb = (1 - theta) * Sb_target + theta * Sb_source
     Sw = (1 - theta) * Sw_target + theta * Sw_source
 
     # GEPs | train spatial filter
-    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components)  # (Nk,Nc)
-    w = np.tile(A=w[None, ...], reps=(n_events, 1, 1))  # (Ne,Nk,Nc)
+    w = dsp.solve_dsp_func(Sb=Sb, Sw=Sw, n_components=n_components)
+    w = np.tile(A=w[None, ...], reps=(Sb.shape[0], 1, 1))  # (Ne,Nk,Nc)
 
     # backward-propagation model
     return {'Sb': Sb, 'Sw': Sw, 'w': w}
 
 
-def dependent_dsp_kernel():
-    pass
+def dependent_dsp_kernel(
+        X: ndarray,
+        y: ndarray,
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """Calculate normal DSP filter to obtain source activity on latent subspace.
+
+    Args:
+        X (ndarray): (Ne*Nt(t),Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt(t),). Labels for X.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
+
+    Returns: Dict[str, ndarray]
+        Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
+        Sw (ndarray): (Nc,Nc). Scatter matrix of within-class difference.
+        w (ndarray): (Ne,Nk,Nc). Spatial filter of DSP.
+    """
+    # normal DSP modeling process
+    Sb, Sw = dsp.generate_dsp_mat(X=X, y=y)
+    w = dsp.solve_dsp_func(Sb=Sb, Sw=Sw, n_components=n_components)
+    w = np.tile(A=w[None, ...], reps=(Sb.shape[0], 1, 1))  # (Ne,Nk,Nc)
+    return {'Sb': Sb, 'Sw': Sw, 'w': w}
 
 
 # %% Conditional distribution alignment
@@ -176,6 +199,7 @@ def generate_source_response(
         y: ndarray,
         w: ndarray) -> Tuple[ndarray, ndarray]:
     """Calculate wX on latent subspace.
+        (Deprecated) Already in utils modules.
 
     Args:
         X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
@@ -278,8 +302,8 @@ def noise_estimation(
         (1) N_source = X_source - A_source @ S_source
         (2) A_source @ S_source + Q_source @ N_source = X_target
         By solving problem:
-        Q = min || (AS + QN) (AS + QN)^T - Var(X_target) ||_F^2
-          = min || Q (NN^T) Q^T - Var + AS (AS)^T ||_F^2
+        Q = min || (A @ S + Q^T @ N) (A @ S + Q @ N)^T - Var(X_target) ||_F^2
+          = min || Q^T (N @ N^T) Q - Var + A @ S (A @ S)^T ||_F^2
         To get the esimation of the noise of target-domain data:
         N_target = Q_source @ N_source
         It should be noted that the calculation process of the input parameter
@@ -300,126 +324,53 @@ def noise_estimation(
     # basic information
     n_events = X_source_mean.shape[0]  # Ne
     n_chans = X_source_mean.shape[1]  # Nc
+    n_points = X_source_mean.shape[-1]  # Np
 
     # preparation for solution
     # Var(X_target), X_target_var | (Ne,Nc,Nc)
     X_target_var = utils.generate_var(X=X_target, y=y_target)
 
-    # A_source @ S_source, AwX_source_mean | N_source, N_source_mean | (Ne,Nc,Np)
-    AwX_source_mean = np.einsum('eck,ekp->ecp', A_source, S_source_mean)
+    # A_source @ S_source (AwX_source_mean) | N_source (N_source_mean)
+    AwX_source_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    for ne in range(n_events):
+        AwX_source_mean[ne] = A_source[ne] @ S_source_mean[ne]
+    # SLOWER: np.einsum('eck,ekp->ecp', A_source, S_source_mean)
     N_source_mean = X_source_mean - AwX_source_mean  # (Ne,Nc,Np)
 
-    # N @ N^T, N_source_mean | AS @ (AS)^T, AwX_source_var | (Ne,Nc,Nc)
-    N_source_var = np.einsum('ecp,ehp->ech', N_source_mean, N_source_mean)
-    AwX_source_var = np.einsum('ecp,ehp->ech', AwX_source_mean, AwX_source_mean)
+    # N @ N^T (N_source_mean) | AS @ (AS)^T (AwX_source_var)
+    N_source_var = np.zeros_like(X_target_var)  # (Ne,Nc,Nc)
+    AwX_source_var = np.zeros_like(X_target_var)  # (Ne,Nc,Nc)
+    for ne in range(n_events):
+        N_source_var[ne] = N_source_mean[ne] @ N_source_mean[ne].T
+        AwX_source_var[ne] = AwX_source_mean[ne] @ AwX_source_mean[ne].T
+    # SLOWER: np.einsum('ecp,ehp->ech', N_source_mean, N_source_mean)
+    # SLOWER: np.einsum('ecp,ehp->ech', AwX_source_mean, AwX_source_mean)
 
     # analytical solution
     Q_noise = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     N_target = np.zeros_like(N_source_mean)  # (Ne,Nc,Np)
     for ne in range(n_events):
-        Q_noise[ne] = covar_alignment(
-            C1=N_source_var[ne],
-            C2=X_target_var[ne] - AwX_source_var[ne]
+        Q_noise[ne] = coral_solve(
+            Cs=N_source_var[ne],
+            Ct=X_target_var[ne] - AwX_source_var[ne]
         )  # (Nc,Nc)
-        N_target[ne] = Q_noise[ne] @ N_source_mean[ne]
+        N_target[ne] = Q_noise[ne].T @ N_source_mean[ne]
     return Q_noise, N_target
 
 
+# Amplitude scaling of transferred signal
+def amplitude_scaling():
+    pass
+
+
 # %% Main classes
-class CDA(object):
-    """Conditional distribution alignment based on waveform."""
-    kernel_methods = {'TRCA': joint_trca_kernel,
-                      'DSP': joint_dsp_kernel}
-
-    def __init__(
-            self,
-            kernel: str = 'DSP',
-            joint: bool = True,
-            n_components: int = 1):
-        """Basic configuration.
-
-        Args:
-            kernel (str): Backward-propagation method. 'DSP' or 'TRCA'.
-            joint (bool): WWhether to use source-domain data in kernel function.
-                Defaults to True.
-            n_components (int): Number of eigenvectors picked as filters.
-        """
-        # config model
-        self.kernel = kernel
-        self.joint = joint
-        self.n_components = n_components
-
-    def fit(
-            self,
-            X_target: ndarray,
-            y_target: ndarray,
-            X_source: ndarray,
-            y_source: ndarray,
-            sine_template: Optional[ndarray] = None,
-            theta: float = 0.5,
-            rho: float = 0.1):
-        """Train conditional distribution alignment model.
-
-        Args:
-            X_target (ndarray): (Ne*Nt(t),Nc,Np). Sklearn-style target dataset. Nt>=2.
-            y_target (ndarray): (Ne*Nt(t),). Labels for X_target.
-            X_source (ndarray): (Ne*Nt(s),Nc,Np). Source dataset of one subject.
-            y_source (ndarray): (Ne*Nt(s),). Labels for X_source.
-            sine_template (ndarray, Optional): (Ne,2*Nh,Np). Sinusoidal templates.
-            theta (float): 0-1. Hyper-parameter to control the use of source dataset.
-            rho (float): 0-1. L2 regularization parameter to control the size of P.
-        """
-        # basic information
-        self.X_target = X_target
-        self.y_target = y_target
-        self.X_source = X_source
-        self.y_source = y_source
-        self.sine_template = sine_template
-        self.theta = theta
-        self.rho = rho
-
-        # backward-propagation
-        self.backward_model = self.kernel_methods[self.kernel](
-            X_target=self.X_target,
-            y_target=self.y_target,
-            X_source=self.X_source,
-            y_source=self.y_source,
-            n_components=self.n_components,
-            theta=self.theta
-        )
-        self.w = self.backward_model['w']  # (Ne,Nk,Nc)
-        self.S_target, self.S_target_mean = generate_source_response(
-            X=self.X_target,
-            y=self.y_target,
-            w=self.w
-        )  # (Ne*Nt(t),Nk,Np), (Ne,Nk,Np)
-
-        # forward-propagation
-        self.A = forward_propagation(
-            X=self.X_target,
-            y=self.y_target,
-            S=self.S_target,
-            w=self.w
-        )  # (Ne,Nc,Nk)
-
-        # time-domain alignment
-        self.S_source, self.S_source_mean = generate_source_response(
-            X=self.X_source,
-            y=self.y_source,
-            w=self.w
-        )  # (Ne*Nt(s),Nk,Np), (Ne,Nk,Np)
-        self.P = time_alignment(
-            S_target_mean=self.S_target_mean,
-            S_source=self.S_source,
-            y_source=self.y_source,
-            S_source_mean=self.S_source_mean,
-            rho=self.rho
-        )  # (Ne,Np,Np)
-        pass
-
-
 class CLS_STDA(object):
     """Spatialtemporal domain adaptation (STDA) based on common latent subspace (CLS)."""
+    joint_kernels = {'TRCA': joint_trca_kernel,
+                     'DSP': joint_dsp_kernel}
+    target_kernels = {'TRCA': dependent_trca_kernel,
+                      'DSP': dependent_dsp_kernel}
+
     def __init__(
             self,
             X_source: ndarray,
@@ -447,7 +398,9 @@ class CLS_STDA(object):
             n_components (int): Number of eigenvectors picked as filters.
                 Defaults to 1.
             theta (float): 0-1. Hyper-parameter to control the use of source dataset.
+                Defaults to 0.5.
             rho (float): 0-1. L2 regularization parameter to control the size of P.
+                Defaults to 0.1.
         """
         # load in data
         self.X_source = X_source
@@ -461,32 +414,104 @@ class CLS_STDA(object):
         self.theta = theta
         self.rho = rho
 
-    def prepare(self):
-        """Data initialization for training."""
-        pass
-
     def margi_distr_alignment(self):
         """Marginal distribution alignment between X_source (X_target) & I."""
-        # Q_source = min ||Q_source @ Var(X_source) @ Q_source.T - I||_F^2
-        self.Q_source = covar_alignment(
-            C1=utils.generate_var(X=self.X_source, y=None),
-            C2=np.eye(self.X_source.shape[-2])
+        # Q_source = min ||Q_source.T @ Var(X_source) @ Q_source - I||_F^2
+        self.Q_source = coral_solve(
+            Cs=utils.generate_var(X=self.X_source, y=None),
+            Ct=np.eye(self.X_source.shape[-2])
         )  # (Nc,Nc)
-        self.X_source_temp = np.einsum('ch,ehp->ecp', self.Q_source, self.X_source)
+        self.X_source_temp = np.zeros_like(self.X_source)
+        for nst in range(self.X_source.shape[0]):
+            self.X_source_temp[nst] = self.Q_source.T @ self.X_source[nst]
+        # FUCK! MUCH SLOWER: np.einsum('hc,ehp->ecp', self.Q_source, self.X_source)
 
-        # Q_target = min ||Q_target @ Var(X_target) @ Q_target.T - I||_F^2
-        self.Q_target = covar_alignment(
-            C1=utils.generate_var(X=self.X_target, y=None),
-            C2=np.eye(self.X_target.shape[-2])
+        # Q_target = min ||Q_target.T @ Var(X_target) @ Q_target - I||_F^2
+        self.Q_target = coral_solve(
+            Cs=utils.generate_var(X=self.X_target, y=None),
+            Ct=np.eye(self.X_target.shape[-2])
         )  # (Nc,Nc)
-        self.X_target_temp = np.einsum('ch,ehp->ecp', self.Q_target, self.X_target)
+        self.X_target_temp = np.zeros_like(self.X_target)
+        for ntt in range(self.X_target.shape[0]):
+            self.X_target_temp[ntt] = self.Q_source.T @ self.X_target[ntt]
+        # FUCK! MUCH SLOWER: np.einsum('hc,ehp->ecp', self.Q_target, self.X_target)
 
     def data_standardization(self):
         """Data standardization process specially designed for domain adaptation."""
         self.X_source_temp = standardization(X=self.X_source_temp)
         self.X_target_temp = standardization(X=self.X_target_temp)
 
+    def noise_distr_alignment(self):
+        """Target-domain background EEG signal alignment & estimation."""
+        # backward-propagation based on source-domain data only
+        source_backward_model = self.target_kernels[self.target_kernel](
+            X=self.X_source,
+            y=self.y_source,
+            n_components=self.n_components
+        )
+        X_source_mean = utils.generate_mean(X=self.X_source, y=self.y_source)
+        S_source, S_source_mean = generate_source_response(
+            X=self.X_source,
+            y=self.y_source,
+            w=source_backward_model['w']
+        )
+
+        # forward-propagation based on source-domain data only
+        A_source = forward_propagation(
+            X=self.X_source,
+            y=self.y_source,
+            S=S_source,
+            w=source_backward_model['w']
+        )
+
+        # solve CORAL problems & noise estimation
+        self.Q_noise, self.N_target = noise_estimation(
+            X_source_mean=X_source_mean,
+            S_source_mean=S_source_mean,
+            A_source=A_source,
+            X_target=self.X_target,
+            y_target=self.y_target
+        )
+
     def condi_distr_alignment(self):
         """Conditional distribution alignment based on waveform."""
-        
-        pass
+        # backward-propagation
+        self.backward_model = self.joint_kernels[self.joint_kernel](
+            X_target=self.X_target,
+            y_target=self.y_target,
+            X_source=self.X_source,
+            y_source=self.y_source,
+            n_components=self.n_components,
+            theta=self.theta
+        )
+        self.w = self.backward_model['w']  # (Ne,Nk,Nc)
+        self.S_target, self.S_target_mean = generate_source_response(
+            X=self.X_target,
+            y=self.y_target,
+            w=self.w
+        )  # (Ne*Nt(t),Nk,Np), (Ne,Nk,Np)
+
+        # forward-propagation
+        self.A = forward_propagation(
+            X=self.X_target,
+            y=self.y_target,
+            S=self.S_target,
+            w=self.w
+        )  # (Ne,Nc,Nk)
+
+        # time-domain alignment in latent subspace
+        self.S_source, self.S_source_mean = generate_source_response(
+            X=self.X_source,
+            y=self.y_source,
+            w=self.w
+        )  # (Ne*Nt(s),Nk,Np), (Ne,Nk,Np)
+        self.P = time_alignment(
+            S_target_mean=self.S_target_mean,
+            S_source=self.S_source,
+            y_source=self.y_source,
+            S_source_mean=self.S_source_mean,
+            rho=self.rho
+        )  # (Ne,Np,Np)
+
+        # target-domain background signal estimation
+        self.noise_distr_alignment()
