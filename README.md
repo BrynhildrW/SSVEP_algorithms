@@ -14,7 +14,7 @@ Github的公式编辑有一些问题，每个算法的详细说明与公式推�
 
 （1）重写了 TRCA 模型的一些基础函数，方便后续利用这些协方差矩阵进行其它的新算法构建；
 
-（2）在 programs 文件夹中的 `transfer` 库里新增了两个模型：`transfer.IISMC()` 和 `transfer.ASS_IISCCA()`
+（2）在 programs 文件夹中的 `transfer` 库里新增了三个模型：`transfer.LST()`、`transfer.IISMC()` 和 `transfer.ASS_IISCCA()`，三个模型的源文献在代码头部说明处列出
 
 （3）FlowUs 这个狗日的软件现在开始收费了，虽然我是会员，但是不知道哪一天可能它就不向其它免费用户（比如我可能存在的读者？）开放了，因此关于已有内容，我现在正在往 Obsidian 备份，未来会上传 .md 格式的算法说明文件
 
