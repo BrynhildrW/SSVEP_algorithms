@@ -27,3 +27,15 @@ Github的公式编辑有一些问题，每个算法的详细说明与公式推�
 （1）ALPHA
 
 （2）cold-start
+
+---
+
+目前已支持：
+
+（1）CCA 系列：`cca.CCA()`、`cca.MEC()`、`cca.MCC()`、`cca.MSI()`、`cca.ITCCA()`、`cca.ECCA()`、`cca.MSCCA()`、`cca.MS_ECCA`、`cca.MSETCCA1()`、`cca.TDCCA()` 以及各自的 filter-bank 版本
+
+（2）TRCA 系列：`trca.TRCA()`、`trca.MS_TRCA()`、`trca.TRCA_R()`、`trca.SC_TRCA()` 以及各自的集成版本
+
+（3）DSP 系列：`dsp.DSP()`、`dsp.TDCA()` 以及各自的 filter-bank 版本
+
+（4）迁移学习算法：`transfer.TNSRE_20233250953()`、`transfer.STCCA()`、`transfer.TLCCA()`、`transfer.SDLST()`、`transfer.TNSRE_20233305202()`、`transfer.IISMC()`、`transfer.ASS_IISCCA()` 以及各自的 filter-bank 版本
