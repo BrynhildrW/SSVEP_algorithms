@@ -52,7 +52,7 @@ Notations:
 import utils
 
 from abc import abstractmethod
-from typing import Optional, Tuple, List, Dict, Union
+from typing import Optional, Tuple, List, Dict, Union, Any
 
 import numpy as np
 from numpy import ndarray
@@ -220,7 +220,7 @@ def generate_cca_template(
         uX (ndarray): (Nk,Np). Filtered X
         vY (ndarray): (Nk,Np). Filtered Y.
     """
-    return u @ X, v @ Y
+    return utils.fast_stan_2d(u @ X), utils.fast_stan_2d(v @ Y)
 
 
 def check_plus_minis(
@@ -249,13 +249,16 @@ def check_plus_minis(
 def cca_kernel(
         X: ndarray,
         Y: ndarray,
-        n_components: int = 1) -> Dict[str, Union[int, ndarray]]:
+        n_components: int = 1,
+        check_direc: bool = True) -> Dict[str, Union[int, ndarray]]:
     """The modeling process of CCA.
 
     Args:
         X (ndarray): (Nc,Np).
         Y (ndarray): (2Nh,Np).
         n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1.
+        check_direc (bool): Use check_plus_minis() or not. Defaults to True.
 
     Returns: Dict[str, Union[int, ndarray]]
         Cxx (ndarray): (Nc,Nc). Covariance of X.
@@ -273,7 +276,9 @@ def cca_kernel(
 
     # generate spatial-filtered templates
     uX, vY = generate_cca_template(u=u, v=v, X=X, Y=Y)
-    corr_coef, v, vY = check_plus_minis(uX=uX, vY=vY, v=v)
+    corr_coef = 0
+    if check_direc:
+        corr_coef, v, vY = check_plus_minis(uX=uX, vY=vY, v=v)
 
     # CCA model
     training_model = {
@@ -1458,15 +1463,16 @@ def generate_tdcca_mat(
         X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
         y (ndarray): (Ne*Nt,). Labels for X.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+
+    Returns: Tuple[ndarray, ndarray, ndarray, ndarray]
         Cxx, Cxy, Cyy (ndarray): (Ne,Nc,Nc). Covariance matrices.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
     """
     # basic information
     event_type = np.unique(y)
+    n_events = event_type.shape[0]  # Ne
+    n_chans = X.shape[1]  # Nc
     X_mean = utils.generate_mean(X=X, y=y)  # (Ne,Nc,Np)
-    n_events = X_mean.shape[0]  # Ne
-    n_chans = X_mean.shape[1]  # Nc
 
     # covariance matrices
     Cxx = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
@@ -1539,7 +1545,7 @@ def tdcca_kernel(
         X_train: ndarray,
         y_train: ndarray,
         n_components: int = 1) -> Dict[str, ndarray]:
-    """The modeling process of TDCCA.
+    """The modeling process of TDCCA.`
 
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
@@ -1551,6 +1557,7 @@ def tdcca_kernel(
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of X_train.
         Cxy (ndarray): (Ne,Nc,Nc). Covariance of X_train & X_mean.
         Cyy (ndarray): (Ne,Nc,Nc). Covariance of X_mean.
+        X_mean (ndarray): (Ne,Nc,Np).
         w (ndarray): (Ne,Nk,Nc). Spatial filter.
         wX (ndarray): (Ne,Nk,Np). Filtered X_mean.
     """
@@ -1564,7 +1571,7 @@ def tdcca_kernel(
     # CCA model
     training_model = {
         'Cxx': Cxx, 'Cxy': Cxy, 'Cyy': Cyy,
-        'w': w, 'wX': wX
+        'X_mean': X_mean, 'w': w, 'wX': wX
     }
     return training_model
 

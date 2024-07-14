@@ -11,6 +11,7 @@
     (1-5) fast_stan_3d()
     (1-6) fast_stan_4d()
     (1-7) fast_stan_5d()
+    (1-8) generate_data_info()
 
 2. Data generation
     (2-1) sin_wave()
@@ -64,9 +65,14 @@
     (9-3) create_conv_matrix()
     (9-4) correct_conv_matrix()
 
-10. Filter bank
+10. Filter-bank technology
     (10-1) generate_filter_bank
     (10-2) (class) FilterBank
+
+11. Linear transformation
+    (11-1) forward_propagation
+    (11-3) solve_coral
+
 
 Notations:
     n_events: Ne
@@ -83,7 +89,7 @@ Notations:
 """
 
 # %% basic moduls
-from typing import Optional, List, Tuple, Dict, Union, Callable
+from typing import Optional, List, Tuple, Dict, Union, Callable, Any
 from numpy import ndarray
 import numpy as np
 
@@ -211,6 +217,30 @@ def fast_stan_5d(X: ndarray) -> ndarray:
                     X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] - np.mean(X[d1, d2, d3, d4, :])
                     X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] / np.std(X[d1, d2, d3, d4, :])
     return X
+
+
+def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
+    """Generate basic data information.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Input data.
+        y (ndarray): (Ne*Nt,). Labels for X.
+
+    Returns: Dict[str, Any]
+        event_type (ndarray): (Ne,).
+        n_events (int): Ne.
+        n_train (ndarray): (Ne,). Trials of each event.
+        n_chans (int): Nc.
+        n_points (int): Np.
+    """
+    event_type = np.unique(y)
+    return {
+        'event_type': event_type,
+        'n_events': event_type.shape[0],
+        'n_train': np.array([np.sum(y == et) for et in event_type]),
+        'n_chans': X.shape[1],
+        'n_points': X.shape[-1]
+    }
 
 
 # %% 2. data gerenation
@@ -479,20 +509,24 @@ def generate_mean(X: ndarray, y: ndarray) -> ndarray:
 
 def generate_var(
         X: ndarray,
-        y: Optional[ndarray] = None) -> ndarray:
+        y: Optional[ndarray] = None,
+        unbias: bool = False) -> ndarray:
     """Calculate X_var from X & y.
 
     Args:
         X (ndarray): (Ne*Nt,Nc,Np). Input data.
         y (ndarray): (Ne*Nt,). Labels for X.
             If None, ignore category information.
+        unbias (bool): Unbias estimation. Defaults to False.
+            When 'True', the result may fluctuate by 0.05%.
 
     Returns:
         X_var (ndarray): (Ne,Nc,Nc) or (Nc,Nc).
             Variance matrices of X.
     """
     # basic information
-    n_chans = X.shape[-2]
+    n_chans = X.shape[-2]  # Nc
+    n_points = X.shape[-1]  # Np
 
     # calculate covariance matrices
     if y is not None:
@@ -506,12 +540,18 @@ def generate_var(
             X_temp = X[y == et]  # (Nt,Nc,Np)
             for nt in range(n_trial):
                 X_var[ne] += X_temp[nt] @ X_temp[nt].T
-            X_var[ne] /= n_trial
+            if not unbias:  # Default
+                X_var[ne] /= n_trial
+            else:  # unbias estimation
+                X_var[ne] /= (n_trial * n_points - 1)
     else:  # y is None
         X_var = np.zeros((n_chans, n_chans))  # (Nc,Nc)
         for nt in range(X.shape[0]):
             X_var += X[nt] @ X[nt].T
-        X_var /= X.shape[0]
+        if not unbias:
+            X_var /= X.shape[0]
+        else:
+            X_var /= (X.shpae[0] * n_points - 1)
     return X_var
 
 
@@ -659,7 +699,6 @@ def pearson_corr(
             ndarray (l,): X (m,n) & Y (l,m,n).
     """
     X, Y = standardization(X), standardization(Y)
-    n = X.shape[-1]
 
     # reshape data into vector-style: reshape() is 5 times faster than flatten()
     X = np.reshape(X, -1, order='C')  # (m*n,)
@@ -667,7 +706,7 @@ def pearson_corr(
         Y = np.reshape(Y, (Y.shape[0], -1), order='C')  # (l,m*n)
     else:  # Y: (m,n)
         Y = np.reshape(Y, -1, order='C')  # (m*n,)
-    return Y @ X / n
+    return Y @ X / X.shape[-1]
 
 
 @njit(fastmath=True)
@@ -1266,3 +1305,51 @@ class FilterBank(BaseEstimator, TransformerMixin):
         X_fb = np.stack([sosfiltfilt(sos, X_train, axis=-1)
                          for sos in self.filter_bank])
         return X_fb
+
+
+# %% 11. Linear transformation
+def forward_propagation(
+        X: ndarray,
+        y: ndarray,
+        S: ndarray,
+        w: ndarray) -> ndarray:
+    """Calculate propagation matricx A based on source responses.
+        A = argmin||A @ s - X||.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Original data. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
+        S (ndarray): (Ne*Nt,Nk,Np). Source responses of X.
+        w (ndarray): (Ne,Nk,Nc). Spatial filters.
+
+    Returns: ndarray
+        A (ndarray): (Ne,Nc,Nk). Propagation matrices.
+    """
+    # basic information
+    event_type = np.unique(y)
+    n_events = event_type.shape[0]  # Ne
+    n_chans = X.shape[-2]  # Nc
+    n_components = w.shape[-2]  # Nk
+
+    # analytical solution
+    X_var = generate_var(X=X, y=y)  # (Ne,Nc,Nc)
+    S_var = generate_var(X=S, y=y)  # (Ne,Nk.Nk)
+    A = np.zeros((n_events, n_chans, n_components))
+    for ne in range(n_events):
+        A[ne] = X_var[ne] @ w[ne].T @ sLA.inv(S_var[ne])
+    return A
+
+
+def solve_coral(Cs: ndarray, Ct: ndarray) -> ndarray:
+    """Solve CORAL problem: Q = min || Q^T Cs Q - Ct ||_F^2.
+        i.e. Q = Cs^(-1/2) @ Ct^(1/2)
+        Refer to [1].
+
+    Args:
+        Cs (ndarray): (n,n). Second-order statistics of source dataset.
+        Ct (ndarray): (n,n). Second-order statistics of target dataset.
+
+    Returns:
+        Q (ndarray): (n,n). Linear transformation matrix Q.
+    """
+    return np.real(nega_root_matrix(Cs) @ root_matrix(Ct))

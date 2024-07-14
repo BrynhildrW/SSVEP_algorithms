@@ -26,6 +26,7 @@ Transfer learning based on matrix decomposition.
             DOI: 10.1088/1741-2552/abcb6e
     (11) ALPHA: https://ieeexplore.ieee.org/document/9516951/
             DOI: 10.1109/TBME.2021.3105331
+            Blog: https://flowus.cn/brynhildrw/share/c7192130-3168-40c3-a179-0ba576621b01?code=QAMT4F
     (12)
 
 Notations:
@@ -52,13 +53,14 @@ import cca
 import trca
 import dsp
 
-from typing import Optional, List, Tuple, Dict, Union
+from typing import Optional, List, Tuple, Dict, Union, Any
 from numpy import ndarray
 
 import numpy as np
 import scipy.linalg as sLA
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+from sklearn.model_selection import LeaveOneOut, StratifiedKFold, StratifiedShuffleSplit
 
 
 # %% Basic Transfer object & functions
@@ -174,8 +176,7 @@ class BasicTransfer(BaseEstimator, TransformerMixin, ClassifierMixin):
             y_pred (ndarray): (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
-        event_type = self.train_info_target['event_type']
-        self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
+        self.y_pred = self.event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
 
@@ -194,7 +195,7 @@ class BasicFBTransfer(utils.FilterBank, ClassifierMixin):
             y_pred (ndarray): (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
-        event_type = self.sub_estimator[0].train_info_target['event_type']
+        event_type = self.sub_estimator[0].event_type
         self.y_pred = event_type[np.argmax(self.features['rho'], axis=-1)]
         return self.y_pred
 
@@ -250,89 +251,70 @@ class BasicASS(object):
 
 
 # %% 2. 10.1109/TNSRE.2023.3250953
-def tnsre_20233250953_kernel(
-        X_train: ndarray,
-        y_train: ndarray,
-        sine_template: ndarray,
-        train_info: dict,
-        n_components: int = 1) -> Dict[str, ndarray]:
-    """Intra-domain modeling process of algorithm TNSRE_20233250953.
+def generate_tnsre_20233250953_mat(
+        X: ndarray,
+        y: ndarray,
+        sine_template: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
+    """Generate covariance matrices Q & S for TNSRE_20233250953 model.
 
     Args:
-        X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
-        y_train (ndarray): (Ne*Nt,). Labels for X_train.
+        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
-        train_info (dict): {'event_type':ndarray (Ne,),
-                            'n_events':int,
-                            'n_train':ndarray (Ne,),
-                            'n_chans':int,
-                            'n_points':int}
-        n_components (int): Number of eigenvectors picked as filters.
 
-    Returns: Dict[str, ndarray]
+    Returns: Tuple[ndarray, ndarray, ndarray]
         Q (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Covariance matrices.
-        S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices. Q^{-1}Sw = lambda w.
-        w (ndarray): (Ne,Nk,Nc). Spatial filters for original signal.
-        u (ndarray): (Ne,Nk,Nc). Spatial filters for averaged template.
-        v (ndarray): (Ne,Nk,2*Nh). Spatial filters for sinusoidal template.
-        ew (ndarray): (Ne*Nk,Nc). Concatenated w.
-        eu (ndarray): (Ne*Nk,Nc). Concatenated u.
-        ev (ndarray): (Ne*Nk,2*Nh). Concatenated v.
-        euX (ndarray): (Ne,Ne*Nk*Np). Filtered averaged templates (reshaped).
-        evY (ndarray): (Ne,Ne*Nk*Np). Filtered sinusoidal templates (reshaped).
+        S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices.
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
     """
     # basic information
-    event_type = train_info['event_type']
-    n_events = train_info['n_events']  # Ne
-    n_train = train_info['n_train']  # [Nt1,Nt2,...]
-    n_chans = train_info['n_chans']  # Nc
-    n_points = train_info['n_points']  # Np
-    n_dims = sine_template.shape[1]  # 2*Nh
+    event_type = np.unique(y)
+    n_events = event_type.shape[0]  # Ne
+    n_chans = X.shape[1]  # Nc
+    n_points = X.shape[-1]  # Np
+    n_dims = sine_template.shape[1]  # 2Nh
 
     # block covariance matrices: S & Q
-    S = np.tile(
-        A=np.eye(2 * n_chans + n_dims)[None, ...],
-        reps=(n_events, 1, 1)
-    )  # (Ne,2*Nc+2*Nh,2*Nc+2*Nh)
-    Q = np.zeros_like(S)
-    X_sum = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    X_mean = np.zeros_like(X_sum)  # (Ne,Nc,Np)
+    S = np.tile(A=np.eye(2 * n_chans + n_dims), reps=(n_events, 1, 1))
+    Q = np.zeros_like(S)  # (Ne,2*Nc+2*Nh,2*Nc+2*Nh)
+    X_mean = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
     for ne, et in enumerate(event_type):
-        train_trials = n_train[ne]  # Nt
-        assert train_trials > 1, 'The number of training samples is too small!'
+        X_temp = X[y == et]  # (Nt,Nc,Np)
+        n_train = X_temp.shape[0]  # Nt
+        assert n_train > 1, 'The number of training samples is too small!'
 
-        X_temp = X_train[y_train == et]  # (Nt,Nc,Np)
-        X_sum[ne] = np.sum(X_temp, axis=0)
-        X_mean[ne] = X_sum[ne] / train_trials
+        X_sum = np.sum(X_temp, axis=0)  # (Nc,Np)
+        X_mean[ne] = X_sum / n_train  # (Nc,Np)
 
-        Cxsxs = X_sum[ne] @ X_sum[ne].T  # (Nc,Nc)
-        Cxsxm = X_sum[ne] @ X_mean[ne].T  # (Nc,Nc)
-        Cxmxm = X_mean[ne] @ X_mean[ne].T  # (Nc,Nc)
-        Cxsy = X_sum[ne] @ sine_template[ne].T  # (Nc,2*Nh)
-        Cxmy = X_mean[ne] @ sine_template[ne].T  # (Nc,2*Nh)
-        Cyy = sine_template[ne] @ sine_template[ne].T  # (2*Nh,2*Nh)
-        Cxx = np.zeros((n_chans, n_chans))  # (Nc,Nc)
-        for tt in range(train_trials):
-            Cxx += X_temp[tt] @ X_temp[tt].T
+        # blocks preparation
+        Css = X_sum @ X_sum.T  # (Nc,Nc)
+        Csm = X_sum @ X_mean[ne].T  # (Nc,Nc)
+        Cmm = X_mean[ne] @ X_mean[ne].T  # (Nc,Nc)
+        Csy = X_sum @ sine_template[ne].T  # (Nc,2Nh)
+        Cmy = X_mean[ne] @ sine_template[ne].T  # (Nc,2Nh)
+        Cyy = sine_template[ne] @ sine_template[ne].T  # (2Nh,2Nh)
+        Cxx = np.zeros_like(Css)  # (Nc,Nc)
+        for ntr in range(n_train):
+            Cxx += X_temp[ntr] @ X_temp[ntr].T
 
         # block covariance matrices S: [[S11,S12,S13],[S21,S22,S23],[S31,S32,S33]]
         # S11: inter-trial covariance
-        S[ne, :n_chans, :n_chans] = Cxsxs
+        S[ne, :n_chans, :n_chans] = Css
 
         # S12 & S21.T covariance between the SSVEP trials & the individual template
-        S[ne, :n_chans, n_chans:2 * n_chans] = Cxsxm
-        S[ne, n_chans:2 * n_chans, :n_chans] = Cxsxm.T
+        S[ne, :n_chans, n_chans:2 * n_chans] = Csm
+        S[ne, n_chans:2 * n_chans, :n_chans] = Csm.T
 
         # S13 & S31.T: similarity between the SSVEP trials & sinusoidal template
-        S[ne, :n_chans, 2 * n_chans:] = Cxsy
-        S[ne, 2 * n_chans:, :n_chans] = Cxsy.T
+        S[ne, :n_chans, 2 * n_chans:] = Csy
+        S[ne, 2 * n_chans:, :n_chans] = Csy.T
 
         # S23 & S32.T: covariance between the individual template & sinusoidal template
-        S[ne, n_chans:2 * n_chans, 2 * n_chans:] = Cxmy
-        S[ne, 2 * n_chans:, n_chans:2 * n_chans] = Cxmy.T
+        S[ne, n_chans:2 * n_chans, 2 * n_chans:] = Cmy
+        S[ne, 2 * n_chans:, n_chans:2 * n_chans] = Cmy.T
 
         # S22 & S33: variance of individual template & sinusoidal template
-        S[ne, n_chans:2 * n_chans, n_chans:2 * n_chans] = 2 * Cxmxm
+        S[ne, n_chans:2 * n_chans, n_chans:2 * n_chans] = 2 * Cmm
         S[ne, 2 * n_chans:, 2 * n_chans:] = 2 * Cyy
 
         # block covariance matrices Q: blkdiag(Q1,Q2,Q3)
@@ -340,13 +322,41 @@ def tnsre_20233250953_kernel(
         Q[ne, :n_chans, :n_chans] = Cxx
 
         # Q2 & Q3: variance of individual template & sinusoidal template
-        Q[ne, n_chans:2 * n_chans, n_chans:2 * n_chans] = Cxmxm
+        Q[ne, n_chans:2 * n_chans, n_chans:2 * n_chans] = Cmm
         Q[ne, 2 * n_chans:, 2 * n_chans:] = Cyy
+    return Q, S, X_mean
 
-    # GEPs | train spatial filters
+
+def solve_tnsre_20233250953_func(
+        Q: ndarray,
+        S: ndarray,
+        n_chans: int,
+        n_components: int = 1) -> Tuple[ndarray, ndarray, ndarray,
+                                        ndarray, ndarray, ndarray]:
+    """Solve TNSRE_20233250953 target function.
+
+    Args:
+        Q (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Covariance matrices.
+        S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
+
+    Returns: Tuple
+        w (ndarray): (Ne,Nk,Nc). Spatial filters for original signal.
+        u (ndarray): (Ne,Nk,Nc). Spatial filters for averaged template.
+        v (ndarray): (Ne,Nk,2*Nh). Spatial filters for sinusoidal template.
+        ew (ndarray): (Ne*Nk,Nc). Concatenated w.
+        eu (ndarray): (Ne*Nk,Nc). Concatenated u.
+        ev (ndarray): (Ne*Nk,2*Nh). Concatenated v.
+    """
+    # basic information
+    n_events = Q.shape[0]  # Ne
+    n_dims = int(Q.shape[1] - 2 * n_chans)  # 2Nh
+
+    # solve GEPs
     w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
     u = np.zeros_like(w)  # (Ne,Nk,Nc)
-    v = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2*Nh)
+    v = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
     for ne in range(n_events):
         spatial_filter = utils.solve_gep(A=S[ne], B=Q[ne], n_components=n_components)
         w[ne] = spatial_filter[:, :n_chans]  # for raw signal
@@ -355,8 +365,33 @@ def tnsre_20233250953_kernel(
     ew = np.reshape(w, (n_events * n_components, n_chans), 'C')  # (Ne*Nk,Nc)
     eu = np.reshape(u, (n_events * n_components, n_chans), 'C')  # (Ne*Nk,Nc)
     ev = np.reshape(v, (n_events * n_components, n_dims), 'C')  # (Ne*Nk,Nc)
+    return w, u, v, ew, eu, ev
 
-    # signal templates
+
+def generate_tnsre_20233250953_template(
+        eu: ndarray,
+        ev: ndarray,
+        X_mean: ndarray,
+        sine_template: ndarray) -> Tuple[ndarray, ndarray]:
+    """Generate TNSRE_20233250953 templates.
+
+    Args:
+        eu (ndarray): (Ne*Nk,Nc). Concatenated u.
+            See details in solve_tnsre_20233250953_func().
+        ev (ndarray): (Ne*Nk,2*Nh). Concatenated v.
+            See details in solve_tnsre_20233250953_func().
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+
+    Returns: Tuple[ndarray, ndarray]
+        euX (ndarray): (Ne,Ne*Nk,Np). Filtered averaged templates.
+        evY (ndarray): (Ne,Ne*Nk,Np). Filtered sinusoidal templates.
+    """
+    # basic information
+    n_events = X_mean.shape[0]  # Ne
+    n_points = X_mean.shape[-1]  # Np
+
+    # spatial filtering process
     euX = np.zeros((n_events, eu.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     evY = np.zeros((n_events, ev.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     for ne in range(n_events):
@@ -364,8 +399,54 @@ def tnsre_20233250953_kernel(
         evY[ne] = ev @ sine_template[ne]
     euX = utils.fast_stan_3d(euX)
     evY = utils.fast_stan_3d(evY)
-    euX = np.reshape(euX, (n_events, -1), 'C')  # (Ne,Ne*Nk*Np)
-    evY = np.reshape(evY, (n_events, -1), 'C')  # (Ne,Ne*Nk*Np)
+    return euX, evY
+
+
+def tnsre_20233250953_kernel(
+        X_train: ndarray,
+        y_train: ndarray,
+        sine_template: ndarray,
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """Intra-domain modeling process of algorithm TNSRE_20233250953.
+
+    Args:
+        X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
+        y_train (ndarray): (Ne*Nt,). Labels for X_train.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        n_components (int): Number of eigenvectors picked as filters.
+
+    Returns: Dict[str, ndarray]
+        Q (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Covariance matrices.
+        S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices.
+        w (ndarray): (Ne,Nk,Nc). Spatial filters for original signal.
+        u (ndarray): (Ne,Nk,Nc). Spatial filters for averaged template.
+        v (ndarray): (Ne,Nk,2*Nh). Spatial filters for sinusoidal template.
+        ew (ndarray): (Ne*Nk,Nc). Concatenated w.
+        eu (ndarray): (Ne*Nk,Nc). Concatenated u.
+        ev (ndarray): (Ne*Nk,2*Nh). Concatenated v.
+        euX (ndarray): (Ne,Ne*Nk*Np). Filtered averaged templates.
+        evY (ndarray): (Ne,Ne*Nk*Np). Filtered sinusoidal templates.
+    """
+    # solve target functions
+    Q, S, X_mean = generate_tnsre_20233250953_mat(
+        X=X_train,
+        y=y_train,
+        sine_template=sine_template
+    )
+    w, u, v, ew, eu, ev = solve_tnsre_20233250953_func(
+        Q=Q,
+        S=S,
+        n_chans=X_mean.shape[1],
+        n_components=n_components
+    )
+
+    # generate spatial-filtered templates
+    euX, evY = generate_tnsre_20233250953_template(
+        eu=eu,
+        ev=ev,
+        X_mean=X_mean,
+        sine_template=sine_template
+    )
 
     # training model
     training_model = {
@@ -393,32 +474,40 @@ def tnsre_20233250953_feature(
                              'weight_euX': ndarray (Ns,Ne),
                              'weight_evY': ndarray (Ns,Ne)}
             See details in:
-            TNSRE_20233250953.transfer_learning();
-            TNSRE_20233250953.distance_calculation();
-            TNSRE_20233250953.weight_optimization().
+                TNSRE_20233250953.transfer_learning();
+                TNSRE_20233250953.distance_calculation();
+                TNSRE_20233250953.weight_optimization().
         target_model (dict): {'ew': ndarray (Ne*Nk,Nc),
-                              'euX': ndarray (Ne,Ne*Nk*Np),
-                              'evY': ndarray (Ne,Ne*Nk*Np)}
+                              'euX': ndarray (Ne,Ne*Nk,Np),
+                              'evY': ndarray (Ne,Ne*Nk,Np)}
             See details in TNSRE_20233250953.intra_target_training()
 
     Returns: Dict[str, ndarray]
         rho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
     """
-    # load in models & basic information
-    euX_source = source_model['euX_source']  # (Ns,Ne,Ne*Nk*Np)
-    evY_source = source_model['evY_source']  # (Ns,Ne,Ne*Nk*Np)
+    # load in models
+    euX_source = source_model['euX_source']  # (Ns,Ne,Ne*Nk,Np)
+    evY_source = source_model['evY_source']  # (Ns,Ne,Ne*Nk,Np)
     euX_trans = trans_model['euX_trans']  # (Ns,Ne,Ne*Nk,Nc)
     evY_trans = trans_model['evY_trans']  # (Ns,Ne,Ne*Nk,Nc)
     weight_euX = trans_model['weight_euX']  # (Ns,Ne)
     weight_evY = trans_model['weight_evY']  # (Ns,Ne)
     ew_target = target_model['ew']  # (Ne*Nk,Nc)
-    euX_target = target_model['euX']  # (Ne,Ne*Nk*Np)
-    evY_target = target_model['evY']  # (Ne,Ne*Nk*Np)
+    euX_target = target_model['euX']  # (Ne,Ne*Nk,Np)
+    evY_target = target_model['evY']  # (Ne,Ne*Nk,Np)
+
+    # basic information
     n_subjects = euX_source.shape[0]  # Ns
     n_events = euX_source.shape[1]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
     # n_points = X_test.shape[-1]  # Np, unnecessary
+
+    # reshape matrix for faster computing
+    euX_source = np.reshape(euX_source, (n_subjects, n_events, -1), 'C')  # (Ns,Ne,Ne*Nk*Np)
+    evY_source = np.reshape(evY_source, (n_subjects, n_events, -1), 'C')  # (Ns,Ne,Ne*Nk*Np)
+    euX_target = np.reshape(euX_target, (n_events, -1), 'C')  # (Ne,Ne*Nk*Np)
+    evY_target = np.reshape(evY_target, (n_events, -1), 'C')  # (Ne,Ne*Nk*Np)
 
     # 4-D features
     rho_temp = np.zeros((n_test, n_events, 4))  # (Ne*Nte,Ne,4)
@@ -427,12 +516,12 @@ def tnsre_20233250953_feature(
             a=utils.fast_stan_4d(euX_trans @ X_test[nte]),
             newshape=(n_subjects, n_events, -1),
             order='C'
-        )  # (Ns,Ne,Ne*Nk*Np)
+        )  # (Ns,Ne,Ne*Nk,Nc) @ (Nc,Np) -flatten-> (Ns,Ne,Ne*Nk*Np)
         X_trans_y = np.reshape(
             a=utils.fast_stan_4d(evY_trans @ X_test[nte]),
             newshape=(n_subjects, n_events, -1),
             order='C'
-        )  # (Ns,Ne,Ne*Nk*Np)
+        )  # (Ns,Ne,Ne*Nk,Nc) @ (Nc,Np) -flatten-> (Ns,Ne,Ne*Nk*Np)
         X_temp = np.tile(
             A=np.reshape(
                 a=utils.fast_stan_2d(ew_target @ X_test[nte]),
@@ -440,19 +529,20 @@ def tnsre_20233250953_feature(
                 order='C'
             ),
             reps=(n_events, 1)
-        )  # (Ne,Ne*Nk*Np)
+        )  # (Ne*Nk,Nc) @ (Nc,Np) -flatten-> -repeat-> (Ne,Ne*Nk*Np)
 
         # rho 1 & 2: transferred pattern matching
         rho_temp[nte, :, 0] = np.sum(
             a=weight_euX * utils.fast_corr_3d(X=X_trans_x, Y=euX_source),
             axis=0
-        )
+        )  # (Ns,Ne,Ne*Nk*Np) -corr-> (Ns,Ne) -sum-> (Ne,)
         rho_temp[nte, :, 1] = np.sum(
             a=weight_evY * utils.fast_corr_3d(X=X_trans_y, Y=evY_source),
             axis=0
-        )
+        )  # (Ns,Ne,Ne*Nk*Np) -corr-> (Ns,Ne) -sum-> (Ne,)
 
         # rho 3 & 4: target-domain pattern matching
+        # (Ne,Ne*Nk*Np) -corr-> (Ne,)
         rho_temp[nte, :, 2] = utils.fast_corr_2d(X=X_temp, Y=euX_target)
         rho_temp[nte, :, 2] = utils.fast_corr_2d(X=X_temp, Y=evY_target)
     # rho_temp /= n_points  # real Pearson correlation coefficients in scale
@@ -472,7 +562,7 @@ class TNSRE_20233250953(BasicTransfer):
     def intra_source_training(self):
         """Intra-domain model training for source dataset."""
         # basic information & initialization
-        self.intra_model_source, self.source_model = [], {}
+        # self.intra_model_source = []
         euX_source, evY_source = [], []  # List[ndarray]: Ns*(Ne,Ne*Nk,Np)
 
         # obtain source model
@@ -481,27 +571,28 @@ class TNSRE_20233250953(BasicTransfer):
                 X_train=self.X_source[nsub],
                 y_train=self.y_source[nsub],
                 sine_template=self.sine_template,
-                train_info=self.train_info_source[nsub],
                 n_components=self.n_components
             )
-            self.intra_model_source.append(intra_model)
-            euX_source.append(intra_model['euX'])  # (Ne,Ne*Nk*Np)
-            evY_source.append(intra_model['evY'])  # (Ne,Ne*Nk*Np)
-        self.source_model['euX_source'] = np.stack(euX_source)  # (Ns,Ne,Ne*Nk*Np)
-        self.source_model['evY_source'] = np.stack(evY_source)  # (Ns,Ne,Ne*Nk*Np)
+            # self.intra_model_source.append(intra_model)
+            euX_source.append(intra_model['euX'])  # (Ne,Ne*Nk,Np)
+            evY_source.append(intra_model['evY'])  # (Ne,Ne*Nk,Np)
+        self.source_model = {
+            'euX_source': np.stack(euX_source),
+            'evY_source': np.stack(evY_source)
+        }  # (Ns,Ne,Ne*Nk,Np)
 
     def transfer_learning(self):
         """Transfer learning process."""
         # basic information
-        n_events = self.train_info_target['n_events']  # Ne
-        n_chans = self.train_info_target['n_chans']  # Nc
-        n_train = self.train_info_target['n_train']  # [Nt1,Nt2,...]
+        n_events = self.target_info['n_events']  # Ne
+        n_chans = self.target_info['n_chans']  # Nc
+        n_train = self.target_info['n_train']  # [Nt1,Nt2,...]
 
         # obtain transfer model (partial)
-        self.trans_model = {}
         eu_trans, ev_trans = [], []  # List[ndarray]: Ns*(Ne,Ne*Nk,Nc)
         for nsub in range(self.n_subjects):
-            euX, evY = self.euX_source[nsub], self.evY_source[nsub]  # (Ne,Ne*Nk,Np)
+            euX = self.source_model['euX_source'][nsub]  # (Ne,Ne*Nk,Np)
+            evY = self.source_model['evY_source'][nsub]  # (Ne,Ne*Nk,Np)
 
             # LST alignment
             eu_trans.append(np.zeros((n_events, euX.shape[1], n_chans)))  # (Ne,Ne*Nk,Nc)
@@ -516,30 +607,42 @@ class TNSRE_20233250953(BasicTransfer):
                     ev_trans[nsub][ne] += vY_trans_temp.T
                 eu_trans[nsub][ne] /= train_trials
                 ev_trans[nsub][ne] /= train_trials
-        self.trans_model['eu_trans'] = np.stack(eu_trans)  # (Ns,Ne,Ne*Nk,Nc)
-        self.trans_model['ev_trans'] = np.stack(ev_trans)  # (Ns,Ne,Ne*Nk,Nc)
+        self.trans_model = {
+            'eu_trans': np.stack(eu_trans),
+            'ev_trans': np.stack(ev_trans)
+        }  # (Ns,Ne,Ne*Nk,Nc)
 
     def dist_calc(self):
         """Calculate the spatial distances between source and target domain."""
         # load in models & basic information
-        n_events = self.train_info_target['n_events']  # Ne
-        n_train = self.train_info_target['n_train']  # [Nt1,Nt2,...]
+        n_events = self.target_info['n_events']  # Ne
+        n_train = self.target_info['n_train']  # [Nt1,Nt2,...]
         eu_trans = self.trans_model['eu_trans']  # (Ns,Ne,Ne*Nk,Nc)
         ev_trans = self.trans_model['ev_trans']  # (Ns,Ne,Ne*Nk,Nc)
-        euX_source = self.source_model['euX_source']  # (Ns,Ne,Ne*Nk*Np)
-        evY_source = self.source_model['evY_source']  # (Ns,Ne,Ne*Nk*Np)
+        euX_source = self.source_model['euX_source']  # (Ns,Ne,Ne*Nk,Np)
+        evY_source = self.source_model['evY_source']  # (Ns,Ne,Ne*Nk,Np)
+
+        # reshape for fast computing: (Ns,Ne,Ne*Nk,Np) -reshape-> (Ns,Ne,Ne*Nk*Np)
+        euX_source = np.reshape(euX_source, (self.n_subjects, n_events, -1), 'C')
+        evY_source = np.reshape(evY_source, (self.n_subjects, n_events, -1), 'C')
 
         # calculate distances
         dist_euX = np.zeros((self.n_subjects, n_events))  # (Ns,Ne)
         dist_evY = np.zeros_like(self.dist_euX)
         for ne, et in enumerate(self.event_type):
             X_temp = self.X_train[self.y_train == et]  # (Nt,Nc,Np)
-            train_trials = n_train[ne]
+            train_trials = n_train[ne]  # Nt
             for tt in range(train_trials):
-                X_trans_x = eu_trans[:, ne, ...] @ X_temp[tt]  # (Ns,Ne*Nk,Np)
-                X_trans_y = ev_trans[:, ne, ...] @ X_temp[tt]  # (Ns,Ne*Nk,Np)
-                X_trans_x = np.reshape(X_trans_x, (self.n_subjects, -1), 'C')
-                X_trans_y = np.reshape(X_trans_y, (self.n_subjects, -1), 'C')
+                X_trans_x = np.reshape(
+                    a=eu_trans[:, ne, ...] @ X_temp[tt],
+                    newshape=(self.n_subjects, -1),
+                    order='C'
+                )  # (Ns,Ne*Nk,Nc) @ (Nc,Np) -reshape-> (Ns,Ne*Nk*Np)
+                X_trans_y = np.reshape(
+                    a=ev_trans[:, ne, ...] @ X_temp[tt],
+                    newshape=(self.n_subjects, -1),
+                    order='C'
+                )  # (Ns,Ne*Nk,Np) @ (Nc,Np) -reshape-> (Ns,Ne*Nk*Np)
                 dist_euX[:, ne] += utils.fast_corr_2d(X=X_trans_x, Y=euX_source[:, ne, :])
                 dist_evY[:, ne] += utils.fast_corr_2d(X=X_trans_y, Y=evY_source[:, ne, :])
         self.trans_model['dist_euX'] = dist_euX
@@ -554,11 +657,10 @@ class TNSRE_20233250953(BasicTransfer):
 
     def intra_target_training(self):
         """Intra-domain model training for target dataset."""
-        self.training_model_target = tnsre_20233250953_kernel(
+        self.target_model = tnsre_20233250953_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
             sine_template=self.sine_template,
-            train_info=self.train_info_target,
             n_components=self.n_components
         )
 
@@ -585,30 +687,15 @@ class TNSRE_20233250953(BasicTransfer):
         self.y_source = y_source
         self.sine_template = sine_template
 
-        # basic information of source domain
+        # basic information of source & target domain
         self.n_subjects = len(self.X_source)
-        self.train_info_source = []
+        self.source_info = []
         for nsub in range(self.n_subjects):
-            event_type_source = np.unique(self.y_source[nsub])
-            self.train_info_source.append({
-                'event_type': event_type_source,
-                'n_events': event_type_source.shape[0],
-                'n_train': np.array([np.sum(self.y_source[nsub] == ets)
-                                     for ets in event_type_source]),
-                'n_chans': self.X_source[nsub].shape[-2],
-                'n_points': self.X_source[nsub].shape[-1],
-            })
-
-        # basic information of target domain
-        event_type_target = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
-        self.train_info_target = {
-            'event_type': event_type_target,
-            'n_events': event_type_target.shape[0],
-            'n_train': np.array([np.sum(self.y_train == ett)
-                                 for ett in event_type_target]),
-            'n_chans': self.X_train.shape[-2],
-            'n_points': self.X_train.shape[-1],
-        }
+            self.source_info.append(
+                utils.generate_data_info(X=self.X_source[nsub], y=self.y_source[nsub])
+            )
+        self.target_info = utils.generate_data_info(X=self.X_train, y=self.y_train)
+        self.event_type = self.source_info[0]['event_type']
 
         # main process
         self.intra_source_training()
@@ -631,7 +718,7 @@ class TNSRE_20233250953(BasicTransfer):
             X_test=X_test,
             source_model=self.source_model,
             trans_model=self.trans_model,
-            target_model=self.training_model_target
+            target_model=self.target_model
         )
 
 
@@ -1372,27 +1459,28 @@ class TLCCA(BasicTransfer):
         assert self.n_components == 1, 'Only support Nk=1 for now!'
 
         # create sinusoidal templates for full events
-        event_type = [tp[0] for tp in self.transfer_pair]
-        event_type = np.array(list(set(event_type)))
-        n_events = event_type.shape[0]  # Ne (total)
+        event_type_full = [tp[0] for tp in self.transfer_pair]
+        event_type_full = np.array(list(set(event_type_full)))
+        n_events = event_type_full.shape[0]  # Ne (total)
         n_points = self.X_source.shape[-1]  # Np
         self.sine_template = np.zeros((n_events, self.n_harmonics, n_points))
-        for ne, et in enumerate(event_type):
+        for ne, etf in enumerate(event_type_full):
             self.sine_template[ne] = utils.sine_template(
-                freq=self.stim_info[str(et)][0],
-                phase=self.stim_info[str(et)][1],
+                freq=self.stim_info[str(etf)][0],
+                phase=self.stim_info[str(etf)][1],
                 n_points=n_points,
                 n_harmonics=self.n_harmonics,
                 srate=self.srate
             )
+        del ne, etf
 
         # create convolution matrices (H) and their corrected version (H_correct)
         self.H = [[] for ne in range(n_events)]
         self.H_correct = [[] for ne in range(n_events)]
-        for ne, et in enumerate(event_type):
+        for ne, etf in enumerate(event_type_full):
             self.H[ne], self.H_correct[ne] = tlcca_conv_matrix(
-                freq=self.stim_info[str(et)][0],
-                phase=self.stim_info[str(et)][1],
+                freq=self.stim_info[str(etf)][0],
+                phase=self.stim_info[str(etf)][1],
                 n_points=n_points,
                 srate=self.srate,
                 rrate=self.rrate,
@@ -1400,26 +1488,20 @@ class TLCCA(BasicTransfer):
                 amp_scale=self.amp_scale,
                 concat_method=self.concat_method
             )  # (response length, Np)
+        del ne, etf
 
         # basic information of source domain
-        event_type_source = np.unique(self.y_source)
-        self.train_info_source = {
-            'event_type': event_type_source,
-            'n_events': event_type_source.shape[0],
-            'n_train': np.array([np.sum(self.y_source == ets)
-                                 for ets in event_type_source]),
-            'n_chans': self.X_source.shape[-2],
-            'n_points': self.X_source.shape[-1],
-            'init_model': method,
-            'w_init': w_init
-        }
-        self.source_sine_template, self.source_H, self.source_H_correct = [], [], []
-        for ne, et in enumerate(event_type):
-            if et in list(event_type_source):
-                self.source_sine_template.append(self.sine_template[ne])
-                self.source_H.append(self.H[ne])
-                self.source_H_correct.append(self.H_correct[ne])
-        self.source_sine_template = np.stack(self.source_sine_template, axis=0)
+        self.source_info = utils.generate_data_info(X=self.X_source, y=self.y_source)
+        self.source_info['init_model'] = method
+        self.source_info['w_init'] = w_init
+        event_type_source = self.source_info['event_type']
+        self.sine_template_source, self.H_source, self.H_correct_source = [], [], []
+        for ne, etf in enumerate(event_type_full):
+            if etf in list(event_type_source):
+                self.sine_template_source.append(self.sine_template[ne])
+                self.H_source.append(self.H[ne])
+                self.H_correct_source.append(self.H_correct[ne])
+        self.sine_template_source = np.stack(self.sine_template_source, axis=0)
 
         # main process
         self.intra_source_training()
@@ -1718,6 +1800,40 @@ class SDLST(BasicTransfer):
         rho_ecca = self.ecca_model.transform(X_test=X_test)
         rho = utils.combine_feature(features=[rho_ecca / 3, rho_etrca])
         return {'rho_ecca': rho_ecca, 'rho_etrca': rho_etrca, 'rho': rho}
+
+
+class FB_SDLST(BasicFBTransfer):
+    def __init__(
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            standard: bool = True,
+            ensemble: bool = True,
+            n_components: int = 1):
+        """Basic configuration.
+
+        Args:
+            filter_bank (List[ndarray], optional):
+                See details in utils.generate_filter_bank(). Defaults to None.
+            with_filter_bank (bool): Whether the input data has been FB-preprocessed.
+                Defaults to True.
+            standard (bool): Standard model. Defaults to True.
+            ensemble (bool): Ensemble model. Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
+        """
+        self.n_components = n_components
+        self.standard = standard
+        self.ensemble = ensemble
+        super().__init__(
+            base_estimator=SDLST(
+                standard=self.standard,
+                ensemble=self.ensemble,
+                n_components=self.n_components),
+            filter_bank=filter_bank,
+            with_filter_bank=with_filter_bank,
+            version='SSVEP'
+        )
 
 
 # %% 6. cross-subject transfer method based on domain generalization
@@ -2409,6 +2525,40 @@ class ASS_IISCCA(BasicTransfer):
         )
 
 
+class FB_ASS_IISCCA(BasicFBTransfer):
+    def __init__(
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            standard: bool = True,
+            ensemble: bool = True,
+            n_components: int = 1):
+        """Basic configuration.
+
+        Args:
+            filter_bank (List[ndarray], optional):
+                See details in utils.generate_filter_bank(). Defaults to None.
+            with_filter_bank (bool): Whether the input data has been FB-preprocessed.
+                Defaults to True.
+            standard (bool): Standard model. Defaults to True.
+            ensemble (bool): Ensemble model. Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
+        """
+        self.n_components = n_components
+        self.standard = standard
+        self.ensemble = ensemble
+        super().__init__(
+            base_estimator=ASS_IISCCA(
+                standard=self.standard,
+                ensemble=self.ensemble,
+                n_components=self.n_components),
+            filter_bank=filter_bank,
+            with_filter_bank=with_filter_bank,
+            version='SSVEP'
+        )
+
+
 # %% 10. LST-based cross-domain transfer learning | LST-TRCA
 class LST_TRCA(BasicTransfer):
     def transfer_learning(self):
@@ -2559,6 +2709,606 @@ class FB_LST_TRCA(BasicFBTransfer):
 
 
 # %% 11. Align and Pool for EEG Headset Domain Adaptation | ALPHA
+def alpha_source_decomposition(
+        X_source: ndarray,
+        y_source: ndarray,
+        sine_template: ndarray,
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """Matrix decompostion process of ALPHA based on source dataset.
 
+    Args:
+        X_source (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
+        y_source (ndarray): (Ne*Nt,). Labels for X_source.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1.
+
+    Returns: Dict[str, ndarray]
+        u_2 (ndarray): (Ne,Nk,Nc). Basic spatial filters for source dataset.
+            See details in refer[11] blog, eq (4).
+        u_3 (ndarray): (Ne,Nk,Nc). Basic spatial filters for source dataset.
+            See details in refer[11] blog, eq (5).
+        w (ndarray): (Nk,Nc). DSP spatial filter for source dataset.
+            See details in refer[11] blog, eq (7).
+        X_source_mean (ndarray): (Ne,Nc,Np). Trial-averaged X_source.
+        uX_2 (ndarray): (Ne,Nk,Np). The results of X_source_mean filtered by u_2.
+        uX_3 (ndarray): (Ne,Nk,Np). The results of X_source_mean filtered by u_3.
+        wX (ndarray): (Ne,Nk,Np). The results of X_source_mean filtered by w.
+    """
+    # basic information
+    X_source_mean = utils.generate_mean(X=X_source, y=y_source)  # (Ne,Nc,Np)
+    n_events = X_source_mean.shape[0]  # Ne
+    n_chans = X_source_mean.shape[1]  # Nc
+    n_points = X_source_mean.shape[-1]  # Np
+
+    # 2nd model (CCA-like)
+    u_2 = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
+    uX_2 = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    for ne in range(n_events):
+        cca_model = cca.cca_kernel(
+            X=X_source_mean[ne],
+            Y=sine_template[ne],
+            n_components=n_components,
+            check_direc=False
+        )['u']
+        u_2[ne] = cca_model['u']  # (Nk,Nc)
+        uX_2[ne] = cca_model['uX']  # (Nk,Np)
+        del cca_model
+
+    # 3rd model (TDCCA)
+    tdcca_model = cca.tdcca_kernel(
+        X_train=X_source,
+        y_train=y_source,
+        n_components=n_components
+    )['w']  # (Ne,Nk,Nc)
+    u_3 = tdcca_model['w']
+    uX_3 = tdcca_model['wX']
+
+    # 5th model (DSP)
+    dsp_model = dsp.dsp_kernel(
+        X_train=X_source,
+        y_train=y_source,
+        n_components=n_components
+    )
+    w = dsp_model['w']  # (Nk,Nc)
+    wX = dsp_model['wX']  # (Ne,Nk,Np)
+
+    return {
+        'u_2': u_2, 'u_3': u_3, 'w': w,
+        'X_source_mean': X_source_mean,
+        'uX_2': uX_2, 'uX_3': uX_3, 'wX': wX
+    }
+
+
+def alpha_target_decomposition(
+        X_source_mean: ndarray,
+        X_test: ndarray,
+        sine_template: ndarray,
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """Matrix decompostion process of ALPHA based on target dataset.
+
+    Args:
+        X_source_mean (ndarray): (Ne,Nc,Np). Trial-averaged X_source.
+        X_test (ndarray): (Nc,Np). Test dataset.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1.
+
+    Returns: Dict[str, ndarray]
+        u_1 (ndarray): (Ne,Nk,Nc). Basic spatial filters.
+            See details in refer[11] blog, eq (3).
+        v_1 (ndarray): (Ne,Nk,Nc). Basic spatial filters.
+            See details in refer[11] blog, eq (3).
+        u_4 (ndarray): (Ne,Nk,Nc). Basic spatial filters.
+            See details in refer[11] blog, eq (6).
+        uX_1 (ndarray): (Ne,Nk,Np). The results of X_test filtered by u_1.
+        vY_1 (ndarray): (Ne,Nk,Np). The results of sine_template filtered by v_1.
+    """
+    # basic information
+    n_events = sine_template.shape[0]  # Ne
+    n_dims = sine_template.shape[1]  # 2Nh
+    n_chans = X_test.shape[0]  # Nc
+    n_points = X_test.shape[-1]  # Np
+
+    # 1st model (CCA)
+    u_1 = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
+    v_1 = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
+    uX_1 = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    vY_1 = np.zeros_like(uX_1)
+    for ne in range(n_events):
+        cca_model = cca.cca_kernel(
+            X=X_test,
+            Y=sine_template[ne],
+            n_components=n_components,
+            check_direc=True
+        )
+        u_1[ne] = cca_model['u']
+        v_1[ne] = cca_model['v']
+        uX_1[ne] = cca_model['uX']
+        vY_1[ne] = cca_model['vY']
+        del cca_model
+
+    # 4th model (ttCCA)
+    u_4 = np.zeros_like(u_1)  # (Ne,Nk,Nc)
+    for ne in range(n_events):
+        u_4[ne] = cca.cca_kernel(
+            X=X_test,
+            Y=X_source_mean[ne],
+            n_components=n_components,
+            check_direc=False
+        )['u']
+
+    return {
+        'u_1': u_1, 'v_1': v_1, 'u_4': u_4,
+        'uX_1': uX_1, 'vY_1': vY_1
+    }
+
+
+def align_spatial_pattern(
+        X_source: ndarray,
+        y_source: ndarray,
+        X_target: ndarray,
+        w_source: ndarray,
+        w_target: ndarray) -> Tuple[ndarray, ndarray]:
+    """Align spatial pattern (ASP) process.
+
+    Args:
+        X_source (ndarray): (Ne*Nt,Nc,Np). Source dataset.
+        y_source (ndarray): (Ne*Nt,). Labels for X_source.
+        X_target (ndarray): (Nc,Np). Single-trial test data.
+        w_source (ndarray): (Ne,Nk,Nc). Spatial filters of source domain.
+        w_target (ndarray): (Ne,Nk,Nc). Spatial filters of target domain.
+
+    Returns:
+        P (ndarray): (Ne,Nk,Nk). Transformation matrices.
+        w_asp (ndarray): (Ne,Nk,Nc). ASP-processed spatial filters.
+    """
+    # basic information
+    event_type = np.unique(y_source)
+    n_events = event_type.shape[0]  # Ne
+    n_components = w_source.shape[-2]  # Nk
+
+    # forward-propagation of source dataset
+    S_source, _ = utils.generate_source_response(
+        X=X_source,
+        y=y_source,
+        w=w_source
+    )  # (Ne*Nt,Nk,Np)
+    A_source = utils.forward_propagation(
+        X=X_source,
+        y=y_source,
+        S=S_source,
+        w=w_source
+    )  # (Ne,Nc,Nk)
+
+    # single-trial data augmentation
+    X_target = np.tile(X_target, (n_events, 1, 1))  # (Ne,Nc,Np)
+    y_target = np.arange(n_events)  # (Ne,)
+
+    # forward-propagation of target data
+    S_target, _ = utils.generate_source_response(
+        X=X_target,
+        y=y_target,
+        w=w_target
+    )  # (Ne,Nk,Np)
+    A_target = utils.forward_propagation(
+        X=X_target,
+        y=y_target,
+        S=S_target,
+        w=w_target
+    )  # (Ne,Nc,Nk)
+
+    # solve Procrustes problem & refinement of spatial filters
+    w_asp = np.zeros_like(w_source)  # (Ne,Nk,Nc)
+    P = np.zeros((n_events, n_components, n_components))  # (Ne,Nk,Nk)
+    for ne in range(n_events):
+        U, _, Vh = sLA.svd(A_source[ne].T @ A_target[ne])
+        P[ne] = U @ Vh
+        w_asp[ne] = P[ne].T @ w_target[ne]
+    return P, w_asp
+
+
+def align_covariance(
+        X_source: ndarray,
+        y_source: ndarray,
+        X_target: ndarray,
+        w: ndarray,
+        unbias: bool = True,
+        conditional: bool = False):
+    """Align covariance (AC) process.
+
+    Args:
+        X_source (ndarray): (Ne*Nt,Nc,Np). Source dataset.
+        y_source (ndarray): (Ne*Nt,). Labels for X_source.
+        X_target (ndarray): (Nc,Np). Single-trial test data.
+        unbias (bool): Unbias estimation. Defaults to False.
+            When 'True', the result may fluctuate by 0.05%.
+        conditional (bool). Conditional alignment of spatial distribution.
+            Defaults to False.
+
+    Returns:
+        Q (ndarray): (Ne,Nc,Nc). Transformation matrices.
+        w_ac (ndarray): (Ne,Nk,Nc). AC-processed spatial filters.
+    """
+    # basic information
+    n_events = (np.unique(y_source)).shape[0]  # Ne
+
+    # covariance (spatial distribution) of target dataset
+    Ct = utils.generate_var(X=X_target[None, ...], y=None, unbias=unbias)  # (Nc,Nc)
+
+    # covariance (spatial distribution) of source dataset & solve CORAL problems
+    if not conditional:
+        Cs = utils.generate_var(X=X_source, y=None, unbias=unbias)  # (Nc,Nc)
+        Q = np.tile(
+            A=utils.solve_coral(Cs=Cs, Ct=Ct),
+            reps=(n_events, 1, 1)
+        )  # (Ne,Nc,Nc)
+    else:  # conditional
+        Cs = utils.generate_var(X=X_source, y=y_source, unbias=unbias)  # (Ne,Nc,Nc)
+        Q = np.zeros_like(Cs)  # (Ne,Nc,Nc)
+        for ne in range(n_events):
+            Q[ne] = utils.solve_coral(Cs=Cs[ne], Ct=Ct)
+
+    # refinement of spatial filters
+    if w.ndim == 3:  # target-domain spatial filters
+        w_ac = np.zeros_like(w)  # (Ne,Nk,Nc)
+        for ne in range(n_events):
+            w_ac[ne] = w[ne] @ Q[ne].T
+    elif w.ndim == 2:  # source-domain DSP filter
+        w_ac = np.tile(A=np.zeros_like(w), reps=(n_events, 1, 1))  # (Ne,Nk,Nc)
+        for ne in range(n_events):
+            w_ac[ne] = w @ sLA.inv(Q[ne].T)
+    return Q, w_ac
+
+
+def alpha_align_subspace(
+        X_source: ndarray,
+        y_source: ndarray,
+        X_target: ndarray,
+        source_model: Dict[str, ndarray],
+        target_model: Dict[str, ndarray]) -> Dict[str, Union[List[ndarray], ndarray]]:
+    """Align subspace process of ALPHA.
+
+    Args:
+        X_source (ndarray): (Ne*Nt,Nc,Np). Source dataset.
+        y_source (ndarray): (Ne*Nt,). Labels for X_source.
+        X_target (ndarray): (Nc,Np). Single-trial test data.
+        source_model (dict): See details in alpha_source_decomposition().
+        target_model (dict). See details in alpha_target_decomposition().
+
+    Returns: Dict[str, Union[List[ndarray], ndarray]]
+        P (List[ndarray]): (Ne,Nc,Nc). Transformation matrices (P_1 & P_2) of ASP.
+        Q (List[ndarray]): (Ne,Nc,Nc). Transformation matrices (Q_1 & Q_2) of AC.
+        u_1_asp (ndarray): (Ne,Nk,Nc). ASP spatial filters for target dataset.
+        u_4_asp (ndarray): (Ne,Nk,Nc). ASP spatial filters for target dataset.
+        u_1_ac (ndarray): (Ne,Nk,Nc). AC spatial filters for source dataset.
+        w_ac (ndarray): (Ne,Nk,Nc). AC spatial filters for target dataset.
+        uXs_ac (ndarray): (Ne,Nk,Np). The results of X_source_mean filtered by u_1_ac.
+        wXt_ac (ndarray): (Ne,Nk,Np). The results of X_target filtered by w_ac.
+        uXt_asp_1 (ndarray): (Ne,Nk,Np). The results of X_target filtered by u_1_asp.
+        uXt_asp_2 (ndarray): (Ne,Nk,Np). The results of X_target filtered by u_4_asp.
+    """
+    # subspace alignment (ASP)
+    P_1, u_1_asp = align_spatial_pattern(
+        X_source=X_source,
+        y_source=y_source,
+        X_target=X_target,
+        w_source=source_model['u_2'],
+        w_target=target_model['u_1']
+    )  # (Ne,Nk,Nk) & (Ne,Nk,Nc)
+    P_2, u_4_asp = align_spatial_pattern(
+        X_source=X_source,
+        y_source=y_source,
+        X_target=X_target,
+        w_source=source_model['u_3'],
+        w_target=target_model['u_4']
+    )  # (Ne,Nk,Nk) & (Ne,Nk,Nc)
+
+    # subspace alignment: AC
+    Q_1, u_1_ac = align_covariance(
+        X_source=X_source,
+        y_source=y_source,
+        X_target=X_target,
+        w=target_model['u_1']
+    )  # (Ne,Nc,Nc) & (Ne,Nk,Nc)
+    Q_2, w_ac = align_covariance(
+        X_source=X_source,
+        y_source=y_source,
+        X_target=X_target,
+        w=source_model['w']
+    )  # (Ne,Nc,Nc) & (Ne,Nk,Nc)
+
+    # basic information
+    n_events = P_1.shape[0]  # Ne
+    n_components = P_1.shape[1]  # Nk
+    n_points = X_source.shape[-1]  # Np
+    X_source_mean = source_model['X_source_mean']  # (Ne,Nc,Np)
+
+    # transformed templates
+    uXs_ac = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    wXt_ac = np.zeros_like(uXs_ac)
+    uXt_asp_1, uXt_asp_2 = np.zeros_like(uXs_ac), np.zeros_like(uXs_ac)
+    for ne in range(n_events):
+        uXs_ac[ne] = u_1_ac[ne] @ X_source_mean[ne]
+        wXt_ac[ne] = w_ac[ne] @ X_target
+        uXt_asp_1[ne] = u_1_asp[ne] @ X_target
+        uXt_asp_2[ne] = u_4_asp[ne] @ X_target
+    uXs_ac = utils.fast_stan_3d(uXs_ac)
+    wXt_ac = utils.fast_stan_3d(wXt_ac)
+    uXt_asp_1 = utils.fast_stan_3d(uXt_asp_1)
+    uXt_asp_2 = utils.fast_stan_3d(uXt_asp_2)
+
+    # tranformation model
+    trans_model = {
+        'P': [P_1, P_2], 'Q': [Q_1, Q_2],
+        'u_1_asp': u_1_asp, 'u_4_asp': u_4_asp,
+        'u_1_ac': u_1_ac, 'w_ac': w_ac,
+        'uXs_ac': uXs_ac, 'wXt_ac': wXt_ac,
+        'uXt_asp_1': uXt_asp_1, 'uXt_asp_2': uXt_asp_2
+    }
+    return trans_model
+
+
+def alpha_multi_dims_feature(
+        source_model: Dict[str, ndarray],
+        target_model: Dict[str, ndarray],
+        trans_model: Dict[str, ndarray]) -> Dict[str, ndarray]:
+    """The pattern matching process of ALPHA during trianing process of subspace pooling.
+
+    Args:
+        source_model (dict): See details in alpha_source_decomposition().
+        target_model (dict): See details in alpha_target_decomposition().
+        trans_model (dict): See details in alpha_align_subspace().
+
+    Returns: Dict[str, ndarray]
+        rho_temp (ndarray): (Ne,Nk,5). 5-D features.
+        rho (ndarray): (Ne,Nk). Intergrated features.
+    """
+    # load in pre-calculated templates: (Ne,Nk,Np)
+    uX_1, vY_1 = target_model['uX_1'], target_model['vY_1']
+    uX_2, uX_3 = source_model['uX_2'], source_model['uX_3']
+    wX = source_model['wX']
+    uXs_ac, wXt_ac = trans_model['uXs_ac'], trans_model['wXt_ac']
+    uXt_asp_1, uXt_asp_2 = trans_model['uXt_asp_1'], trans_model['uXt_asp_2']
+
+    # basic information
+    n_events = uX_1.shape[0]  # Ne
+    n_components = uX_1.shape[1]  # Nk
+    # n_points = uX_1.shape[-1]  # Np, unnecessary
+
+    # 5-part discriminant coefficients
+    rho_temp = np.zeros((n_events, n_components, 5))  # (Nk,Ne,5)
+    for nk in range(n_components):
+        rho_temp[:, nk, 0] = utils.fast_corr_2d(X=uX_1[:, nk, :], Y=vY_1[:, nk, :])
+        rho_temp[:, nk, 1] = utils.fast_corr_2d(X=uX_1[:, nk, :], Y=uXs_ac[:, nk, :])
+        rho_temp[:, nk, 2] = utils.fast_corr_2d(X=uXt_asp_1[:, nk, :], Y=uX_2[:, nk, :])
+        rho_temp[:, nk, 3] = utils.fast_corr_2d(X=uXt_asp_2[:, nk, :], Y=uX_3[:, nk, :])
+        rho_temp[:, nk, 4] = utils.fast_corr_2d(X=wXt_ac[:, nk, :], Y=wX[:, nk, :])
+    # rho_temp /= n_points  # real Pearson correlation coefficient in scale
+    features = {
+        'rho_temp': rho_temp,
+        'rho': utils.combine_feature([
+            rho_temp[..., 0],
+            rho_temp[..., 1],
+            rho_temp[..., 2],
+            rho_temp[..., 3],
+            rho_temp[..., 4],
+        ])
+    }
+    return features
+
+
+def alpha_feature(
+        w_nk: ndarray,
+        source_model: Dict[str, ndarray],
+        target_model: Dict[str, ndarray],
+        trans_model: Dict[str, ndarray]) -> Dict[str, ndarray]:
+    """The pattern matching process of ALPHA.
+
+    Args:
+        w_nk (ndarray): (Ne,Nk). See details in ALPHA.subspace_pooling().
+        source_model (dict): See details in alpha_source_decomposition().
+        target_model (dict): See details in alpha_target_decomposition().
+        trans_model (dict): See details in alpha_align_subspace().
+
+    Returns:
+        rho (ndarray): (Ne,). ALPHA features.
+    """
+    # basic information
+    n_events = w_nk.shape[0]  # Ne
+    features = alpha_multi_dims_feature(
+        source_model=source_model,
+        target_model=target_model,
+        trans_model=trans_model
+    )['rho']  # (Ne,Nk)
+
+    # construct ALPHA features
+    alpha_rho = np.zeros((n_events))  # (Ne,)
+    for ne in range(n_events):
+        tar_feat = features[ne]  # (Nk,)
+        non_tar_feat = np.delete(features, ne, axis=0)  # (Ne-1,Nk)
+        alpha_rho[ne] = (tar_feat - np.mean(non_tar_feat, axis=0)) @ w_nk[ne]
+    return {'rho': alpha_rho}
+
+
+class ALPHA(BasicTransfer):
+    def subspace_pooling(self):
+        """Train projection vectors to integrate multiple dimensions of subspace."""
+        # cross-validation on source-domain dataset
+        X_feat, y_feat = [], []
+        for _, (train_idx, test_idx) in enumerate(self.cv_idx):
+            # divide dataset into train/test dataset
+            X_train, y_train = self.X_source[train_idx], self.y_source[train_idx]
+            X_test, y_test = self.X_source[test_idx], self.y_source[test_idx]
+
+            n_test = X_test.shape[0]
+            source_model = alpha_source_decomposition(
+                X_source=X_train,
+                y_source=y_train,
+                sine_template=self.sine_template,
+                n_components=self.n_components
+            )
+            for nte in range(n_test):
+                event_idx = list(self.event_type).index(y_test[nte])
+                target_model = alpha_target_decomposition(
+                    X_source_mean=source_model['X_source_mean'],
+                    X_test=X_test[nte],
+                    sine_template=self.sine_template,
+                    n_components=self.n_components
+                )
+                trans_model = alpha_align_subspace(
+                    X_source=X_train,
+                    y_source=y_train,
+                    X_target=X_test,
+                    source_model=source_model,
+                    target_model=target_model
+                )
+                X_feat.append(alpha_multi_dims_feature(
+                    source_model=source_model,
+                    target_model=target_model,
+                    trans_model=trans_model
+                )['rho'][event_idx, :])  # (Nk,)
+                y_feat.append(y_test[nte])
+        X_feat, y_feat = np.stack(X_feat), np.array(y_feat)
+
+        # solve EPs
+        self.w_nk = np.zeros((self.source_info['n_events'], self.n_components))  # (Ne,Nk)
+        for ne, et in enumerate(self.event_type):
+            X_feat_temp = X_feat[y_feat == et]
+            R = X_feat_temp.T @ X_feat_temp  # (Nk,Nk)
+            self.w_nk[ne] = utils.solve_ep(A=R, n_components=1)
+
+    def intra_source_training(self):
+        """Intra-domain model training for source dataset."""
+        # 2nd, 3rd CCA model & DSP model
+        self.source_model = alpha_source_decomposition(
+            X_source=self.X_source,
+            y_source=self.y_source,
+            sine_template=self.sine_template,
+            n_components=self.n_components
+        )
+        self.subspace_pooling()
+
+    def transfer_learning(self):
+        """Transfer learning between source & target datasets."""
+        self.trans_model = alpha_align_subspace(
+            X_source=self.X_source,
+            y_source=self.y_source,
+            X_target=self.X_test,
+            source_model=self.source_model,
+            target_model=self.target_model
+        )
+
+    def intra_target_training(self, X_test: ndarray):
+        """Intra-domain model training for target dataset."""
+        # 1st & 4th CCA model
+        self.X_test = X_test
+        self.target_model = alpha_target_decomposition(
+            X_source_mean=self.source_model['X_source_mean'],
+            X_test=X_test,
+            sine_template=self.sine_template,
+            n_components=self.n_components
+        )
+
+    def fit(
+            self,
+            X_source: ndarray,
+            y_source: ndarray,
+            sine_template: ndarray,
+            cv_method: str = 'skf',
+            **cv_paras):
+        """Train ALPHA source model.
+
+        Args:
+            X_source (ndarray): (Ne*Nt,Nc,Np). Source dataset.
+            y_source (ndarray): (Ne*Nt,). Labels for X_source.
+            sine_template (ndarray): (Ne,2Nh,Np). Source dataset.
+            cv_method (str, optional): Defaults to 'skf'.
+                'skf': sklearn.model_selection.StratifiedKFold()
+                'sss': sklearn.model_selection.StratifiedShuffleSplit()
+                'loo': sklearn.model_selection.LeaveOneOut()
+            (below are in **kwargs)
+            n_splits (int): Number of folds. Must be at least 2.
+                See details in StratifiedKFold() & StratifiedShuffleSplit().
+            test_size (int or float):
+                See details in StratifiedShuffleSplit()
+            random_state (int or None):
+                refer: https://scikit-learn.org/stable/glossary.html#term-random_state.
+        """
+        # load in data
+        self.X_source = X_source
+        self.y_source = y_source
+        self.sine_template = sine_template
+        self.event_type = np.unique(self.y_source)
+
+        # basic information of source domain
+        self.source_info = utils.generate_data_info(X=self.X_source, y=self.y_source)
+
+        # initialization for subspace pooling (cross-validation)
+        n_blocks = np.min(self.source_info['n_train'])  # Nt
+        self.cv_idx = []
+        if cv_method == 'skf':  # leave-one-block-out
+            select_model = StratifiedKFold(n_splits=n_blocks)
+        elif cv_method == 'sss':  # Monte-Carlo
+            try:
+                n_splits = cv_paras['n_splits']
+                test_size = cv_paras['test_size']
+                random_state = cv_paras['random_state']
+            except KeyError:
+                n_splits = int(2 * n_blocks)
+                test_size = self.source_info['n_events']
+                random_state = 0
+                print('Missing parameters for StratifiedShuffleSplit!')
+                print('Using default ones instead: ')
+                print('\t n_splits: {}'.format(n_splits))
+                print('\t test_size: {}'.format(test_size))
+                print('\t random_state: {}'.format(random_state))
+            select_model = StratifiedShuffleSplit(
+                n_splits=n_splits,
+                test_size=test_size,
+                random_state=random_state
+            )
+        elif cv_method == 'loo':  # leave-one-(sample)-out
+            select_model = LeaveOneOut()
+        for _, idx in enumerate(select_model.split(X=self.X_source, y=self.y_source)):
+            self.cv_idx.append(idx)  # (train_index, test_index)
+
+        # train source-domain model & subspace pooling
+        self.intra_source_training()
+
+    def transform(self, X_test: ndarray):
+        self.intra_target_training(X_test=X_test)
+        self.transfer_learning()
+        return alpha_feature(
+            w_nk=self.w_nk,
+            source_model=self.source_model,
+            target_model=self.target_model,
+            trans_model=self.trans_model
+        )
+
+
+class FB_ALPHA(BasicFBTransfer):
+    def __init__(
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
+        """Basic configuration.
+
+        Args:
+            filter_bank (List[ndarray], optional):
+                See details in utils.generate_filter_bank(). Defaults to None.
+            with_filter_bank (bool): Whether the input data has been FB-preprocessed.
+                Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
+        """
+        self.n_components = n_components
+        super().__init__(
+            base_estimator=ALPHA(n_components=self.n_components),
+            filter_bank=filter_bank,
+            with_filter_bank=with_filter_bank,
+            version='SSVEP'
+        )
 
 # %% 12.
