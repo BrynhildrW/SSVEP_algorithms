@@ -1,5 +1,41 @@
-Github的公式编辑有一些问题，每个算法的详细说明与公式推导我都放在个人的FlowUs页面中了 <p>
-典型相关性分析：https://flowus.cn/brynhildrw/share/7cca304a-f180-4c56-81fe-a3f3b746fd8c <p>
-任务相关成分分析：https://flowus.cn/brynhildrw/share/e4cccd8a-c268-4cdb-9167-15b45d659ede <p>
-数据增强 & 迁移学习算法：https://flowus.cn/brynhildrw/share/c31fcb70-2065-4ba5-9b7e-0f66e546b8fc <p>
+Github的公式编辑有一些问题，每个算法的详细说明与公式推导我都放在个人的 FlowUs 页面中了
+
+>典型相关性分析：https://flowus.cn/brynhildrw/share/7cca304a-f180-4c56-81fe-a3f3b746fd8c
+>
+>任务相关成分分析：https://flowus.cn/brynhildrw/share/e4cccd8a-c268-4cdb-9167-15b45d659ede
+>
+>数据增强 & 迁移学习算法：https://flowus.cn/brynhildrw/share/c31fcb70-2065-4ba5-9b7e-0f66e546b8fc
+
 访问密码都是：tjuw。欢迎各位同行与我合理讨论与交流：215707269@qq.com
+
+---
+
+最近更新：2024/07/02
+
+（1）重写了 TRCA 模型的一些基础函数，方便后续利用这些协方差矩阵进行其它的新算法构建；
+
+（2）在 programs 文件夹中的 `transfer` 库里新增了三个模型：`transfer.LST()`、`transfer.IISMC()` 和 `transfer.ASS_IISCCA()`，三个模型的源文献在代码头部说明处列出
+
+（3）FlowUs 这个狗日的软件现在开始收费了，虽然我是会员，但是不知道哪一天可能它就不向其它免费用户（比如我可能存在的读者？）开放了，因此关于已有内容，我现在正在往 Obsidian 备份，未来会上传 .md 格式的算法说明文件
+
+（4）今天发现 4 月份居然有个读者在我 google 邮箱里留言想加微信讨论，开心。可惜 google 邮箱垃圾邮件太多，我又不常看，错过了好久。希望还能帮上她/他
+
+---
+
+未来更新计划
+
+（1）ALPHA
+
+（2）cold-start
+
+---
+
+目前已支持：
+
+（1）CCA 系列：`cca.CCA()`、`cca.MEC()`、`cca.MCC()`、`cca.MSI()`、`cca.ITCCA()`、`cca.ECCA()`、`cca.MSCCA()`、`cca.MS_ECCA`、`cca.MSETCCA1()`、`cca.TDCCA()` 以及各自的 filter-bank 版本
+
+（2）TRCA 系列：`trca.TRCA()`、`trca.MS_TRCA()`、`trca.TRCA_R()`、`trca.SC_TRCA()` 以及各自的集成版本
+
+（3）DSP 系列：`dsp.DSP()`、`dsp.TDCA()` 以及各自的 filter-bank 版本
+
+（4）迁移学习算法：`transfer.TNSRE_20233250953()`、`transfer.STCCA()`、`transfer.TLCCA()`、`transfer.SDLST()`、`transfer.TNSRE_20233305202()`、`transfer.IISMC()`、`transfer.ASS_IISCCA()` 以及各自的 filter-bank 版本
