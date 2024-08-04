@@ -236,20 +236,16 @@ def generate_trca_template(
     """
     # basic information
     n_events = X_mean.shape[0]  # Ne
-    n_points = X_mean.shape[-1]  # Np
     n_components = w.shape[1]  # Nk
+    n_points = X_mean.shape[-1]  # Np
 
     # spatial filtering process
     wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    ewX = np.zeros((n_events, ew.shape[0], n_points))  # (Ne,Ne*Nk,Np)
+    ewX = np.zeros_like(wX)
     if standard:
-        for ne in range(n_events):
-            wX[ne] = w[ne] @ X_mean[ne]  # (Nk,Np)
-        wX = utils.fast_stan_3d(wX)
+        wX = utils.spatial_filtering(w=w, X_mean=X_mean)  # (Ne,Nk,Np)
     if ensemble:
-        for ne in range(n_events):
-            ewX[ne] = ew @ X_mean[ne]  # (Ne*Nk,Np)
-        ewX = utils.fast_stan_3d(ewX)
+        ewX = utils.spatial_filtering(w=ew, X_mean=X_mean)  # (Ne,Ne*Nk,Np)
     return wX, ewX
 
 
@@ -289,14 +285,7 @@ def trca_kernel(
         standard=standard,
         ensemble=ensemble
     )
-
-    # (e)TRCA model
-    training_model = {
-        'Q': Q, 'S': S,
-        'w': w, 'ew': ew,
-        'wX': wX, 'ewX': ewX
-    }
-    return training_model
+    return {'Q': Q, 'S': S, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
 
 
 def trca_feature(
@@ -498,14 +487,7 @@ def mstrca_kernel(
         standard=standard,
         ensemble=ensemble
     )
-
-    # ms-(e)TRCA model
-    training_model = {
-        'Q': Q_total, 'S': S_total,
-        'w': w, 'ew': ew,
-        'wX': wX, 'ewX': ewX
-    }
-    return training_model
+    return {'Q': Q_total, 'S': S_total, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
 
 
 class MS_TRCA(TRCA):
@@ -659,14 +641,7 @@ def trcar_kernel(
         standard=standard,
         ensemble=ensemble
     )
-
-    # (e)TRCA-R model
-    training_model = {
-        'Q': Q, 'S': S,
-        'w': w, 'ew': ew,
-        'wX': wX, 'ewX': ewX
-    }
-    return training_model
+    return {'Q': Q, 'S': S, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
 
 
 class TRCA_R(TRCA):
@@ -858,17 +833,11 @@ def generate_sctrca_template(
     euX = np.zeros((n_events, eu.shape[0], n_points))  # (Ne,Ne*Nk,Np)
     evY = np.zeros_like(euX)
     if standard:
-        for ne in range(n_events):
-            uX[ne] = u[ne] @ X_mean[ne]  # (Nk,Np)
-            vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
-        uX = utils.fast_stan_3d(uX)
-        vY = utils.fast_stan_3d(vY)
+        uX = utils.spatial_filtering(w=u, X_mean=X_mean)
+        vY = utils.spatial_filtering(w=v, X_mean=sine_template)
     if ensemble:
-        for ne in range(n_events):
-            euX[ne] = eu @ X_mean[ne]  # (Nk*Ne,Np)
-            evY[ne] = ev @ sine_template[ne]  # (Nk*Ne,Np)
-        euX = utils.fast_stan_3d(euX)
-        evY = utils.fast_stan_3d(evY)
+        euX = utils.spatial_filtering(w=eu, X_mean=X_mean)
+        evY = utils.spatial_filtering(w=ev, X_mean=sine_template)
     return uX, vY, euX, evY
 
 
@@ -927,14 +896,11 @@ def sctrca_kernel(
         standard=standard,
         ensemble=ensemble
     )
-
-    # sc-(e)TRCA model
-    training_model = {
+    return {
         'Q': Q, 'S': S,
         'u': u, 'v': v, 'eu': eu, 'ev': ev,
         'uX': uX, 'vY': vY, 'euX': euX, 'evY': evY
     }
-    return training_model
 
 
 def sctrca_feature(
@@ -991,11 +957,10 @@ def sctrca_feature(
             erho_eeg[nte] = utils.fast_corr_2d(X=X_temp, Y=euX)
             erho_sin[nte] = utils.fast_corr_2d(X=X_temp, Y=evY)
         erho = utils.combine_feature([erho_eeg, erho_sin])
-    features = {
+    return {
         'rho': rho, 'rho_eeg': rho_eeg, 'rho_sin': rho_sin,
         'erho': erho, 'erho_eeg': erho_eeg, 'erho_sin': erho_sin
     }
-    return features
 
 
 class SC_TRCA(BasicTRCA):

@@ -22,7 +22,6 @@
     (2-6) reshape_dataset()
     (2-7) generate_mean()
     (2-8) generate_var()
-    (2-9) generate_source_response()
 
 3. Feature integration
     (3-1) sign_sta()
@@ -64,6 +63,7 @@
     (9-2) extract_periodic_impulse()
     (9-3) create_conv_matrix()
     (9-4) correct_conv_matrix()
+    (9-5) generate_source_response()
 
 10. Filter-bank technology
     (10-1) generate_filter_bank
@@ -553,36 +553,6 @@ def generate_var(
         else:
             X_var /= (X.shpae[0] * n_points - 1)
     return X_var
-
-
-def generate_source_response(
-        X: ndarray,
-        y: ndarray,
-        w: ndarray) -> Tuple[ndarray, ndarray]:
-    """Calculate wX on latent subspace.
-
-    Args:
-        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
-        y (ndarray): (Ne*Nt,). Labels for X.
-        w (ndarray): (Ne,Nk,Nc). Spatial filters.
-
-    Returns: Tuple[ndarray, ndarray]
-        S (ndarray): (Ne*Nt,Nk,Np). Source responses.
-        S_mean (ndarray): (Ne,Nk,Np). Trial-avereged S.
-    """
-    # basic information
-    n_trials = X.shape[0]  # Ne*Nt
-    n_components = w.shape[-2]  # Nk
-    n_points = X.shape[-1]  # Np
-    event_type = list(np.unique(y))  # (Ne,)
-
-    # backward-propagation
-    S = np.zeros((n_trials, n_components, n_points))
-    for nt in range(X.shape[0]):
-        event_idx = event_type.index(y[nt])
-        S[nt] = w[event_idx] @ X[nt]
-    S_mean = generate_mean(X=S, y=y)  # (Ne,Nk,Np)
-    return S, S_mean
 
 
 # %% 3. feature integration
@@ -1171,6 +1141,58 @@ def correct_conv_matrix(
     except ValueError:
         raise Exception('Signal length is too short!')
     return H @ shift_matrix
+
+
+def generate_source_response(
+        X: ndarray,
+        y: ndarray,
+        w: ndarray) -> ndarray:
+    """Calculate wX on latent subspace.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
+        w (ndarray): (Ne,Nk,Nc). Spatial filters.
+
+    Returns:
+        S (ndarray): (Ne*Nt,Nk,Np). Source responses.
+    """
+    # basic information
+    n_trials = X.shape[0]  # Ne*Nt
+    n_components = w.shape[-2]  # Nk
+    n_points = X.shape[-1]  # Np
+    event_type = list(np.unique(y))  # (Ne,)
+
+    # backward-propagation
+    S = np.zeros((n_trials, n_components, n_points))
+    for nt in range(X.shape[0]):
+        event_idx = event_type.index(y[nt])
+        S[nt] = w[event_idx] @ X[nt]
+    return S
+
+
+def spatial_filtering(w: ndarray, X_mean: ndarray) -> ndarray:
+    """Process input data (X) with spatial filters (w).
+
+    Args:
+        w (ndarray): (Ne,Nk,Nc) or (Nk,Nc). Spatial filters
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
+
+    Returns:
+        wX (ndarray): (Ne,Nk,Np)
+    """
+    # basic information
+    n_events = X_mean.shape[0]  # Ne
+    n_components = w.shape[-2]  # Nk
+    n_points = X_mean.shape[-1]  # Np
+
+    # spatial filtering
+    if w.ndim == 2:  # (Nk,Nc)
+        w = np.tile(A=w, reps=(n_events, 1, 1))  # reshape: (Ne,Nk,Nc)
+    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    for ne in range(n_events):
+        wX[ne] = w[ne] @ X_mean[ne]
+    return fast_stan_3d(wX)
 
 
 # %% 10. Filter-bank technology

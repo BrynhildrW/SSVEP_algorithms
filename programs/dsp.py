@@ -135,48 +135,6 @@ def generate_dsp_mat(
     return Sb, Sw, X_mean
 
 
-def solve_dsp_func(
-        Sb: ndarray,
-        Sw: ndarray,
-        n_components: int = 1) -> ndarray:
-    """Solve DSP target function.
-
-    Args:
-        Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
-        Sw (ndarray): (Nc,Nc). Scatter matrix of within-class difference.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
-            Defaults to 1.
-
-    Returns:
-        w (ndarray): (Nk,Nc). Spatial filters of DSP.
-    """
-    return utils.solve_gep(A=Sb, B=Sw, n_components=n_components)
-
-
-def generate_dsp_template(X_mean: ndarray, w: ndarray) -> ndarray:
-    """Generate DSP templates.
-
-    Args:
-        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
-        w (ndarray): (Nk,Nc). Spatial filter of DSP.
-
-    Returns:
-        wX (ndarray): (Ne,Nk,Np). DSP templates.
-    """
-    # basic information
-    n_events = X_mean.shape[0]  # Ne
-    n_points = X_mean.shape[-1]  # Np
-    n_components = w.shape[0]  # Nk
-
-    # spatial filtering process
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w @ X_mean[ne]
-    # slower: wX = np.einsum('kc,ecp->ekp', w, X_mean)
-    wX = utils.fast_stan_3d(wX)
-    return wX
-
-
 def dsp_kernel(
         X_train: ndarray,
         y_train: ndarray,
@@ -197,17 +155,11 @@ def dsp_kernel(
     """
     # solve target functions
     Sb, Sw, X_mean = generate_dsp_mat(X=X_train, y=y_train)
-    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components)
+    w = utils.solve_gep(A=Sb, B=Sw, n_components=n_components)  # (Nk,Nc)
 
     # generate spatial-filtered templates
-    wX = generate_dsp_template(X_mean=X_mean, w=w)
-
-    # DSP model
-    training_model = {
-        'Sb': Sb, 'Sw': Sw,
-        'w': w, 'wX': wX
-    }
-    return training_model
+    wX = utils.spatial_filtering(w=w, X_mean=X_mean)  # (Ne,Nk,Np)
+    return {'Sb': Sb, 'Sw': Sw, 'w': w, 'wX': wX}
 
 
 def dsp_feature(

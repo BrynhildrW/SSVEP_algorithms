@@ -256,7 +256,7 @@ def cca_kernel(
     Args:
         X (ndarray): (Nc,Np).
         Y (ndarray): (2Nh,Np).
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
         check_direc (bool): Use check_plus_minis() or not. Defaults to True.
 
@@ -279,14 +279,11 @@ def cca_kernel(
     corr_coef = 0
     if check_direc:
         corr_coef, v, vY = check_plus_minis(uX=uX, vY=vY, v=v)
-
-    # CCA model
-    training_model = {
+    return {
         'Cxx': Cxx, 'Cxy': Cxy, 'Cyy': Cyy,
         'u': u, 'v': v,
         'uX': uX, 'vY': vY, 'coef': corr_coef
     }
-    return training_model
 
 
 def cca_feature(
@@ -298,7 +295,8 @@ def cca_feature(
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         template (ndarray): (Ne,2Nh,Np). Signal templates.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         rho (ndarray): (Ne*Nte,Ne). Features of CCA.
@@ -369,6 +367,7 @@ class FB_CCA(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -389,7 +388,7 @@ def generate_mec_mat(X: ndarray, Y: ndarray) -> Tuple[ndarray, ndarray]:
 
     Returns:
         X_hat (ndarray): (Ne,Nc,Np). X after removing SSVEP components.
-        Cxhxh (ndarray): (Ne,Nc,Nc). Covariance matrices.
+        Chh (ndarray): (Ne,Nc,Nc). Covariance matrices.
     """
     # basic information
     n_events = Y.shape[0]  # Ne
@@ -399,12 +398,12 @@ def generate_mec_mat(X: ndarray, Y: ndarray) -> Tuple[ndarray, ndarray]:
     # covariance matrices: (Ne,Nc,Nc)
     X_hat = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
     P = np.zeros((n_events, n_points, n_points))  # projections: (Ne,Np,Np)
-    Cxhxh = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    Chh = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
     for ne in range(n_events):
         P[ne] = Y[ne].T @ sLA.solve(a=Y[ne] @ Y[ne].T, b=Y[ne], assume_a='sym')
         X_hat[ne] = X[ne] - X[ne] @ P[ne]  # (Nc,Np)
-        Cxhxh[ne] = X_hat[ne] @ X_hat[ne].T
-    return X_hat, Cxhxh
+        Chh[ne] = X_hat[ne] @ X_hat[ne].T
+    return X_hat, Chh
 
 
 def solve_mec_func(C: ndarray, n_components: int = 1) -> ndarray:
@@ -462,30 +461,91 @@ def mec_kernel(
     Args:
         X_test (ndarray): (Nc,Np). Single-trial test data.
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
-        Cxhxh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
+        Chh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
         w (ndarray): (Ne,Nk,Nc). Spatial filters.
         wX (ndarray): (Ne,Nk,Np). Filtered EEG signal
     """
     # solve target functions
-    X_hat, Cxhxh = generate_mec_mat(X=X_test, Y=sine_template)  # (Ne,Nc,Np) & (Ne,Nc,Nc)
-    w = solve_mec_func(C=Cxhxh, n_components=n_components)  # (Ne,Nk,Nc)
+    X_hat, Chh = generate_mec_mat(X=X_test, Y=sine_template)  # (Ne,Nc,Np) & (Ne,Nc,Nc)
+    w = solve_mec_func(C=Chh, n_components=n_components)  # (Ne,Nk,Nc)
 
     # generate spatial-filtered templates
     wX = generate_mec_template(w=w, X=X_test)  # (Ne,Nk,Np)
-
-    # MEC model
-    training_model = {
-        'X_hat': X_hat, 'Cxhxh': Cxhxh,
+    return {
+        'X_hat': X_hat, 'Chh': Chh,
         'w': w, 'wX': wX
     }
-    return training_model
 
 
 # %% 3. Maximum Contrast Combination | MCC
+def generate_mcc_mat(
+        X: ndarray,
+        sine_template: ndarray) -> Tuple[ndarray, ndarray,
+                                         ndarray, ndarray]:
+    """Generate covariance matrices Chh & Cxx for MCC model.
+
+    Args:
+        X (ndarray): (Nc,Np). Single-trial EEG data.
+        sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
+
+    Returns: Tuple[ndarray, ndarray, ndarray, ndarray]
+        X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
+        projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
+        Chh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
+        Cxx (ndarray): (Nc,Nc). Covariance of X.
+    """
+    # basic information
+    n_events = sine_template.shape[0]  # Ne
+    n_points = sine_template.shape[-1]  # Np
+    n_chans = X.shape[0]  # Nc
+
+    # generate orthogonal projection & remove SSVEP components
+    X_hat = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
+    projection = np.zeros((n_events, n_points, n_points))  # (Ne,Np,Np)
+    Chh = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    for ne in range(n_events):
+        projection[ne] = sine_template[ne].T @ sLA.solve(
+            a=sine_template[ne] @ sine_template[ne].T,
+            b=sine_template[ne],
+            assume_a='sym'
+        )
+        X_hat[ne] = X[ne] - X[ne] @ projection[ne]  # (Nc,Np)
+        Chh[ne] = X_hat[ne] @ X_hat[ne].T
+    Cxx = X @ X.T  # (Nc,Nc)
+    return X_hat, projection, Chh, Cxx
+
+
+def solve_mcc_func(
+        Cxx: ndarray, 
+        Chh: ndarray,
+        n_components: int = 1) -> ndarray:
+    """Solve MCC target function.
+
+    Args:
+        Cxx (ndarray): (Ne,Nc,Nc). See details in generate_mcc_mat().
+        Chh (ndarray): (Nc,Nc). See details in generate_mcc_mat().
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
+
+    Returns:
+        w (ndarray): (Ne,Nk,Nc). Spatial filters of MCC.
+    """
+    # basic information
+    n_events = Cxx.shape[0]  # Ne
+    n_chans = Cxx.shape[1]  # Nc
+
+    # analytical solution
+    w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
+    for ne in range(n_events):
+        w[ne] = utils.solve_gep(A=Cxx, B=Chh, n_components=n_components)
+    return w
+
+
 def mcc_kernel(
         X_test: ndarray,
         sine_template: ndarray,
@@ -495,7 +555,8 @@ def mcc_kernel(
     Args:
         X_test (ndarray): (Nc,Np). Single-trial test data.
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
@@ -505,42 +566,17 @@ def mcc_kernel(
         w (ndarray): (Ne,Nk,Nc). Spatial filters.
         wX (ndarray): (Ne,Nk,Np). Filtered EEG signal
     """
-    # basic information
-    n_events = sine_template.shape[0]  # Ne
-    n_points = sine_template.shape[-1]  # Np
-    n_chans = X_test.shape[0]  # Nc
+    # solve target functions
+    X_hat, projection, Chh, Cxx = generate_mcc_mat(X=X_test, sine_template=sine_template)
+    w = solve_mcc_func(Cxx=Cxx, Chh=Chh, n_components=n_components)  # (Ne,Nk,Nc)
 
-    # generate orthogonal projection & remove SSVEP components
-    X_hat = np.zeros((n_events, n_chans, n_points))  # (Ne,Nc,Np)
-    projection = np.zeros((n_events, n_points, n_points))  # (Ne,Np,Np)
-    Cxhxh = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
-    for ne in range(n_events):
-        projection[ne] = sine_template[ne].T @ sLA.solve(
-            a=sine_template[ne] @ sine_template[ne].T,
-            b=sine_template[ne],
-            assume_a='sym'
-        )
-        X_hat[ne] = X_test[ne] - X_test[ne] @ projection[ne]  # (Nc,Np)
-        Cxhxh[ne] = X_hat[ne] @ X_hat[ne].T
-    Cxx = X_test @ X_test.T  # (Nc,Nc)
-
-    # GEPs | train spatial filters
-    w = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
-    for ne in range(n_events):
-        w[ne] = utils.solve_gep(A=Cxx, B=Cxhxh, n_components=n_components)
-
-    # signal templates
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w[ne] @ X_test
-
-    # MEC model
-    training_model = {
+    # generate spatial-filtered templates
+    wX = generate_mec_template(w=w, X=X_test)
+    return {
         'X_hat': X_hat, 'projection': projection,
-        'Cxhxh': Cxhxh, 'Cxx': Cxx,
+        'Cxhxh': Chh, 'Cxx': Cxx,
         'w': w, 'wX': wX
     }
-    return training_model
 
 
 # %% 4. Multivariant synchronization index | MSI
@@ -572,18 +608,13 @@ def msi_kernel(X_test: ndarray, sine_template: ndarray) -> Dict[str, ndarray]:
         Cxy[ne] = X_test @ sine_template[ne].T
     Cyy, Cxy = Cyy / n_points, Cxy / n_points
 
-    # R: linear-transformed correlation matrix
-    R = np.tile(np.eye((n_chans + n_dims))[None, ...], (n_events, 1, 1))  # (Ne,Nc+2Nh,Nc+2Nh)
+    # R: linear-transformed correlation matrix: (Ne,Nc+2Nh,Nc+2Nh)
+    R = np.tile(A=np.eye((n_chans + n_dims))[None, ...], reps=(n_events, 1, 1))
     for ne in range(n_events):
         temp = utils.nega_root_matrix(Cxx) @ Cxy[ne] @ utils.nega_root_matrix(Cyy[ne])
         R[ne, :n_chans, n_chans:] = temp
         R[ne, n_chans:, :n_chans] = temp.T
-
-    # MSI model
-    training_model = {
-        'Cxx': Cxx, 'Cyy': Cyy, 'Cxy': Cxy, 'R': R
-    }
-    return training_model
+    return {'Cxx': Cxx, 'Cyy': Cyy, 'Cxy': Cxy, 'R': R}
 
 
 def msi_feature(X_test: ndarray, sine_template: ndarray) -> Dict[str, ndarray]:
@@ -662,6 +693,7 @@ class FB_MSI(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -723,6 +755,7 @@ class FB_ITCCA(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -800,15 +833,12 @@ def ecca_kernel(
         )
         u_ay[ne] = cca_model['u']
         v_ay[ne] = cca_model['v']
-
-    # eCCA model
-    training_model = {
+    return {
         'u_xy': u_xy, 'v_xy': v_xy,
         'u_xa': u_xa, 'v_xa': v_xa,
         'u_ay': u_ay, 'v_ay': v_ay,
         'X_mean': X_mean
     }
-    return training_model
 
 
 def ecca_feature(
@@ -825,7 +855,8 @@ def ecca_feature(
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
         method_list (List[str]): Different coefficient. Labeled as '1' to '5'.
 
     Returns: Dict[str, ndarray]
@@ -953,6 +984,7 @@ class FB_ECCA(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -964,6 +996,117 @@ class FB_ECCA(BasicFBCCA):
 
 
 # %% 9-10. Multi-stimulus eCCA | ms-eCCA
+def generate_msecca_mat(
+        X: ndarray,
+        y: ndarray,
+        sine_template: ndarray,) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    """Generate covariance matrices Q & S for TRCA model.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+
+    Returns: Tuple[ndarray, ndarray, ndarray]
+        Cxx_total (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
+        Cxy_total (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
+        Cyy_total (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
+    """
+    # basic information
+    X_mean = utils.generate_mean(X=X, y=y)  # (Ne,Nc,Np)
+    n_events = X_mean.shape[0]  # Ne
+    n_chans = X_mean.shape[1]  # Nc
+    n_dims = sine_template.shape[1]  # 2Nh
+
+    # covariance matrices of merged data
+    Cxx_total = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
+    Cxy_total = np.zeros((n_events, n_chans, n_dims))  # (Ne,Nc,2Nh)
+    Cyy_total = np.zeros((n_events, n_dims, n_dims))  # (Ne,2Nh,2Nh)
+    for ne in range(n_events):
+        Cxx_total[ne] = X_mean[ne] @ X_mean[ne].T
+        Cxy_total[ne] = X_mean[ne] @ sine_template[ne].T
+        Cyy_total[ne] = sine_template[ne] @ sine_template[ne].T
+    return Cxx_total, Cxy_total, Cyy_total, X_mean
+
+
+def solve_msecca_func(
+        Cxx: ndarray,
+        Cxy: ndarray,
+        Cyy: ndarray,
+        event_type: ndarray,
+        events_group: Dict[str, List[int]],
+        n_components: int = 1) -> Tuple[ndarray, ndarray]:
+    """Solve ms-eCCA target function.
+
+    Args:
+        Cxx (ndarray): (Ne,Nc,Nc). See details in generate_msecca_mat().
+        Cxy (ndarray): (Ne,Nc,2*Nh). See details in generate_msecca_mat().
+        Cyy (ndarray): (Ne,2*Nh,2*Nh). See details in generate_msecca_mat().
+        event_type (ndarray): (Ne,). Generated by np.unique(y).
+        events_group (dict): {'event_id':[idx,]}.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
+
+    Returns: Tuple[ndarray, ndarray]
+        u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
+        v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
+    """
+    # basic information
+    n_events = Cxx.shape[0]  # Ne
+    n_chans = Cxx.shape[1]  # Nc
+    n_dims = Cxy.shape[-1]  # 2Nh
+
+    # solve GEPs
+    u = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
+    v = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
+    for ne, et in enumerate(event_type):
+        indices = events_group[str(et)]
+        Cxx_temp = np.sum(Cxx[indices], axis=0)  # (Nc,Nc)
+        Cxy_temp = np.sum(Cxy[indices], axis=0)  # (Nc,2Nh)
+        Cyy_temp = np.sum(Cyy[indices], axis=0)  # (2Nh,2Nh)
+        u[ne], v[ne] = solve_cca_func(
+            Cxx=Cxx_temp,
+            Cxy=Cxy_temp,
+            Cyy=Cyy_temp,
+            n_components=n_components
+        )
+    return u, v
+
+
+def generate_msecca_template(
+        u: ndarray,
+        v: ndarray,
+        X_mean: ndarray,
+        sine_template: ndarray,
+        check_direc: bool = True) -> Tuple[ndarray, ndarray]:
+    """Generate ms-eCCA templates.
+
+    Args:
+        u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
+        v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        check_direc (bool): Use check_plus_minis() or not. Defaults to True.
+
+    Returns: Tuple[ndarray, ndarray]
+        uX (ndarray): (Ne,Nk,Np). ms-eCCA EEG templates.
+        vY (ndarray): (Ne,Nk,Np). ms-eCCA sinusoidal templates.
+    """
+    # basic information
+    n_events = X_mean.shape[0]  # Ne
+
+    # spatial filtering process
+    uX = utils.spatial_filtering(w=u, X_mean=X_mean)  # (Ne,Nk,Np)
+    vY = np.zeros_like(uX)  # (Ne,Nk,Np)
+    for ne in range(n_events):
+        vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
+        if check_direc:
+            _, v[ne], vY[ne] = check_plus_minis(uX=uX[ne], vY=vY[ne], v=v[ne])
+    vY = utils.fast_stan_3d(vY)
+    return uX, vY
+
+
 def msecca_kernel(
         X_train: ndarray,
         y_train: ndarray,
@@ -977,7 +1120,8 @@ def msecca_kernel(
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         events_group (dict): {'event_id':[idx,]}.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
@@ -985,61 +1129,36 @@ def msecca_kernel(
         Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
-        uX, vY (ndarray): (Ne,Nk,Np). ms-eCCA templates.
+        uX (ndarray): (Ne,Nk,Np). See details in generate_msecca_template().
+        vY (ndarray): (Ne,Nk,Np). See details in generate_msecca_template().
     """
-    # basic information
-    event_type = np.unique(y_train)
-    n_events = sine_template.shape[0]  # Ne
-    n_chans = X_train.shape[1]  # Nc
-    n_points = X_train.shape[-1]  # Np
-    n_dims = sine_template.shape[1]  # 2Nh
-
-    # covariance matrices of merged data
-    Cxx_total = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
-    Cxy_total = np.zeros((n_events, n_chans, n_dims))  # (Ne,Nc,2Nh)
-    Cyy_total = np.zeros((n_events, n_dims, n_dims))  # (Ne,2Nh,2Nh)
-    X_mean = utils.generate_mean(X=X_train, y=y_train)
-    for ne in range(n_events):
-        Cxx_total[ne] = X_mean[ne] @ X_mean[ne].T
-        Cxy_total[ne] = X_mean[ne] @ sine_template[ne].T
-        Cyy_total[ne] = sine_template[ne] @ sine_template[ne].T
+    # solve target functions
+    Cxx_total, Cxy_total, Cyy_total, X_mean = generate_msecca_mat(
+        X=X_train,
+        y=y_train,
+        sine_template=sine_template
+    )
+    u, v = solve_msecca_func(
+        Cxx=Cxx_total,
+        Cxy=Cxy_total,
+        Cyy=Cyy_total,
+        event_type=np.unique(y_train),
+        events_group=events_group,
+        n_components=n_components
+    )
 
     # GEPs | train spatial filters & templates
-    u = np.zeros((n_events, n_components, n_chans))  # (Ne,Nk,Nc)
-    v = np.zeros((n_events, n_components, n_dims))  # (Ne,Nk,2Nh)
-    uX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    vY = np.zeros_like(uX)  # (Ne,Nk,Np)
-    for ne, et in enumerate(event_type):
-        merged_indices = events_group[str(et)]
-        Cxx_temp = np.sum(Cxx_total[merged_indices], axis=0)  # (Nc,Nc)
-        Cxy_temp = np.sum(Cxy_total[merged_indices], axis=0)  # (Nc,2Nh)
-        Cyy_temp = np.sum(Cyy_total[merged_indices], axis=0)  # (2Nh,2Nh)
-        u[ne] = utils.solve_gep(
-            A=Cxy_temp @ sLA.solve(Cyy_temp, Cxy_temp.T),
-            B=Cxx_temp,
-            n_components=n_components
-        )
-        v[ne] = utils.solve_gep(
-            A=Cxy_temp.T @ sLA.solve(Cxx_temp, Cxy_temp),
-            B=Cyy_temp,
-            n_components=n_components
-        )
-
-        # positive-negative correction
-        uX[ne] = u[ne] @ X_mean[ne]  # (Nk,Np)
-        vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
-        if utils.pearson_corr(X=uX[ne], Y=vY[ne]) < 0:
-            v[ne] *= -1
-            vY[ne] *= -1
-    uX = utils.fast_stan_3d(uX)  # (Ne,Nk,Np)
-    vY = utils.fast_stan_3d(vY)  # (Ne,Nk,Np)
-
-    # ms-eCCA model
-    training_model = {
+    uX, vY = generate_msecca_template(
+        u=u,
+        v=v,
+        X_mean=X_mean,
+        sine_template=sine_template,
+        check_direc=True
+    )
+    return {
         'Cxx': Cxx_total, 'Cxy': Cxy_total, 'Cyy': Cyy_total,
         'u': u, 'v': v, 'uX': uX, 'vY': vY
     }
-    return training_model
 
 
 def msecca_feature(
@@ -1145,6 +1264,7 @@ class FB_MS_ECCA(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -1166,7 +1286,8 @@ def mscca_kernel(
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, ndarray]
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
@@ -1175,42 +1296,26 @@ def mscca_kernel(
         w (ndarray): (Nk,Nc). Common spatial filters.
         wX (ndarray): (Ne,Nk,Np). msCCA templates.
     """
-    # basic information
-    n_events = sine_template.shape[0]  # Ne
-    n_chans = X_train.shape[1]  # Nc
-    n_points = X_train.shape[-1]  # Np
-    n_dims = sine_template.shape[1]  # 2Nh
-
     # covariance matrices of merged data
-    Cxx_total = np.zeros((n_events, n_chans, n_chans))  # (Ne,Nc,Nc)
-    Cxy_total = np.zeros((n_events, n_chans, n_dims))  # (Ne,Nc,2Nh)
-    Cyy_total = np.zeros((n_events, n_dims, n_dims))  # (Ne,2Nh,2Nh)
-    X_mean = utils.generate_mean(X=X_train, y=y_train)  # (Ne,Nc,Np)
-    for ne in range(n_events):
-        Cxx_total[ne] = X_mean[ne] @ X_mean[ne].T
-        Cxy_total[ne] = X_mean[ne] @ sine_template[ne].T
-        Cyy_total[ne] = sine_template[ne] @ sine_template[ne].T
-
-    # GEPs | train spatial filters & templates
-    Cxx_temp = Cxx_total.sum(axis=0)
-    Cxy_temp = Cxy_total.sum(axis=0)
-    Cyy_temp = Cyy_total.sum(axis=0)
-    w = utils.solve_gep(
-        A=Cxy_temp @ sLA.solve(Cyy_temp, Cxy_temp.T),
-        B=Cxx_temp,
+    Cxx_total, Cxy_total, Cyy_total, X_mean = generate_msecca_mat(
+        X=X_train,
+        y=y_train,
+        sine_template=sine_template
+    )
+    w, _ = solve_cca_func(
+        Cxx=np.sum(Cxx_total, axis=0),
+        Cxy=np.sum(Cxy_total, axis=0),
+        Cyy=np.sum(Cyy_total, axis=0),
+        mode=['X'],
         n_components=n_components
-    )  # (Nk,Nc)
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w @ X_mean[ne]
-    wX = utils.fast_stan_3d(wX)
+    )
 
-    # msCCA model
-    training_model = {
+    # generate spatial-filtered templates
+    wX = utils.spatial_filtering(w=w, X_mean=X_mean)
+    return {
         'Cxx': Cxx_total, 'Cxy': Cxy_total, 'Cyy': Cyy_total,
         'w': w, 'wX': wX
     }
-    return training_model
 
 
 def mscca_feature(
@@ -1296,6 +1401,7 @@ class FB_MSCCA(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -1316,7 +1422,8 @@ def msetcca1_kernel(
     Args:
         X_train (ndarray): (Ne*Nt,Nc,Np). Training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns: Dict[str, List[ndarray]]
         R (List[ndarray]): Ne*(Nt*Nc,Nt*Nc). Inter-trial covariance of EEG.
@@ -1353,12 +1460,7 @@ def msetcca1_kernel(
         S.append(S_temp)
         w.append(w_temp)
         wX.append(wX_temp)
-
-    # MsetCCA1 model
-    training_model = {
-        'R': R, 'S': S, 'w': w, 'wX': wX
-    }
-    return training_model
+    return {'R': R, 'S': S, 'w': w, 'wX': wX}
 
 
 def msetcca1_feature(
@@ -1370,7 +1472,8 @@ def msetcca1_feature(
     Args:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         msetcca1_model (Dict[str, ndarray]): See details in _msetcca1_kernel().
-        n_components (int): Number of eigenvectors picked as filters. Nk.
+        n_components (int): Number of eigenvectors picked as filters.
+            Defaults to 1.
 
     Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of MsetCCA1.
@@ -1440,6 +1543,7 @@ class FB_MSETCCA1(BasicFBCCA):
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
             n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
         """
         self.n_components = n_components
         super().__init__(
@@ -1509,36 +1613,14 @@ def solve_tdcca_func(
     # solve GEPs
     w = np.zeros((n_events, n_components, n_chans))
     for ne in range(n_events):
-        w[ne] = utils.solve_gep(
-            A=Cxy[ne] @ sLA.solve(Cyy[ne], Cxy[ne].T),
-            B=Cxx[ne],
+        w[ne], _ = solve_cca_func(
+            Cxx=Cxx[ne],
+            Cxy=Cxy[ne],
+            Cyy=Cyy[ne],
+            mode=['X'],
             n_components=n_components
-        )  # (Nk,Nc)
+        )
     return w
-
-
-def generate_tdcca_template(
-        X_mean: ndarray,
-        w: ndarray) -> ndarray:
-    """Generate TDCCA templates.
-
-    Args:
-        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X_train.
-        w (ndarray): (Ne,Nk,Nc). Spatial filters of TDCCA.
-
-    Returns:
-        wX (ndarray): (Ne,Nk,Np). TDCCA templates.
-    """
-    # basic information
-    n_events = X_mean.shape[0]  # Ne
-    n_points = X_mean.shape[-1]  # Np
-    n_components = w.shape[1]  # Nk
-
-    # spatial filtering process
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w[ne] @ X_mean[ne]  # (Nk,Np)
-    return utils.fast_stan_3d(wX)
 
 
 def tdcca_kernel(
@@ -1566,14 +1648,11 @@ def tdcca_kernel(
     w = solve_tdcca_func(Cxx=Cxx, Cxy=Cxy, Cyy=Cyy, n_components=n_components)
 
     # generate spatial-filtered templates
-    wX = generate_tdcca_template(X_mean=X_mean, w=w)  # (Ne,Nk,Np)
-
-    # CCA model
-    training_model = {
+    wX = utils.spatial_filtering(w=w, X_mean=X_mean)  # (Ne,Nk,Np)
+    return {
         'Cxx': Cxx, 'Cxy': Cxy, 'Cyy': Cyy,
         'X_mean': X_mean, 'w': w, 'wX': wX
     }
-    return training_model
 
 
 def tdcca_feature(
