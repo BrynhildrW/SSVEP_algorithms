@@ -4,74 +4,79 @@
 @ email: brynhildrwu@gmail.com
 
 1. Data preprocessing:
-    (1-1) centralization()
-    (1-2) normalization()
-    (1-3) standardization()
-    (1-4) fast_stan_2d()
-    (1-5) fast_stan_3d()
-    (1-6) fast_stan_4d()
-    (1-7) fast_stan_5d()
-    (1-8) generate_data_info()
+    centralization()
+    normalization()
+    standardization()
+    fast_stan_2d()
+    fast_stan_3d()
+    fast_stan_4d()
+    fast_stan_5d()
+    generate_data_info()
 
 2. Data generation
-    (2-1) sin_wave()
-    (2-2) sine_template()
-    (2-3) Imn()
-    (2-4) augmented_events()
-    (2-5) selected_events()
-    (2-6) reshape_dataset()
-    (2-7) generate_mean()
-    (2-8) generate_var()
+    augmented_events()
+    neighbor_edge()
+    neighbor_events()
+    selected_events()
+    reshape_dataset()
+    generate_mean()
+    generate_var()
+    generate_source_response()
+    spatial_filtering()
 
 3. Feature integration
-    (3-1) sign_sta()
-    (3-2) combine_feature()
+    sign_sta()
+    combine_feature()
 
 4. Algorithm evaluation
-    (4-1) acc_compute()
-    (4-2) confusion_matrix()
-    (4-3) itr_compute()
+    label_align()
+    acc_compute()
+    itr_compute()
 
 5. Spatial distances
-    (5-1) pearson_corr()
-    (5-2) fast_corr_2d()
-    (5-3) fast_corr_3d()
-    (5-4) fast_corr_4d()
-    (5-5) fisher_score()
-    (5-6) euclidean_dist()
-    (5-7) cosine_sim()
-    (5-8) minkowski_dist()
-    (5-9) mahalanobis_dist()
-    (5-10) nega_root()
-    (5-11) s_estimator()
+    pearson_corr()
+    fast_corr_2d()
+    fast_corr_3d()
+    fast_corr_4d()
+    fisher_score()
+    euclidean_dist()
+    cosine_sim()
+    minkowski_dist()
+    mahalanobis_dist()
+    root_matrix()
+    nega_root_matrix()
+    s_estimator()
 
 6. Temporally smoothing functions
-    (6-1) tukeys_kernel()
-    (6-2) weight_matrix()
-    (6-3) laplacian_matrix()
+    tukeys_kernel()
+    weight_matrix()
+    laplacian_matrix()
 
 7. Reduced QR decomposition
-    (7-1) qr_projection()
+    qr_projection()
 
 8. Eigenvalue problems
-    (8-1) pick_subspace()
-    (8-2) solve_ep()
-    (8-3) solve_gep()
+    pick_subspace()
+    solve_ep()
+    solve_gep()
 
 9. Signal generation
-    (9-1) get_resample_sequence()
-    (9-2) extract_periodic_impulse()
-    (9-3) create_conv_matrix()
-    (9-4) correct_conv_matrix()
-    (9-5) generate_source_response()
+    Imn()
+    sin_wave()
+    sine_template()
+    get_resample_sequence()
+    extract_periodic_impulse()
+    create_conv_matrix()
+    correct_conv_matrix()
+
 
 10. Filter-bank technology
-    (10-1) generate_filter_bank
-    (10-2) (class) FilterBank
+    generate_filter_bank
+    (class) FilterBank
 
 11. Linear transformation
-    (11-1) forward_propagation
-    (11-3) solve_coral
+    forward_propagation
+    solve_coral
 
 
 Notations:
@@ -96,12 +101,14 @@ import numpy as np
 from scipy import linalg as sLA
 from scipy.signal import sosfiltfilt, cheby1, cheb1ord
 from sklearn.base import BaseEstimator, TransformerMixin, clone
-from sklearn.metrics import confusion_matrix
+# from sklearn.metrics import confusion_matrix
 
 from math import pi, log
 
 import warnings
 from numba import njit
+
+import cv2
 
 
 # %% 1. data preprocessing
@@ -141,8 +148,8 @@ def standardization(X: ndarray) -> ndarray:
     Returns:
         X (ndarray): Data after standardization.
     """
-    X = centralization(X)
-    return X / np.std(X, axis=-1, keepdims=True)
+    X_stan = centralization(X)
+    return X_stan / np.std(X_stan, axis=-1, keepdims=True)
 
 
 @njit(fastmath=True)
@@ -154,13 +161,14 @@ def fast_stan_2d(X: ndarray) -> ndarray:
         X (ndarray): (d1,d2).
 
     Returns:
-        X (ndarray): (d1,d2).
+        X_new (ndarray): (d1,d2).
     """
     dim_1 = X.shape[0]
+    X_new = np.zeros_like(X)
     for d1 in range(dim_1):
-        X[d1, :] = X[d1, :] - np.mean(X[d1, :])  # centralization
-        X[d1, :] = X[d1, :] / np.std(X[d1, :])
-    return X
+        X_new[d1, :] = X[d1, :] - np.mean(X[d1, :])  # centralization
+        X_new[d1, :] = X_new[d1, :] / np.std(X_new[d1, :])
+    return X_new
 
 
 @njit(fastmath=True)
@@ -171,13 +179,14 @@ def fast_stan_3d(X: ndarray) -> ndarray:
         X (ndarray): (d1,d2,d3).
 
     Returns:
-        X (ndarray): (d1,d2,d3).
+        X_new (ndarray): (d1,d2,d3).
     """
+    X_new = np.zeros_like(X)
     for d1 in range(X.shape[0]):
         for d2 in range(X.shape[1]):
-            X[d1, d2, :] = X[d1, d2, :] - np.mean(X[d1, d2, :])
-            X[d1, d2, :] = X[d1, d2, :] / np.std(X[d1, d2, :])
-    return X
+            X_new[d1, d2, :] = X[d1, d2, :] - np.mean(X[d1, d2, :])
+            X_new[d1, d2, :] = X_new[d1, d2, :] / np.std(X_new[d1, d2, :])
+    return X_new
 
 
 @njit(fastmath=True)
@@ -188,15 +197,16 @@ def fast_stan_4d(X: ndarray) -> ndarray:
         X (ndarray): (d1,d2,d3,d4).
 
     Returns:
-        X (ndarray): (d1,d2,d3,d4).
+        X_new (ndarray): (d1,d2,d3,d4).
     """
+    X_new = np.zeros_like(X)
     dim_1, dim_2, dim_3 = X.shape[0], X.shape[1], X.shape[2]
     for d1 in range(dim_1):
         for d2 in range(dim_2):
             for d3 in range(dim_3):
-                X[d1, d2, d3, :] = X[d1, d2, d3, :] - np.mean(X[d1, d2, d3, :])
-                X[d1, d2, d3, :] = X[d1, d2, d3, :] / np.std(X[d1, d2, d3, :])
-    return X
+                X_new[d1, d2, d3, :] = X[d1, d2, d3, :] - np.mean(X[d1, d2, d3, :])
+                X_new[d1, d2, d3, :] = X_new[d1, d2, d3, :] / np.std(X_new[d1, d2, d3, :])
+    return X_new
 
 
 @njit(fastmath=True)
@@ -207,16 +217,17 @@ def fast_stan_5d(X: ndarray) -> ndarray:
         X (ndarray): (d1,d2,d3,d4,d5).
 
     Returns:
-        X (ndarray): (d1,d2,d3,d4,d5).
+        X_new (ndarray): (d1,d2,d3,d4,d5).
     """
+    X_new = np.zeros_like(X)
     dim_1, dim_2, dim_3, dim_4 = X.shape[0], X.shape[1], X.shape[2], X.shape[3]
     for d1 in range(dim_1):
         for d2 in range(dim_2):
             for d3 in range(dim_3):
                 for d4 in range(dim_4):
-                    X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] - np.mean(X[d1, d2, d3, d4, :])
-                    X[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] / np.std(X[d1, d2, d3, d4, :])
-    return X
+                    X_new[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] - np.mean(X[d1, d2, d3, d4, :])
+                    X_new[d1, d2, d3, d4, :] = X_new[d1, d2, d3, d4, :] / np.std(X_new[d1, d2, d3, d4, :])
+    return X_new
 
 
 def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
@@ -226,7 +237,7 @@ def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
         X (ndarray): (Ne*Nt,Nc,Np). Input data.
         y (ndarray): (Ne*Nt,). Labels for X.
 
-    Returns: Dict[str, Any]
+    Returns:
         event_type (ndarray): (Ne,).
         n_events (int): Ne.
         n_train (ndarray): (Ne,). Trials of each event.
@@ -244,71 +255,9 @@ def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
 
 
 # %% 2. data gerenation
-def sin_wave(
-        freq: Union[int, float],
-        n_points: int,
-        phase: float,
-        srate: Union[int, float] = 1000) -> ndarray:
-    """Construct sinusoidal waveforms.
-
-    Args:
-        freq (Union[int, float]): Frequency / Hz.
-        n_points (int): Number of sampling points.
-        phase (float): Coefficients. 0-2 (pi).
-        srate (Union[int, float]): Sampling rate. Defaults to 1000.
-
-    Returns:
-        wave (ndarray): (n_points,). Sinusoidal sequence.
-    """
-    time_points = np.arange(n_points) / srate
-    wave = np.sin(2 * pi * freq * time_points + pi * phase)
-    return wave
-
-
-def sine_template(
-        freq: Union[int, float],
-        phase: Union[int, float],
-        n_points: int,
-        n_harmonics: int,
-        srate: Union[int, float] = 1000) -> ndarray:
-    """Create sine-cosine template for SSVEP signals.
-
-    Args:
-        freq (Union[int, float]): Basic frequency.
-        phase (Union[int, float]): Initial phase (coefficients). 0-2 (pi).
-        n_points (int): Sampling points.
-        n_harmonics (int): Number of harmonics.
-        srate (Union[int, float]): Sampling rate. Defaults to 1000.
-
-    Returns:
-        Y (ndarray): (2*Nh,Np).
-    """
-    Y = np.zeros((2 * n_harmonics, n_points))  # (2Nh,Np)
-    for nh in range(n_harmonics):
-        Y[2 * nh, :] = sin_wave((nh + 1) * freq, n_points, 0 + (nh + 1) * phase, srate)
-        Y[2 * nh + 1, :] = sin_wave((nh + 1) * freq, n_points, 0.5 + (nh + 1) * phase, srate)
-    return Y
-
-
-def Imn(m: int, n: int) -> ndarray:
-    """Concatenate identical matrices into a big matrix.
-
-    Args:
-        m (int): Total number of identity matrix.
-        n (int): Dimensions of the identity matrix.
-
-    Returns:
-        target (ndarray): (m*n, n).
-    """
-    Z = np.zeros((m * n, n))
-    for i in range(m):
-        Z[i * n:(i + 1) * n, :] = np.eye(n)
-    return Z
-
-
 def augmented_events(event_type: ndarray, d: int) -> Dict[str, List[int]]:
     """Generate indices for merged events for each target event.
-        Special function for ms- algorithms.
+    Special function for ms- algorithms.
 
     Args:
         event_type (ndarray): Unique labels.
@@ -341,10 +290,11 @@ def neighbor_edge(
         neighbor_range (int): Must be an odd number.
         current_index (int): From 0 to total_lenth-1.
 
-    Returns: Tuple[int, int]
-        (edge_idx_1, edge_idx_2): edge_idx_2 is 1 more than the real index of the last element.
+    Returns:
+        (edge_idx_1, edge_idx_2): edge_idx_2 is 1 more than the real index
+        of the last element.
     """
-    assert int(neighbor_range/2) != neighbor_range / 2, "Please use an odd number as neighbor_range!"
+    assert int(neighbor_range / 2) != neighbor_range / 2, "Please use an odd number as neighbor_range!"
 
     half_length = int((neighbor_range - 1) / 2)
     if current_index <= half_length:  # left/upper edge
@@ -358,11 +308,12 @@ def neighbor_edge(
 
 def neighbor_events(distribution: ndarray, width: int) -> Dict[str, List[int]]:
     """Generate indices for merged events for each target event.
-        Refers to: 10.1109/TIM.2022.3219497 (DOI).
+    Refers to: 10.1109/TIM.2022.3219497 (DOI).
 
     Args:
         distribution (ndarray): Real spatial distribution (labels) of each stimuli.
-        width (int): Parameter 'neighbor_range' used in neighbor_edge(). Must be an odd number.
+        width (int): Parameter 'neighbor_range' used in neighbor_edge().
+            Must be an odd number.
 
     Returns:
         events_group (dict): {'event_id': [idx_1,idx_2,...]}.
@@ -391,7 +342,7 @@ def selected_events(
         select_num: int,
         select_method: str = '2') -> List[int]:
     """Generate indices for selected events of total dataset.
-        Special function for stCCA.
+    Special function for stCCA.
 
     Args:
         n_events (int): Number of total events.
@@ -403,11 +354,14 @@ def selected_events(
         select_events (List[int]): Indices of selected events.
     """
     if select_method == '1':
-        return [1 + int((n_events - 1) * sen / (select_num - 1)) for sen in range(select_num)]
+        return [1 + int((n_events - 1) * sen / (select_num - 1))
+                for sen in range(select_num)]
     elif select_method == '2':
-        return [int(n_events * (2 * sen + 1) / (2 * select_num)) for sen in range(select_num)]
+        return [int(n_events * (2 * sen + 1) / (2 * select_num))
+                for sen in range(select_num)]
     elif select_method == '3':
-        return [int(n_events * 2 * (sen + 1) / (2 * select_num)) for sen in range(select_num)]
+        return [int(n_events * 2 * (sen + 1) / (2 * select_num))
+                for sen in range(select_num)]
 
 
 def reshape_dataset(
@@ -449,8 +403,7 @@ def reshape_dataset(
         # reshape data
         if filter_bank:  # (Nb,Ne*Nt,Nc,Np)
             n_bands = data.shape[0]  # Nb
-            X_total = np.zeros(
-                (n_bands, n_events, n_trials, n_chans, n_points))
+            X_total = np.zeros((n_bands, n_events, n_trials, n_chans, n_points))
             for nb in range(n_bands):
                 for ne, et in enumerate(event_type):
                     X_total[nb, ne, ...] = data[nb][labels == et][:n_trials, ...]  # (Nt,Nc,Np)
@@ -472,16 +425,16 @@ def reshape_dataset(
         # reshape data
         if filter_bank:  # (Nb,Ne,Nt,Nc,Np)
             n_bands = data.shape[0]  # Nb
-            X_total = np.zeros((n_bands, n_events*n_trials, n_chans, n_points))
+            X_total = np.zeros((n_bands, n_events * n_trials, n_chans, n_points))
             for nb in range(n_bands):
                 for ne in range(n_events):
-                    sp = ne*n_trials
-                    X_total[nb, sp:sp+n_trials, ...] = data[nb, ne, ...]  # (Nt,Nc,Np)
+                    sp = ne * n_trials
+                    X_total[nb, sp:sp + n_trials, ...] = data[nb, ne, ...]  # (Nt,Nc,Np)
         else:  # (Ne,Nt,Nc,Np)
-            X_total = np.zeros((n_events*n_trials, n_chans, n_points))
+            X_total = np.zeros((n_events * n_trials, n_chans, n_points))
             for ne in range(n_events):
-                sp = ne*n_trials
-                X_total[sp:sp+n_trials, ...] = data[ne, ...]  # (Nt,Nc,Np)
+                sp = ne * n_trials
+                X_total[sp:sp + n_trials, ...] = data[ne, ...]  # (Nt,Nc,Np)
         return X_total, np.array(y_total).squeeze()
 
 
@@ -555,6 +508,60 @@ def generate_var(
     return X_var
 
 
+def generate_source_response(
+        X: ndarray,
+        y: ndarray,
+        w: ndarray) -> ndarray:
+    """Calculate wX on latent subspace.
+
+    Args:
+        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
+        y (ndarray): (Ne*Nt,). Labels for X.
+        w (ndarray): (Ne,Nk,Nc). Spatial filters.
+
+    Returns:
+        S (ndarray): (Ne*Nt,Nk,Np). Source responses.
+    """
+    # basic information
+    n_trials = X.shape[0]  # Ne*Nt
+    n_components = w.shape[-2]  # Nk
+    n_points = X.shape[-1]  # Np
+    event_type = list(np.unique(y))  # (Ne,)
+
+    # backward-propagation
+    S = np.zeros((n_trials, n_components, n_points))
+    for nt in range(X.shape[0]):
+        event_idx = event_type.index(y[nt])
+        S[nt] = w[event_idx] @ X[nt]
+    return S
+
+
+def spatial_filtering(w: ndarray, X_mean: ndarray) -> ndarray:
+    """Process input data (X) with spatial filters (w).
+
+    Args:
+        w (ndarray): (Ne,Nk,Nc) or (Nk,Nc). Spatial filters
+        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
+
+    Returns:
+        wX (ndarray): (Ne,Nk,Np)
+    """
+    # basic information
+    n_events = X_mean.shape[0]  # Ne
+    n_components = w.shape[-2]  # Nk
+    n_points = X_mean.shape[-1]  # Np
+
+    # spatial filtering
+    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
+    if w.ndim == 2:  # (Nk,Nc)
+        for ne in range(n_events):
+            wX[ne] = w @ X_mean[ne]
+    elif w.ndim == 3:  # (Ne,Nk,Nc)
+        for ne in range(n_events):
+            wX[ne] = w[ne] @ X_mean[ne]
+    return fast_stan_3d(wX)
+
+
 # %% 3. feature integration
 def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
     """Standardization of decision coefficient based on sign(x).
@@ -565,8 +572,8 @@ def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
     Returns:
         y (Union[int, float, ndarray]): y=sign(x)*x^2
     """
-    x = np.real(x)
-    return (abs(x) / x) * (x**2)
+    x_real = np.real(x)
+    return (abs(x_real) / x_real) * (x_real**2)
 
 
 def combine_feature(
@@ -590,10 +597,10 @@ def combine_feature(
 
 # %% 4. algorithm evaluation
 def label_align(y_pred: ndarray, event_type: ndarray) -> ndarray:
-    """Label alignment.
-        For example, y_train = [1,2,5], y_pred=[0,1,2]
-        (Correct but with hidden danger in codes).
-        This function will transform y_pred to [1,2,5].
+    """Alignment between predicted indices and real labels.
+    For example, y_train=[1,2,5], y_pred=[0,1,2].
+    (Correct but with hidden danger in codes).
+    This function will transform y_pred to [1,2,5].
 
     Args:
         y_pred (ndarray): (Nte,). Predict labels.
@@ -668,15 +675,15 @@ def pearson_corr(
             float: X (m,n) & Y (m,n).
             ndarray (l,): X (m,n) & Y (l,m,n).
     """
-    X, Y = standardization(X), standardization(Y)
+    X_stan, Y_stan = standardization(X), standardization(Y)
 
     # reshape data into vector-style: reshape() is 5 times faster than flatten()
-    X = np.reshape(X, -1, order='C')  # (m*n,)
+    X_stan = np.reshape(X_stan, -1, order='C')  # (m*n,)
     if parallel:  # Y: (l,m,n)
-        Y = np.reshape(Y, (Y.shape[0], -1), order='C')  # (l,m*n)
+        Y_stan = np.reshape(Y_stan, (Y_stan.shape[0], -1), order='C')  # (l,m*n)
     else:  # Y: (m,n)
-        Y = np.reshape(Y, -1, order='C')  # (m*n,)
-    return Y @ X / X.shape[-1]
+        Y_stan = np.reshape(Y_stan, -1, order='C')  # (m*n,)
+    return Y_stan @ X_stan / X_stan.shape[-1]
 
 
 @njit(fastmath=True)
@@ -711,8 +718,8 @@ def fast_corr_3d(X: ndarray, Y: ndarray) -> ndarray:
     Returns:
         corr (ndarray): (d1,d2).
     """
-    dim_1, dim_2, dim_3 = X.shape[0], X.shape[1], X.shape[2]
-    corr = np.zeros((dim_2, dim_3))
+    dim_1, dim_2 = X.shape[0], X.shape[1]
+    corr = np.zeros((dim_1, dim_2))
     for d1 in range(dim_1):
         for d2 in range(dim_2):
             corr[d1, d2] = X[d1, d2, :] @ Y[d1, d2, :].T
@@ -730,8 +737,8 @@ def fast_corr_4d(X: ndarray, Y: ndarray) -> ndarray:
     Returns:
         corr (ndarray): (d1,d2,d3).
     """
-    dim_1, dim_2, dim_3, dim_4 = X.shape[0], X.shape[1], X.shape[2], X.shape[3]
-    corr = np.zeros((dim_2, dim_3, dim_4))
+    dim_1, dim_2, dim_3 = X.shape[0], X.shape[1], X.shape[2]
+    corr = np.zeros((dim_1, dim_2, dim_3))
     for d1 in range(dim_1):
         for d2 in range(dim_2):
             for d3 in range(dim_3):
@@ -886,6 +893,7 @@ def s_estimator(X: ndarray) -> float:
 # %% 6. temporally smoothing functions
 def tukeys_kernel(x: float, r: Union[int, float] = 3) -> float:
     """Tukeys tri-cube kernel function.
+
     Args:
         x (float)
         r (Union[int, float]): Defaults to 3.
@@ -973,14 +981,17 @@ def pick_subspace(
 def solve_ep(
         A: ndarray,
         n_components: int = 1,
-        mode: str = 'Max') -> ndarray:
+        mode: str = 'Max',
+        ratio: Optional[float] = None) -> ndarray:
     """Solve eigenvalue problems
-        Rayleigh quotient: f(w)=wAw^T/(ww^T) -> Aw = lambda w
+    Rayleigh quotient: f(w)=wAw^T/(ww^T) -> Aw = lambda w
 
     Args:
         A (ndarray): (m,m)
         n_components (int): Number of eigenvectors picked as filters.
         mode (str): 'Max' or 'Min'. Depends on target function.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Only useful when n_components is None.
 
     Returns:
         w (ndarray): (Nk,m). Picked eigenvectors.
@@ -988,6 +999,12 @@ def solve_ep(
     e_val, e_vec = sLA.eig(A)
     descend_order = sorted(enumerate(e_val), key=lambda x: x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
+    if n_components is None:
+        n_components = pick_subspace(
+            descend_order=descend_order,
+            e_val_sum=np.sum(np.real(e_val)),
+            ratio=ratio
+        )
     if mode == 'Min':
         return np.real(e_vec[:, w_index][:, n_components:].T)
     elif mode == 'Max':
@@ -998,15 +1015,18 @@ def solve_gep(
         A: ndarray,
         B: ndarray,
         n_components: int = 1,
-        mode: str = 'Max') -> ndarray:
+        mode: str = 'Max',
+        ratio: Optional[float] = None) -> ndarray:
     """Solve generalized problems | generalized Rayleigh quotient:
-        f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw -> B^{-1}Aw = lambda w
+    f(w)=wAw^T/(wBw^T) -> Aw = lambda Bw -> B^{-1}Aw = lambda w
 
     Args:
         A (ndarray): (m,m).
         B (ndarray): (m,m).
         n_components (int): Number of eigenvectors picked as filters.
         mode (str): 'Max' or 'Min'. Depends on target function.
+        ratio (float): 0-1. The ratio of the sum of eigenvalues to the total.
+            Only useful when n_components is None.
 
     Returns:
         w (ndarray): (Nk,m). Picked eigenvectors.
@@ -1014,6 +1034,12 @@ def solve_gep(
     e_val, e_vec = sLA.eig(sLA.solve(a=B, b=A, assume_a='sym'))  # ax=b -> x=a^{-1}b
     descend_order = sorted(enumerate(e_val), key=lambda x: x[1], reverse=True)
     w_index = [do[0] for do in descend_order]
+    if n_components is None:
+        n_components = pick_subspace(
+            descend_order=descend_order,
+            e_val_sum=np.sum(np.real(e_val)),
+            ratio=ratio
+        )
     if mode == 'Min':
         return np.real(e_vec[:, w_index][:, n_components:].T)
     elif mode == 'Max':
@@ -1021,10 +1047,114 @@ def solve_gep(
 
 
 # %% 9. Signal generation
+def Imn(m: int, n: int) -> ndarray:
+    """Concatenate identical matrices into a big matrix.
+
+    Args:
+        m (int): Total number of identity matrix.
+        n (int): Dimensions of the identity matrix.
+
+    Returns:
+        target (ndarray): (m*n, n).
+    """
+    Z = np.zeros((m * n, n))
+    for i in range(m):
+        Z[i * n:(i + 1) * n, :] = np.eye(n)
+    return Z
+
+
+def square_wave(
+        freq: Union[int, float],
+        phase: Union[int, float],
+        n_points: int,
+        duty: Union[int, float] = 20,
+        srate: Union[int, float] = 1000) -> ndarray:
+    """Construct square waveforms.
+    Adopted from: https://github.com/edwin465/SSVEP-Impulse-Response.
+
+    Args:
+        freq (Union[int, float]): Frequency / Hz.
+        phase (float): Coefficients. 0-2 (pi).
+        n_points (Union[int, float]): Number of sampling points.
+        duty (Union[int, float]): Defaults to 50 (%).
+        srate (Union[int, float]): Sampling rate. Defaults to 1000.
+
+    Returns:
+        wave (ndarray): (n_points,). Square sequence (from 0 to 2).
+    """
+    time_points = np.arange(n_points) / srate
+
+    # the black box from @Edwin465
+    t = 2 * pi * freq * time_points + phase * pi
+    tem = np.mod(t, 2 * pi)
+    w0 = 2 * pi * duty / 100
+    nodd = np.array((tem < w0))
+    wave = 2 * nodd - 1
+    return wave
+
+
+def sin_wave(
+        freq: Union[int, float],
+        phase: Union[int, float],
+        n_points: int,
+        srate: Union[int, float] = 1000) -> ndarray:
+    """Construct sinusoidal waveforms.
+
+    Args:
+        freq (Union[int, float]): Frequency / Hz.
+        n_points (Union[int, float]): Number of sampling points.
+        phase (float): Coefficients. 0-2 (pi).
+        srate (Union[int, float]): Sampling rate. Defaults to 1000.
+
+    Returns:
+        wave (ndarray): (n_points,). Sinusoidal sequence.
+    """
+    time_points = np.arange(n_points) / srate
+    wave = np.sin(2 * pi * freq * time_points + pi * phase)
+    return wave
+
+
+def sine_template(
+        freq: Union[int, float],
+        phase: Union[int, float],
+        n_points: int,
+        n_harmonics: int,
+        srate: Union[int, float] = 1000) -> ndarray:
+    """Create sine-cosine template for SSVEP signals.
+
+    Args:
+        freq (Union[int, float]): Basic frequency.
+        phase (Union[int, float]): Initial phase (coefficients). 0-2 (pi).
+        n_points (int): Sampling points.
+        n_harmonics (int): Number of harmonics.
+        srate (Union[int, float]): Sampling rate. Defaults to 1000.
+
+    Returns:
+        Y (ndarray): (2*Nh,Np).
+    """
+    Y = np.zeros((2 * n_harmonics, n_points))  # (2Nh,Np)
+    for nh in range(n_harmonics):
+        Y[2 * nh, :] = sin_wave(
+            freq=(nh + 1) * freq,
+            phase=0 + (nh + 1) * phase,
+            n_points=n_points,
+            srate=srate
+        )
+        Y[2 * nh + 1, :] = sin_wave(
+            freq=(nh + 1) * freq,
+            phase=0.5 + (nh + 1) * phase,
+            n_points=n_points,
+            srate=srate
+        )
+    return Y
+
+
 def get_resample_sequence(
         seq: ndarray,
         srate: Union[int, float] = 1000,
-        rrate: int = 60) -> List[Tuple[int, float]]:
+        rrate: int = 60,
+        output_waveform: bool = True) -> Union[List[Tuple[int, float]],
+                                               Tuple[List[Tuple[int, float]], ndarray]]:
     """Obtain the resampled sequence from original sequence.
 
     Args:
@@ -1032,16 +1162,39 @@ def get_resample_sequence(
             Stimulus sequence of original sampling rate.
         srate (int or float): Sampling rate. Defaults to 1000 Hz.
         rrate (int): Refresh rate of stimulus devices. Defaults to 60 Hz.
+        output_waveform (bool): Return resampled waveform or not.
+            Defaults to False.
 
-    Return:
+    Returns:
         rsp_seq (List[Tuple[int, float]]): (index, value).
             Resampled values and indices of stimulus sequence.
+        rsp_wave (ndarray): (1, resampled_length). Only when output_waveform is True.
     """
+    # construct resampled sequence
     n_points = seq.shape[-1]
-    rsp_points = int(np.ceil(rrate * n_points / srate))  # resampled n_points
+    rsp_points = int(np.round(rrate * n_points / srate))  # resampled n_points
     rsp_idx = np.round(srate / rrate * np.arange(rsp_points) + 0.001)
     rsp_val = [seq[int(ri)] for ri in rsp_idx]
     rsp_seq = [(int(ri), rv) for ri, rv in zip(rsp_idx, rsp_val)]
+
+    # construct waveform (for plotting)
+    if output_waveform:
+        rsp_wave = np.zeros((n_points))
+        n_count = 0
+        for nrw in range(rsp_wave.shape[0]):
+            if nrw == 0:  # start point
+                rsp_wave[nrw] = rsp_seq[n_count][1]
+                n_count += 1
+            elif rsp_seq[n_count - 1][0] < nrw < rsp_seq[n_count][0]:
+                # keep the same value in the current period
+                rsp_wave[nrw] = rsp_seq[n_count - 1][1]
+            elif nrw >= rsp_seq[n_count][0]:  # switch to the next period
+                if n_count == len(rsp_seq) - 1:  # max
+                    rsp_wave[nrw] = rsp_seq[n_count][1]
+                else:
+                    n_count += 1
+                    rsp_wave[nrw] = rsp_seq[n_count - 1][1]
+        return rsp_seq, rsp_wave
     return rsp_seq
 
 
@@ -1050,7 +1203,8 @@ def extract_periodic_impulse(
         phase: Union[int, float],
         n_points: int,
         srate: Union[int, float] = 1000,
-        rrate: int = 60) -> ndarray:
+        rrate: int = 60,
+        method: str = 'Square') -> ndarray:
     """Extract periodic impulse sequence from stimulus sequence.
 
     Args:
@@ -1059,33 +1213,66 @@ def extract_periodic_impulse(
         n_points (int): Total length of reconstructed signal.
         srate (int or float): Sampling rate. Defaults to 1000 Hz.
         rrate (int): Refresh rate of stimulus devices. Defaults to 60 Hz.
+        method (str): 'Square' or 'Cosine'. Defaults to 'Square'.
+            If 'Square', pick up the moment of the rising edge of the square wave;
+                Adopted from: https://github.com/edwin465/SSVEP-Impulse-Response.
+            If 'Cosine', pick up the peak moment of the resampled cosine wave.
 
-    Return:
-        periodic_impulse (ndarray): (1, signal_length)
+    Returns:
+        periodic_impulse (ndarray): (1,Np)
     """
     # obtain the actual stimulus strength
+    extra_length = int(np.ceil(1 / freq * srate) + n_points)  # add a single period
     cos_seq = sin_wave(
         freq=freq,
-        n_points=n_points,
+        n_points=extra_length,
         phase=0.5 + phase,
         srate=srate
     )
-    rsp_seq = get_resample_sequence(
+    rsp_seq, rsp_wave = get_resample_sequence(
         seq=cos_seq,
         srate=srate,
-        rrate=rrate
+        rrate=rrate,
+        output_waveform=True
     )
 
-    # pick up the peak values of resampled sequence
-    periodic_impulse = np.zeros_like(cos_seq)
-    if phase == 0.5:
-        periodic_impulse[0] = rsp_seq[0][1]
-    for rs in range(1, len(rsp_seq)-1):
-        left_edge = rsp_seq[rs][1] >= rsp_seq[rs-1][1]
-        right_edge = rsp_seq[rs][1] >= rsp_seq[rs+1][1]
-        if left_edge and right_edge:
-            periodic_impulse[rsp_seq[rs][0]] = rsp_seq[rs][1]
-    return periodic_impulse
+    if method == 'Square':  # black box from @Edwin456
+        periodic_impulse = square_wave(
+            freq=freq,
+            phase=phase,
+            n_points=extra_length,
+            duty=20,
+            srate=srate
+        ).astype(float) + 1  # square wave, (Np,)
+        count_thred = np.floor(0.9 * srate / freq)
+        count = count_thred + 1
+        for el in range(extra_length):
+            if periodic_impulse[el] == 0:
+                count = count_thred + 1
+            else:
+                if count >= count_thred:
+                    periodic_impulse[el] = rsp_wave[el] + 1
+                    count = 1
+                else:
+                    count += 1
+                    periodic_impulse[el] = 0
+    elif method == 'Cosine':  # pick up the peak values of resampled sequence
+        periodic_impulse = np.zeros_like(cos_seq)  # WARNING: not the real length
+        if np.mod(phase, 2) == 0:
+            periodic_impulse[0] = rsp_seq[0][1]
+        for rs in range(1, len(rsp_seq) - 1):
+            # >> the last point
+            # bigger_than_left = rsp_seq[rs][1] - rsp_seq[rs - 1][1] > 10e-5
+            # left_edge = bigger_than_left
+            left_edge = rsp_seq[rs][1] - rsp_seq[rs - 1][1] > 10e-5
+
+            # >= the next point
+            bigger_than_right = rsp_seq[rs][1] > rsp_seq[rs + 1][1]
+            close_to_right = abs(rsp_seq[rs][1] - rsp_seq[rs + 1][1]) < 10e-5
+            right_edge = bigger_than_right or close_to_right
+            if left_edge and right_edge:
+                periodic_impulse[rsp_seq[rs][0]] = rsp_seq[rs][1]
+    return periodic_impulse[:n_points]
 
 
 def create_conv_matrix(
@@ -1097,7 +1284,7 @@ def create_conv_matrix(
         periodic_impulse (ndarray): (1,Np). Impulse sequence of stimulus.
         response_length (int): Length of impulse response.
 
-    Return:
+    Returns:
         H (ndarray): (response_length,Np). Convolution matrix.
     """
     signal_length = periodic_impulse.shape[-1]
@@ -1114,7 +1301,7 @@ def correct_conv_matrix(
         amp_scale: Union[int, float] = 0.8,
         concat_method: str = 'dynamic') -> ndarray:
     """Replace the blank values at the front of the reconstructed data
-        with its subsequent fragment.
+    with its subsequent fragment.
 
     Args:
         H (ndarray): (response_length,Np). Convolution matrix.
@@ -1126,7 +1313,7 @@ def correct_conv_matrix(
             'static': Concatenated data is starting from 1 s.
             'dynamic': Concatenated data is starting from 1 period.
 
-    Return:
+    Returns:
         H (ndarray): (response_length,Np). Corrected convolution matrix.
     """
     shift_length = np.where(H[0] != 0)[0][0] + 1  # Tuple -> ndarray -> int
@@ -1143,56 +1330,39 @@ def correct_conv_matrix(
     return H @ shift_matrix
 
 
-def generate_source_response(
-        X: ndarray,
-        y: ndarray,
-        w: ndarray) -> ndarray:
-    """Calculate wX on latent subspace.
+def resize_conv_matrix(
+        H: ndarray,
+        new_size: Tuple[int, int],
+        method: str = 'Lanczos') -> ndarray:
+    """Resize the convolution matrix (H) into the common shape.
+    (Common response length)
 
     Args:
-        X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
-        y (ndarray): (Ne*Nt,). Labels for X.
-        w (ndarray): (Ne,Nk,Nc). Spatial filters.
+        H (ndarray): (response_length,Np). Convolution matrix.
+        new_size (Tuple[int, int]): (length, width).
+            NOTE: for a matrix with shape (m,n), length=n, width=m.
+        method (str): 'nearest', 'linear', cubic', 'area', 'Lanczos',
+            'linear-exact', 'inverse-map', 'fill-outliers'.
+            Interpolation methods. Defaults to 'Lanczos'.
 
     Returns:
-        S (ndarray): (Ne*Nt,Nk,Np). Source responses.
+        H_new (ndarray): (response_length,Np). Resized convolution matrix.
     """
-    # basic information
-    n_trials = X.shape[0]  # Ne*Nt
-    n_components = w.shape[-2]  # Nk
-    n_points = X.shape[-1]  # Np
-    event_type = list(np.unique(y))  # (Ne,)
-
-    # backward-propagation
-    S = np.zeros((n_trials, n_components, n_points))
-    for nt in range(X.shape[0]):
-        event_idx = event_type.index(y[nt])
-        S[nt] = w[event_idx] @ X[nt]
-    return S
-
-
-def spatial_filtering(w: ndarray, X_mean: ndarray) -> ndarray:
-    """Process input data (X) with spatial filters (w).
-
-    Args:
-        w (ndarray): (Ne,Nk,Nc) or (Nk,Nc). Spatial filters
-        X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
-
-    Returns:
-        wX (ndarray): (Ne,Nk,Np)
-    """
-    # basic information
-    n_events = X_mean.shape[0]  # Ne
-    n_components = w.shape[-2]  # Nk
-    n_points = X_mean.shape[-1]  # Np
-
-    # spatial filtering
-    if w.ndim == 2:  # (Nk,Nc)
-        w = np.tile(A=w, reps=(n_events, 1, 1))  # reshape: (Ne,Nk,Nc)
-    wX = np.zeros((n_events, n_components, n_points))  # (Ne,Nk,Np)
-    for ne in range(n_events):
-        wX[ne] = w[ne] @ X_mean[ne]
-    return fast_stan_3d(wX)
+    mapping = {
+        'nearest': cv2.INTER_NEAREST,
+        'linear': cv2.INTER_LINEAR,
+        'cubic': cv2.INTER_CUBIC,
+        'area': cv2.INTER_AREA,
+        'Lanczos': cv2.INTER_LANCZOS4,
+        'linear-exact': cv2.INTER_LINEAR_EXACT,
+        'inverse-map': cv2.WARP_INVERSE_MAP,
+        'fill-outliers': cv2.WARP_FILL_OUTLIERS
+    }
+    return cv2.resize(
+        src=H,
+        dsize=new_size,
+        interpolation=mapping[method]
+    )
 
 
 # %% 10. Filter-bank technology
@@ -1215,7 +1385,7 @@ def generate_filter_bank(
         gstop (float): The minimum attenuation in the stopband (dB).
         rp (float): Ripple of filters. Default to 0.5 dB.
 
-    Return:
+    Returns:
         filter_bank (List[ndarray]): Second-order sections representation of the IIR filters.
     """
     filter_bank = []
@@ -1288,30 +1458,32 @@ class FilterBank(BaseEstimator, TransformerMixin):
                 y_train=y_train,
                 **kwargs
             )
-        return self
 
-    def transform(self, X_test: ndarray, **kwargs) -> Dict[str, ndarray]:
+    def transform(
+            self,
+            X_test: ndarray,
+            **kwargs) -> Dict[str, ndarray]:
         """Transform test dataset to multi-band discriminant features.
 
         Args:
             X_test (ndarray): (Ne*Nte,...,Np) or (Nb,Ne*Nt,...,Np).
                 Sklearn-style test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             fb_rho (ndarray): (Nb,Ne*Nte,Ne). Multi-band decision coefficients.
             rho (ndarray): (Ne*Nte,Ne). Intergrated decision coefficients.
         """
         if not self.with_filter_bank:
             X_test = self.fb_transform(X_test)
-        sub_features = [se.transform(X_test[nse], **kwargs)
-                        for nse, se in enumerate(self.sub_estimator)]
-        fb_rho = np.stack(sub_features, axis=0)
+        self.sub_features = [se.transform(X_test[nse], **kwargs)
+                             for nse, se in enumerate(self.sub_estimator)]
+        rho_fb = np.stack([sf['rho'] for sf in self.sub_features], axis=0)
         if self.bank_weights is None:
-            rho = fb_rho.mean(axis=0)
+            rho = rho_fb.mean(axis=0)
         else:
-            rho = np.einsum('b,bte->te', self.bank_weights, fb_rho)
+            rho = np.einsum('b,bte->te', self.bank_weights, rho_fb)
         features = {
-            'fb_rho': fb_rho, 'rho': rho
+            'rho_fb': rho_fb, 'rho': rho
         }
         return features
 
@@ -1336,7 +1508,7 @@ def forward_propagation(
         S: ndarray,
         w: ndarray) -> ndarray:
     """Calculate propagation matricx A based on source responses.
-        A = argmin||A @ s - X||.
+    A = argmin||A @ s - X||.
 
     Args:
         X (ndarray): (Ne*Nt,Nc,Np). Original data. Nt>=2.
@@ -1344,7 +1516,7 @@ def forward_propagation(
         S (ndarray): (Ne*Nt,Nk,Np). Source responses of X.
         w (ndarray): (Ne,Nk,Nc). Spatial filters.
 
-    Returns: ndarray
+    Returns:
         A (ndarray): (Ne,Nc,Nk). Propagation matrices.
     """
     # basic information
@@ -1364,8 +1536,7 @@ def forward_propagation(
 
 def solve_coral(Cs: ndarray, Ct: ndarray) -> ndarray:
     """Solve CORAL problem: Q = min || Q^T Cs Q - Ct ||_F^2.
-        i.e. Q = Cs^(-1/2) @ Ct^(1/2)
-        Refer to [1].
+    i.e. Q = Cs^(-1/2) @ Ct^(1/2). Refer to [1].
 
     Args:
         Cs (ndarray): (n,n). Second-order statistics of source dataset.

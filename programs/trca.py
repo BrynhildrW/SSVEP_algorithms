@@ -89,7 +89,7 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Features.
             erho (ndarray): (Ne*Nte,Ne). Ensemble features.
         """
@@ -102,7 +102,7 @@ class BasicTRCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Union[Tuple[ndarray, ndarray], Tuple[int, int]]
+        Returns:
             y_standard (ndarray or int): (Ne*Nte,). Predict label(s).
             y_ensemble (ndarray or int): (Ne*Nte,). Predict label(s) (ensemble).
         """
@@ -120,7 +120,7 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np) or (Ne*Nte,Nc,Np).
                 Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_fb (ndarray): (Nb,Ne*Nte,Ne). Features of each band.
             rho (ndarray): (Ne*Nte,Ne). Features of all bands.
             erho_fb (ndarray): (Nb,Ne*Nte,Ne). Ensemble features of each band.
@@ -148,7 +148,7 @@ class BasicFBTRCA(utils.FilterBank, ClassifierMixin):
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np) or (Ne*Nte,Nc,Np).
                 Test dataset.
 
-        Returns: Union[Tuple[ndarray, ndarray], Tuple[int, int]]
+        Returns:
             y_standard (ndarray or int): (Ne*Nte,). Predict label(s).
             y_ensemble (ndarray or int): (Ne*Nte,). Predict label(s) (ensemble).
         """
@@ -169,7 +169,7 @@ def generate_trca_mat(
         X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
         y (ndarray): (Ne*Nt,). Labels for X.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -190,7 +190,8 @@ def generate_trca_mat(
 def solve_trca_func(
         Q: ndarray,
         S: ndarray,
-        n_components: int = 1) -> Tuple[ndarray, ndarray]:
+        n_components: Optional[int] = 1,
+        ratio: Optional[float] = None) -> Tuple[ndarray, ndarray]:
     """Solve TRCA target function.
 
     Args:
@@ -199,8 +200,8 @@ def solve_trca_func(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Tuple[ndarray, ndarray]
-        w (ndarray): (Ne,Nk,Nc). Spatial filters of TRCA.
+    Returns:
+        w (ndarray): (Ne,Nk,Nc) or Ne*(Nk,Nc). Spatial filters of TRCA.
         ew (ndarray): (Ne*Nk,Nc). Ensemble spatial filter of eTRCA.
     """
     # basic information
@@ -230,7 +231,7 @@ def generate_trca_template(
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         wX (ndarray): (Ne,Nk,Np). TRCA templates.
         ewX (ndarray): (Ne,Ne*Nk,Np). eTRCA templates.
     """
@@ -265,7 +266,7 @@ def trca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         w (ndarray): (Ne,Nk,Nc). Spatial filters of TRCA.
@@ -301,7 +302,7 @@ def trca_feature(
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of TRCA.
         erho (ndarray): (Ne*Nte,Ne). Features of eTRCA.
     """
@@ -359,7 +360,7 @@ class TRCA(BasicTRCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of TRCA.
             erho (ndarray): (Ne*Nte,Ne). Ensemble decision coefficients of eTRCA.
         """
@@ -424,7 +425,7 @@ def solve_mstrca_func(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         w (ndarray): (Ne,Nk,Nc). Spatial filters of ms-TRCA.
         ew (ndarray): (Ne*Nk,Nc). Ensemble spatial filter of ms-eTRCA.
     """
@@ -438,7 +439,7 @@ def solve_mstrca_func(
         Q_temp = np.sum(Q[merged_indices], axis=0)  # (Nc,Nc)
         S_temp = np.sum(S[merged_indices], axis=0)  # (Nc,Nc)
         w[ne] = utils.solve_gep(A=S_temp, B=Q_temp, n_components=n_components)
-    ew = np.reshape(w, (n_events*n_components, n_chans), 'C')  # (Ne*Nk,Nc)
+    ew = np.reshape(w, (n_events * n_components, n_chans), 'C')  # (Ne*Nk,Nc)
     return w, ew
 
 
@@ -461,7 +462,7 @@ def mstrca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         w (ndarray): (Ne,Nk,Nc). Spatial filters of ms-TRCA.
@@ -579,7 +580,7 @@ def generate_trcar_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -617,7 +618,7 @@ def trcar_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data.
         S (ndarray): (Ne,Nc,Nc). Covariance of template data.
         w (ndarray): (Ne,Nk,Nc). Spatial filters of ms-TRCA.
@@ -723,7 +724,7 @@ def generate_sctrca_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc+2Nh,Nc+2Nh). Covariance of X & sine_template.
         S (ndarray): (Ne,Nc+2Nh,Nc+2Nh). Covariance of [[X_mean],[sine_template]].
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -774,7 +775,7 @@ def solve_sctrca_func(
         n_components (int): Number of eigenvectors picked as filters. Nk.
             Defaults to 1.
 
-    Returns: Tuple[ndarray, ndarray, ndarray, ndarray]
+    Returns:
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
         eu (ndarray): (Ne*Nk,Nc). Concatenated filter (EEG signal).
@@ -818,7 +819,7 @@ def generate_sctrca_template(
         standard (bool): Use TRCA model. Defaults to True.
         ensemble (bool): Use eTRCA model. Defaults to True.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         uX, vY (ndarray): (Ne,Nk,Np). sc-TRCA templates.
         euX, evY (ndarray): (Ne,Ne*Nk,Np). sc-eTRCA templates.
     """
@@ -859,7 +860,7 @@ def sctrca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Q (ndarray): (Ne,Nc,Nc). Covariance of original data & average templates.
         S (ndarray): (Ne,Nc,Nc). Covariance of templates.
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
@@ -916,7 +917,7 @@ def sctrca_feature(
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of sc-TRCA.
         rho_eeg (ndarray): (Ne*Nte,Ne). (EEG part).
         rho_sin (ndarray): (Ne*Nte,Ne). (Sinusoidal signal part).
@@ -999,7 +1000,7 @@ class SC_TRCA(BasicTRCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Features of sc-TRCA.
             rho_eeg (ndarray): (Ne*Nte,Ne). (EEG part).
             rho_sin (ndarray): (Ne*Nte,Ne). (Sinusoidal signal part).

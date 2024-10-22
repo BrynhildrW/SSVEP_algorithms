@@ -52,7 +52,7 @@ Notations:
 import utils
 
 from abc import abstractmethod
-from typing import Optional, Tuple, List, Dict, Union, Any
+from typing import Optional, Tuple, List, Dict, Union
 
 import numpy as np
 from numpy import ndarray
@@ -106,7 +106,7 @@ class BasicCCA(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Union[int, ndarray]
+        Returns:
             y_pred (int or ndarray): int or (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
@@ -122,7 +122,7 @@ class BasicFBCCA(utils.FilterBank, ClassifierMixin):
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np) or (Ne*Nte,Nc,Np).
                 Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_fb (ndarray): (Nb,Ne*Nte,Ne). Features of each band.
             rho (ndarray): (Ne*Nte,Ne). Features of all bands.
         """
@@ -140,7 +140,7 @@ class BasicFBCCA(utils.FilterBank, ClassifierMixin):
         Args:
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Union[int, ndarray]
+        Returns:
             y_pred (int or ndarray): int or (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
@@ -159,7 +159,7 @@ def generate_cca_mat(
         X (ndarray): (Nc,Np).
         Y (ndarray): (2Nh,Np).
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Cxx (ndarray): (Nc,Nc). Covariance of X.
         Cxy (ndarray): (Nc,2Nh). Covariance of X & Y.
         Cyy (ndarray): (2Nh,2Nh). Covariance of Y.
@@ -223,7 +223,7 @@ def generate_cca_template(
     return utils.fast_stan_2d(u @ X), utils.fast_stan_2d(v @ Y)
 
 
-def check_plus_minis(
+def symbol_correction(
         uX: ndarray,
         vY: ndarray,
         v: ndarray) -> Tuple[float, ndarray, ndarray]:
@@ -234,15 +234,14 @@ def check_plus_minis(
         vY (ndarray): (Nk,Np). Filtered Y.
         v (ndarray): (Nk,2Nh). Spatial filter for Y.
 
-    Returns: Tuple[float, ndarray, ndarray]
+    Returns:
         corr_coef (float): Pearson correlation coeficient of uX & vY.
         v (ndarray): (Nk,2Nh). Checked v.
         vY (ndarray): (Nk,Np). Checked vY.
     """
     corr_coef = utils.pearson_corr(X=uX, Y=vY)
     if corr_coef < 0:
-        v *= -1
-        vY *= -1
+        return abs(corr_coef), -1 * v, -1 * vY
     return corr_coef, v, vY
 
 
@@ -260,7 +259,7 @@ def cca_kernel(
             Defaults to 1.
         check_direc (bool): Use check_plus_minis() or not. Defaults to True.
 
-    Returns: Dict[str, Union[int, ndarray]]
+    Returns:
         Cxx (ndarray): (Nc,Nc). Covariance of X.
         Cxy (ndarray): (Nc,2Nh). Covariance of X & Y.
         Cyy (ndarray): (2Nh,2Nh). Covariance of Y.
@@ -278,7 +277,7 @@ def cca_kernel(
     uX, vY = generate_cca_template(u=u, v=v, X=X, Y=Y)
     corr_coef = 0
     if check_direc:
-        corr_coef, v, vY = check_plus_minis(uX=uX, vY=vY, v=v)
+        corr_coef, v, vY = symbol_correction(uX=uX, vY=vY, v=v)
     return {
         'Cxx': Cxx, 'Cxy': Cxy, 'Cyy': Cyy,
         'u': u, 'v': v,
@@ -293,12 +292,12 @@ def cca_feature(
     """The pattern matching process of CCA.
 
     Args:
-        X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+        X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset (centralized).
         template (ndarray): (Ne,2Nh,Np). Signal templates.
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of CCA.
     """
     n_events = template.shape[0]  # Ne
@@ -343,11 +342,11 @@ class CCA(BasicCCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of CCA.
         """
         return cca_feature(
-            X_test=X_test,
+            X_test=utils.centralization(X_test),
             template=self.sine_template,
             n_components=self.n_components
         )
@@ -362,7 +361,7 @@ class FB_CCA(BasicFBCCA):
         """Basic configuration.
 
         Args:
-            filter_bank (List[ndarray], optional): See details in utils.generate_filter_bank().
+            filter_bank (List[ndarray]): See details in utils.generate_filter_bank().
                 Defaults to None.
             with_filter_bank (bool): Whether the input data has been FB-preprocessed.
                 Defaults to True.
@@ -414,7 +413,7 @@ def solve_mec_func(C: ndarray, n_components: int = 1) -> ndarray:
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: ndarray
+    Returns:
         w (ndarray): (Ne,Nk,Nc). Spatial filters.
     """
     # basic information
@@ -437,7 +436,7 @@ def generate_mec_template(
         w (ndarray): (Ne,Nk,Nc). Spatial filters of MEC.
         X (ndarray): (Nc,Np). Single-trial EEG data.
 
-    Returns: ndarray
+    Returns:
         wX (ndarray): (Ne,Nk,Np). MEC templates.
     """
     # basic information
@@ -464,7 +463,7 @@ def mec_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
         Chh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
         w (ndarray): (Ne,Nk,Nc). Spatial filters.
@@ -493,7 +492,7 @@ def generate_mcc_mat(
         X (ndarray): (Nc,Np). Single-trial EEG data.
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray, ndarray, ndarray]
+    Returns:
         X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
         Chh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
@@ -521,7 +520,7 @@ def generate_mcc_mat(
 
 
 def solve_mcc_func(
-        Cxx: ndarray, 
+        Cxx: ndarray,
         Chh: ndarray,
         n_components: int = 1) -> ndarray:
     """Solve MCC target function.
@@ -558,7 +557,7 @@ def mcc_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         X_hat (ndarray): (Ne,Nc,Np). X_train after removing SSVEP components.
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
         Cxhxh (ndarray): (Ne,Nc,Nc). Covariance of X_hat.
@@ -587,7 +586,7 @@ def msi_kernel(X_test: ndarray, sine_template: ndarray) -> Dict[str, ndarray]:
         X_test (ndarray): (Nc,Np). Single-trial test data.
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Cxx (ndarray): (Nc,Nc). Covariance of X_train.
         Cyy (ndarray): (Ne,2Nh,2Nh). Covariance of sine_template.
         Cxy (ndarray): (Ne,Nc,2Nh). Covariance of X_train & sine_template.
@@ -624,7 +623,7 @@ def msi_feature(X_test: ndarray, sine_template: ndarray) -> Dict[str, ndarray]:
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         sine_template (ndarray): (Ne,2Nh,Np). Sinusoidal templates.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of MSI.
     """
     n_events = sine_template.shape[0]  # Ne
@@ -669,11 +668,10 @@ class MSI(BasicCCA):
         Args:
             X_test (ndarray): (Nc,Np). Single-trial test data.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne,). Decision coefficients of MSI.
         """
         return msi_feature(
-            train_info=self.train_info,
             X_test=X_test,
             sine_template=self.sine_template
         )
@@ -731,7 +729,7 @@ class ITCCA(BasicCCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of itCCA.
         """
         return cca_feature(
@@ -783,7 +781,7 @@ def ecca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         u_xy (ndarray): (Ne,Nk,Nc). Spatial filters of CCA(X_test, sine_template).
         v_xy (ndarray): (Ne,Nk,2Nh). Spatial filters of CCA(X_test, sine_template).
         u_xa (ndarray): (Ne,Nk,Nc). Spatial filters of CCA(X_test, avg_template).
@@ -859,7 +857,7 @@ def ecca_feature(
             Defaults to 1.
         method_list (List[str]): Different coefficient. Labeled as '1' to '5'.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of eCCA.
     """
     n_events = sine_template.shape[0]  # Ne
@@ -957,7 +955,7 @@ class ECCA(BasicCCA):
         Args:
             X_test (ndarray): (Nte*Ne,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne,). Decision coefficients of eCCA.
         """
         return ecca_feature(
@@ -999,7 +997,8 @@ class FB_ECCA(BasicFBCCA):
 def generate_msecca_mat(
         X: ndarray,
         y: ndarray,
-        sine_template: ndarray,) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        sine_template: ndarray,) -> Tuple[ndarray, ndarray,
+                                          ndarray, ndarray]:
     """Generate covariance matrices Q & S for TRCA model.
 
     Args:
@@ -1007,7 +1006,7 @@ def generate_msecca_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Cxx_total (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
         Cxy_total (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
         Cyy_total (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
@@ -1048,7 +1047,7 @@ def solve_msecca_func(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         u (ndarray): (Ne,Nk,Nc). Spatial filters (EEG signal).
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters (sinusoidal signal).
     """
@@ -1089,7 +1088,7 @@ def generate_msecca_template(
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         check_direc (bool): Use check_plus_minis() or not. Defaults to True.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         uX (ndarray): (Ne,Nk,Np). ms-eCCA EEG templates.
         vY (ndarray): (Ne,Nk,Np). ms-eCCA sinusoidal templates.
     """
@@ -1102,7 +1101,7 @@ def generate_msecca_template(
     for ne in range(n_events):
         vY[ne] = v[ne] @ sine_template[ne]  # (Nk,Np)
         if check_direc:
-            _, v[ne], vY[ne] = check_plus_minis(uX=uX[ne], vY=vY[ne], v=v[ne])
+            _, v[ne], vY[ne] = symbol_correction(uX=uX[ne], vY=vY[ne], v=v[ne])
     vY = utils.fast_stan_3d(vY)
     return uX, vY
 
@@ -1123,7 +1122,7 @@ def msecca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
         Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
         Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
@@ -1170,7 +1169,7 @@ def msecca_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         msecca_model (dict): See details in msecca_kernel().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of ms-eCCA.
         rho_eeg (ndarray): (Ne*Nte,Ne). EEG part rho.
         rho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part rho.
@@ -1239,7 +1238,7 @@ class MS_ECCA(BasicCCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Features of ms-eCCA.
             rho_eeg (ndarray): (Ne*Nte,Ne). EEG part rho.
             rho_sin (ndarray): (Ne*Nte,Ne). Sinusoidal signal part rho.
@@ -1289,7 +1288,7 @@ def mscca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG templates.
         Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal templates.
         Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal templates.
@@ -1327,7 +1326,7 @@ def mscca_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         mscca_model (dict): See details in mscca_kernel().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of msCCA.
     """
     # basic information
@@ -1425,7 +1424,7 @@ def msetcca1_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, List[ndarray]]
+    Returns:
         R (List[ndarray]): Ne*(Nt*Nc,Nt*Nc). Inter-trial covariance of EEG.
         S (List[ndarray]): Ne*(Nt*Nc,Nt*Nc). Intra-trial covariance of EEG.
         w (List[ndarray]): Ne*(Nk,Nt*Nc). Spatial filters for training dataset.
@@ -1519,7 +1518,7 @@ class MSETCCA1(BasicCCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of MsetCCA1.
         """
         return msetcca1_feature(
@@ -1568,7 +1567,7 @@ def generate_tdcca_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
 
 
-    Returns: Tuple[ndarray, ndarray, ndarray, ndarray]
+    Returns:
         Cxx, Cxy, Cyy (ndarray): (Ne,Nc,Nc). Covariance matrices.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
     """
@@ -1635,7 +1634,7 @@ def tdcca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of X_train.
         Cxy (ndarray): (Ne,Nc,Nc). Covariance of X_train & X_mean.
         Cyy (ndarray): (Ne,Nc,Nc). Covariance of X_mean.
@@ -1664,7 +1663,7 @@ def tdcca_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         tdcca_model (dict): See details in tdcca_kernel().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of TDCCA.
     """
     # basic information
@@ -1708,7 +1707,7 @@ class TDCCA(BasicCCA):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Features of TDCCA.
         """
         return tdcca_feature(

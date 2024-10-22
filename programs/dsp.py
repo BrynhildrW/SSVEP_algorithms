@@ -70,7 +70,7 @@ class BasicDSP(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,...,Np). Test dataset.
 
-        Return: Union[int, ndarray]
+        Return:
             y_pred (ndarray): (Ne*Nte,). Predict labels.
         """
         self.features = self.transform(X_test)
@@ -104,7 +104,7 @@ def generate_dsp_mat(
         X (ndarray): (Ne*Nt,Nc,Np). Sklearn-style dataset. Nt>=2.
         y (ndarray): (Ne*Nt,). Labels for X.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
         Sw (ndarray): (Nc,Nc). Scatter matrix of within-class difference.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -147,7 +147,7 @@ def dsp_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Sb (ndarray): (Nc,Nc). Scatter matrix of between-class difference.
         Sw (ndarray): (Nc,Nc). Scatter matrix of within-class difference.
         w (ndarray): (Nk,Nc). Common spatial filter.
@@ -171,7 +171,7 @@ def dsp_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         dsp_model (Dict[str, ndarray]): See details in dsp_kernel().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of DSP.
     """
     # load in model
@@ -211,7 +211,7 @@ class DSP(BasicDSP):
             n_components=self.n_components,
         )
 
-    def transform(self, X_test: ndarray) -> ndarray:
+    def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
         """Transform test dataset to discriminant features.
 
         Args:
@@ -305,7 +305,7 @@ def tdca_feature(
         projection (ndarray): (Ne,Np,Np). Orthogonal projection matrices.
         extra_length (int): m.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho (ndarray): (Ne*Nte,Ne). Features of TDCA.
     """
     w, wX = tdca_model['w'], tdca_model['wX']
@@ -369,7 +369,7 @@ class TDCA(BasicDSP):
             n_components=self.n_components
         )
 
-    def transform(self, X_test: ndarray) -> ndarray:
+    def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
         """Transform test dataset to discriminant features.
 
         Args:

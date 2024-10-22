@@ -6,7 +6,7 @@
 Transfer learning based on matrix decomposition.
     (1) SAME: https://ieeexplore.ieee.org/document/9971465/
             DOI: 10.1109/TBME.2022.3227036
-    (2) TNSRE_20233250953: https://ieeexplore.ieee.org/document/10057002/
+    (2) TNSRE-20233250953: https://ieeexplore.ieee.org/document/10057002/
             DOI: 10.1109/TNSRE.2023.3250953
     (3) stCCA: https://ieeexplore.ieee.org/document/9177172/
             DOI: 10.1109/TNSRE.2020.3019276
@@ -14,7 +14,7 @@ Transfer learning based on matrix decomposition.
             DOI: 10.1109/TASE.2021.3054741
     (5) sd-LST: https://ieeexplore.ieee.org/document/9967845/
             DOI: 10.1109/TNSRE.2022.3225878
-    (6) TNSRE_20233305202: https://ieeexplore.ieee.org/document/10216996/
+    (6) TNSRE-20233305202: https://ieeexplore.ieee.org/document/10216996/
             DOI: 10.1109/TNSRE.2023.3305202
     (7) gTRCA: http://www.nature.com/articles/s41598-019-56962-2
             DOI: 10.1038/s41598-019-56962-2
@@ -26,8 +26,14 @@ Transfer learning based on matrix decomposition.
             DOI: 10.1088/1741-2552/abcb6e
     (11) ALPHA: https://ieeexplore.ieee.org/document/9516951/
             DOI: 10.1109/TBME.2021.3105331
-            Blog: https://flowus.cn/brynhildrw/share/c7192130-3168-40c3-a179-0ba576621b01?code=QAMT4F
-    (12)
+    (12) TIM-20243374314: https://ieeexplore.ieee.org/document/10462176/
+            DOI: 10.1109/TIM.2024.3374314
+    (13) TBME-20243406603: https://ieeexplore.ieee.org/document/10632864/
+            DOI: 10.1109/TBME.2024.3406603
+    (14) CSSFT: http://iopscience.iop.org/article/10.1088/1741-2552/ac6b57
+            DOI: 10.1088/1741-2552/ac6b57
+    (15) eCSSFT: https://iopscience.iop.org/article/10.1088/1741-2552/ac81ee
+            DOI: 10.1088/1741-2552/ac81ee
 
 Notations:
     n_events: Ne
@@ -41,6 +47,7 @@ Notations:
     n_harmonics: Nh
     n_bands: Nb
     n_subjects: Ns
+    response length: Nrl
 
 """
 
@@ -58,8 +65,9 @@ from numpy import ndarray
 
 import numpy as np
 import scipy.linalg as sLA
+from copy import deepcopy
 
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin, clone
 from sklearn.model_selection import LeaveOneOut, StratifiedKFold, StratifiedShuffleSplit
 
 
@@ -172,7 +180,7 @@ class BasicTransfer(BaseEstimator, TransformerMixin, ClassifierMixin):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Union[Tuple[ndarray, ndarray], Tuple[int, int], ndarray, int]
+        Returns:
             y_pred (ndarray): (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
@@ -181,6 +189,57 @@ class BasicTransfer(BaseEstimator, TransformerMixin, ClassifierMixin):
 
 
 class BasicFBTransfer(utils.FilterBank, ClassifierMixin):
+    def fit(
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            X_source: Optional[Union[List[ndarray], ndarray]] = None,
+            y_source: Optional[Union[List[ndarray], ndarray]] = None,
+            bank_weights: Optional[ndarray] = None,
+            **kwargs):
+        """Load in training dataset and pass it to sub-esimators.
+
+        Args:
+            X_train (ndarray): (Nb,Ne*Nt,Nc,Np). Sklearn-style training dataset.
+            y_train (ndarray): (Ne*Nt,). Labels for X_train.
+            X_source (List[ndarray] or ndarray): List[(Nb,Ne*Nt,Nc,Np)]. Source dataset.
+            y_source (List[ndarray] or ndarray): List[(Ne*Nt,)]. Labels for X_source.
+            bank_weights (ndarray, optional): Weights for different filter banks.
+                Defaults to None (equal).
+        """
+        # basic information
+        self.Nb = X_train.shape[0]
+
+        # initialization
+        self.bank_weights = bank_weights
+        if self.version == 'SSVEP':
+            self.bank_weights = np.array([(nb + 1)**(-1.25) + 0.25 for nb in range(self.Nb)])
+        self.sub_estimator = [clone(self.base_estimator) for nb in range(self.Nb)]
+
+        # apply in each sub-band
+        if isinstance(X_source, list):  # multi-person's data
+            n_subjects = len(X_source)  # Ns
+            for nb, se in enumerate(self.sub_estimator):
+                se.fit(
+                    X_train=X_train[nb],
+                    y_train=y_train,
+                    X_source=[X_source[nsub][nb] for nsub in range(n_subjects)],
+                    y_source=y_source,
+                    **kwargs
+                )
+        elif isinstance(X_source, ndarray):  # single-domain
+            for nb, se in enumerate(self.sub_estimator):
+                se.fit(
+                    X_train=X_train[nb],
+                    y_train=y_train,
+                    X_source=X_source[nb],
+                    y_source=y_source,
+                    **kwargs
+                )
+        else:  # NoneType
+            for nb, se in enumerate(self.sub_estimator):
+                se.fit(X_train=X_train[nb], y_train=y_train, **kwargs)
+
     def predict(
             self,
             X_test: ndarray) -> Union[
@@ -191,7 +250,7 @@ class BasicFBTransfer(utils.FilterBank, ClassifierMixin):
         Args:
             X_test (ndarray): (Nb,Ne*Nte,Nc,Np). Test dataset.
 
-        Return: Union[Tuple[ndarray, ndarray], Tuple[int, int], ndarray, int]
+        Return:
             y_pred (ndarray): (Ne*Nte,). Predict label(s).
         """
         self.features = self.transform(X_test)
@@ -227,7 +286,7 @@ class BasicASS(object):
         self.standard = standard
         self.ensemble = ensemble
 
-    @abstractmethod()
+    @abstractmethod
     def evaluation_1st(self):
         """Calculate the cross-subject classification accuracy for each source subject."""
         pass
@@ -241,7 +300,7 @@ class BasicASS(object):
         )
         self.sorted_idx = [sp[0] for sp in self.sorted_pair]
 
-    @abstractmethod()
+    @abstractmethod
     def evaluation_2nd(self):
         """Find the best source subjects."""
         pass
@@ -262,7 +321,7 @@ def generate_tnsre_20233250953_mat(
         y (ndarray): (Ne*Nt,). Labels for X.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray, ndarray]
+    Returns:
         Q (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Covariance matrices.
         S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices.
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged X.
@@ -341,7 +400,7 @@ def solve_tnsre_20233250953_func(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Tuple
+    Returns:
         w (ndarray): (Ne,Nk,Nc). Spatial filters for original signal.
         u (ndarray): (Ne,Nk,Nc). Spatial filters for averaged template.
         v (ndarray): (Ne,Nk,2*Nh). Spatial filters for sinusoidal template.
@@ -383,7 +442,7 @@ def generate_tnsre_20233250953_template(
         X_mean (ndarray): (Ne,Nc,Np). Trial-averaged data.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         euX (ndarray): (Ne,Ne*Nk,Np). Filtered averaged templates.
         evY (ndarray): (Ne,Ne*Nk,Np). Filtered sinusoidal templates.
     """
@@ -406,7 +465,7 @@ def tnsre_20233250953_kernel(
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         n_components (int): Number of eigenvectors picked as filters.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Q (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Covariance matrices.
         S (ndarray): (Ne,2*Nc+2*Nh,2*Nc+2*Nh). Variance matrices.
         w (ndarray): (Ne,Nk,Nc). Spatial filters for original signal.
@@ -473,7 +532,7 @@ def tnsre_20233250953_feature(
                               'evY': ndarray (Ne,Ne*Nk,Np)}
             See details in TNSRE_20233250953.intra_target_training()
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
     """
@@ -492,7 +551,7 @@ def tnsre_20233250953_feature(
     n_subjects = euX_source.shape[0]  # Ns
     n_events = euX_source.shape[1]  # Ne
     n_test = X_test.shape[0]  # Ne*Nte
-    # n_points = X_test.shape[-1]  # Np, unnecessary
+    n_points = X_test.shape[-1]  # Np
 
     # reshape matrix for faster computing
     euX_source = np.reshape(euX_source, (n_subjects, n_events, -1), 'C')  # (Ns,Ne,Ne*Nk*Np)
@@ -536,7 +595,7 @@ def tnsre_20233250953_feature(
         # (Ne,Ne*Nk*Np) -corr-> (Ne,)
         rho_temp[nte, :, 2] = utils.fast_corr_2d(X=X_temp, Y=euX_target)
         rho_temp[nte, :, 2] = utils.fast_corr_2d(X=X_temp, Y=evY_target)
-    # rho_temp /= n_points  # real Pearson correlation coefficients in scale
+    rho_temp /= n_points  # real Pearson correlation coefficients in scale
     features = {
         'rho_temp': rho_temp,
         'rho': utils.combine_feature([
@@ -701,7 +760,7 @@ class TNSRE_20233250953(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         """
@@ -752,7 +811,7 @@ def stcca_kernel(
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         n_components (int): Number of eigenvectors picked as filters.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         Cxx (ndarray): (Ne,Nc,Nc). Covariance of averaged EEG template.
         Cxy (ndarray): (Ne,Nc,2*Nh). Covariance between EEG and sinusoidal template.
         Cyy (ndarray): (Ne,2*Nh,2*Nh). Covariance of sinusoidal template.
@@ -800,7 +859,7 @@ def stcca_feature(
                               'vY': ndarray (Ne,Nk*Np)}
             See details in STCCA.intra_target_training()
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne*Nte,Ne,2). 2-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
     """
@@ -814,7 +873,7 @@ def stcca_feature(
     uX_trans = np.reshape(uX_trans, (n_events, -1), 'C')  # (Ne,Nk*Np)
     vY_target = np.reshape(vY_target, (n_events, -1), 'C')  # (Ne,Nk*Np)
     n_test = X_test.shape[0]  # Ne*Nte
-    # n_points = X_test.shape[-1]  # Np, unnecessary
+    n_points = X_test.shape[-1]  # Np
 
     # 2-part discriminant coefficients
     rho_temp = np.zeros((n_test, n_events, 2))  # (Ne*Nte,Ne,2)
@@ -827,7 +886,7 @@ def stcca_feature(
 
         # rho 2: transferred pattern matching
         rho_temp[nte, :, 1] = utils.fast_corr_2d(X=X_temp, Y=uX_trans)
-    # rho_temp /= n_points  # real Pearson correlation coefficient in scale
+    rho_temp /= n_points  # real Pearson correlation coefficient in scale
     features = {
         'rho_temp': rho_temp,
         'rho': utils.combine_feature([
@@ -935,7 +994,7 @@ class STCCA(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_temp (ndarray): (Ne*Nte,Ne,2). 2-D features.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         """
@@ -972,7 +1031,7 @@ class FB_STCCA(BasicFBTransfer):
 
 
 # %% 4. transfer learning CCA, tlCCA
-def tlcca_init_model(
+def fast_init_model(
         X_train: ndarray,
         y_train: ndarray,
         sine_template: Optional[ndarray] = None,
@@ -987,12 +1046,12 @@ def tlcca_init_model(
         y_train (ndarray): (Ne(s)*Nt,). Labels for X_train.
         sine_template (ndarray): (Ne(s),2*Nh,Np). Sinusoidal templates.
         n_components (int): Number of eigenvectors picked as filters.
-        method (str, optional): Support 'msCCA', 'TRCA', or 'DSP' for now.
+        method (str, optional): 'msCCA', 'TRCA', 'eTRCA' or 'DSP'.
             If None, parameter 'w' should be given.
         w (ndarray, optional): (Nk,Nc) or (Ne(s),Nk,Nc).
             If None, parameter 'method' should be given.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         w_init (ndarray): (Ne(s),Nk,Nc). Spatial filter w.
         X_mean (ndarray): (Ne(s),Nc,Np). Averaged templates of X_train.
     """
@@ -1010,7 +1069,10 @@ def tlcca_init_model(
             sine_template=sine_template,
             n_components=n_components
         )
-        w_init = np.tile(A=model['w'], reps=(n_events, 1, 1))  # (Ne,Nk,Nc)
+        return {
+            'w_init': np.tile(A=model['w'], reps=(n_events, 1, 1)),
+            'X_mean': X_mean
+        }  # w_init: (Ne,Nk,Nc)
     elif method == 'TRCA':
         model = trca.trca_kernel(
             X_train=X_train,
@@ -1018,14 +1080,31 @@ def tlcca_init_model(
             ensemble=False,
             n_components=n_components
         )
-        w_init = model['w']  # (Ne,Nk,Nc)
+        return {
+            'w_init': model['w'],
+            'X_mean': X_mean
+        }  # w_init: (Ne,Nk,Nc)
+    elif method == 'eTRCA':
+        model = trca.trca_kernel(
+            X_train=X_train,
+            y_train=y_train,
+            ensemble=True,
+            n_components=n_components
+        )
+        return {
+            'w_init': np.tile(A=model['ew'], reps=(n_events, 1, 1)),
+            'X_mean': X_mean
+        }  # w_init: (Ne,Ne*Nk,Nc)
     elif method == 'DSP':
         model = dsp.dsp_kernel(
             X_train=X_train,
             y_train=y_train,
             n_components=n_components
         )
-        w_init = np.tile(A=model['w'], reps=(n_events, 1, 1))  # (Ne,Nk,Nc)
+        return {
+            'w_init': np.tile(A=model['w'], reps=(n_events, 1, 1)),
+            'X_mean': X_mean
+        }  # w_init: (Ne,Nk,Nc)
 
     # reshape initial spatial filters (if given)
     if w is not None:
@@ -1044,9 +1123,11 @@ def tlcca_conv_matrix(
         n_points: int,
         srate: Union[int, float] = 1000,
         rrate: int = 60,
-        len_scale: float = 0.99,
+        len_scale: float = 1.05,
+        extract_method: str = 'Square',
         amp_scale: float = 0.8,
-        concat_method: str = 'dynamic') -> Tuple[ndarray]:
+        concat_method: str = 'dynamic',
+        response_length: Optional[int] = None) -> Tuple[ndarray, ndarray]:
     """Create convolution matrix H (H_correct) for tlCCA (single-event).
 
     Args:
@@ -1056,25 +1137,36 @@ def tlcca_conv_matrix(
         srate (int or float): Sampling rate. Defaults to 1000 Hz.
         rrate (int or float): Refresh rate of stimulus devices. Defaults to 60 Hz.
         len_scale (float): The multiplying power when calculating the length of data.
-            Defaults to 0.99.
+            Defaults to 1.05.
+        extract_method (str): 'Square' or 'Cosine'. Defaults to 'Square'.
+            See details in utils.extract_periodic_impulse().
         amp_scale (float): The multiplying power when calculating the amplitudes of data.
             Defaults to 0.8.
         concat_method (str): 'dynamic' or 'static'.
             'static': Concatenated data is starting from 1 s.
             'dynamic': Concatenated data is starting from 1 period.
+        response_length (int): The number of sampling points of a single period.
+            Defaults to None.
 
     Returns:
         H (ndarray): (response_length,Np). Convolution matrix.
         H_correct (ndarray): (response_length,Np). Corrected convolution matrix.
     """
+    # generate periodic impulse sequence (spikes)
     periodic_impulse = utils.extract_periodic_impulse(
         freq=freq,
         phase=phase,
         n_points=n_points,
         srate=srate,
-        rrate=rrate
-    )
-    response_length = int(np.ceil(srate * len_scale / freq))
+        rrate=rrate,
+        method=extract_method
+    )  # (Np,)
+
+    # config response length (sampling points)
+    if response_length is None:
+        response_length = int(np.round(srate * len_scale / freq))
+
+    # generate convolution matrices
     H = utils.create_conv_matrix(
         periodic_impulse=periodic_impulse,
         response_length=response_length
@@ -1089,86 +1181,128 @@ def tlcca_conv_matrix(
     return H, H_correct
 
 
-def tlcca_als_optimize(
-        w_init: ndarray,
+def solve_tlcca_func(
+        w_init: Union[ndarray, None],
         X_mean: ndarray,
         H: ndarray,
         freq: Union[int, float],
-        n_points: int,
+        phase: Union[int, float] = 0,
         srate: Union[int, float] = 1000,
+        optimize_method: str = 'CCA',
         iter_limit: int = 200,
-        err_th: float = 0.00001):
-    """Alternative least-square (ALS) optimization for impulse response r
-        and spatial filter w (single-event or common).
+        err_th: float = 0.00001,
+        n_components: int = 1,
+        check_symbol: bool = True,
+        target_chan_idx: Optional[int] = None) -> Dict[str, Union[ndarray, int]]:
+    """Solve the optimization problem:
+    r, w = argmin||rH - wX||_2^2. In which r represents for impulse response,
+    and w for spatial filters.
 
     Args:
-        w_init (ndarray): (Nk,Nc). Initial spatial filter w.
+        w_init (Union[ndarray, None]): (Nk,Nc). Initial spatial filter w.
+            Only useful when optimize_method is 'ALS'.
+            If optimize_method is 'CCA', w_init could be NoneType.
         X_mean (ndarray): (Nc,Np). Averaged template.
         H (ndarray): (response_length,Np). Convolution matrix.
-        freq (int or float): Stimulus frequency.
-        n_points (int): Data length.
-        srate (int or float): Sampling rate. Defaults to 1000 Hz.
+        freq (Union[int, float]): Frequency of impulse response.
+        phase (Union[int, float]): Initial phase of impulse response. Defaults to 0.
+        srate (Union[int, float]): Sampling rate. Defaults to 1000 Hz.
+        optimize_method (str): 'CCA' or 'ALS'. Defaults to 'CCA'(faster and better).
+            If 'CCA', r,w = CCA(H, X);
+            If 'ALS', r,w = argmix||rH - wX||.
+        cal_method (str): 'lstsq' or 'pinv'. Methods to solve least squares problem:
+            x = min ||b - Ax||_2. If 'lstsq', use sLA.lstsq(); If 'pinv', use sLA.pinv().
+            Only useful when optimize_method is 'ALS'.
         iter_limit (int): Number of maximum iteration times. Defaults to 200.
+            Only useful when optimize_method is 'ALS'.
         err_th (float): The threshold (th) of ALS error. Stop iteration while
             ALS error is smaller than err_th. Defaults to 10^-5.
+            Only useful when optimize_method is 'ALS'.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1. Only useful when optimize_method is 'CCA'.
+        check_symbol (bool): Whether to correct the symbol of w & r. Defaults to True.
+        target_chan_idx (int): The index of target channel to correct the symbols of w & r.
+            Recommend to set to the channel 'Oz'.
 
     Returns:
         w (ndarray): (Nk,Nc). Optimized spatial filter.
-        r (ndarray): (Nk, response length). Optimized impulse response.
+        r (ndarray): (Nk,Nrl). Optimized impulse response.
         wX (ndarray): (Nk,Np). w @ X_mean.
         rH (ndarray): (Nk,Np). r @ H.
-        n_iter (int): Number of iteration.
     """
-    # initial impulse response (r) & template (rH)
-    r_init = np.tile(
-        A=utils.sin_wave(freq=freq, n_points=n_points, phase=0, srate=srate),
-        reps=(w_init.shape[0], 1)
-    )  # (Nk, response_length)
-    r_init = np.diag(1 / np.sqrt(np.sum(r_init**2, axis=1))) @ r_init  # ||r(i,:)|| = 1
-    rH_init = r_init @ H  # (Nk,Np)
+    if optimize_method == 'CCA':
+        cca_model = cca.cca_kernel(
+            X=X_mean,
+            Y=utils.centralization(H),
+            n_components=n_components
+        )
+        w, r = cca_model['u'], cca_model['v']
+        wX, rH = cca_model['uX'], cca_model['vY']
+    elif optimize_method == 'ALS':
+        # initial impulse response (r) & template (rH)
+        r_init = np.tile(
+            A=utils.sin_wave(freq=freq, n_points=H.shape[0], phase=phase, srate=srate),
+            reps=(w_init.shape[0], 1)
+        )  # (Nk, response_length)
+        r_init = np.diag(1 / np.sqrt(np.sum(r_init**2, axis=1))) @ r_init  # ||r(i,:)|| = 1
+        rH_init = r_init @ H  # (Nk,Np)
 
-    # initial spatial filter (w) & template (wX)
-    wX_init = w_init @ X_mean  # (Nk,Np)
+        # initial spatial filter (w) & template (wX)
+        wX_init = w_init @ X_mean  # (Nk,Np)
 
-    # iteration initialization
-    err_init = np.sum((wX_init - rH_init)**2)
-    err_old, err_change = err_init, 0
-    log_w, log_r, log_err = [w_init], [r_init], [err_init]
+        # iteration initialization
+        err_init = np.sum((wX_init - rH_init)**2)
+        err_old, err_change = err_init, 0
+        log_w, log_r, log_err = [w_init], [r_init], [err_init]
 
-    # start iteration
-    n_iter = 1
-    w_old = w_init
-    continue_training = True
-    while continue_training:
-        # calculate new impulse response (r_new)
-        wX_temp = w_old @ X_mean  # (Nk,Np)
-        r_new, _, _, _ = sLA.lstsq(a=H.T, b=wX_temp.T)  # (response length, Nk)
-        r_new = r_new.T  # (Nk, response length)
-        r_new = np.diag(1 / np.sqrt(np.sum(r_new**2, axis=0))) @ r_new.T  # ||r(i,:)|| = 1
+        # start iteration
+        n_iter = 1
+        w_old = w_init
+        continue_training = True
+        while continue_training:
+            wX_temp = w_old @ X_mean  # (Nk,Np)
 
-        # calculate new spatial filter (w_new)
-        rH_temp = r_new @ H  # (Nk,Np)
-        w_new, _, _, _ = sLA.lstsq(a=X_mean.T, b=rH_temp.T)  # (Nc,Nk)
-        w_new = w_new.T  # (Nk,Nc)
-        w_new = np.diag(1 / np.sqrt(np.sum(w_new**2, axis=0))) @ w_new.T  # ||w(i,:)|| = 1
+            # calculate new impulse response (r_new)
+            # lstsq method: (more stable)
+            # r_new, _, _, _ = sLA.lstsq(a=H.T, b=wX_temp.T)  # (Nrl, Nk)
+            # r_new = r_new.T
+            # Penrose inverse method (faster)
+            r_new = wX_temp @ H.T @ sLA.pinv(H @ H.T)  # (Nk,Nrl)
+            r_new = np.diag(1 / np.sqrt(np.diag(r_new @ r_new.T))) @ r_new  # ||r(i,:)|| = 1
 
-        # update ALS error
-        err_new = np.sum((wX_temp - rH_temp)**2)
-        err_change = err_old - err_new
-        log_err.append(err_new)
+            # calculate new spatial filter (w_new)
+            rH_temp = r_new @ H  # (Nk,Np)
+            # w_new, _, _, _ = sLA.lstsq(a=X_mean.T, b=rH_temp.T)  # (Nc,Nk)
+            # w_new = w_new.T  # (Nk,Nc)
+            w_new = rH_temp @ X_mean.T @ sLA.pinv(X_mean @ X_mean.T)  # (Nk,Nc)
+            w_new = np.diag(1 / np.sqrt(np.diag(w_new @ w_new.T))) @ w_new  # ||w(i,:)|| = 1
 
-        # termination criteria
-        n_iter += 1
-        continue_training = (n_iter < iter_limit) * (abs(err_change) > err_th)
+            # update ALS error
+            # err_new = np.norm(wX_temp - rH_temp)**2  # slower
+            err_new = np.sum((wX_temp - rH_temp)**2)  # faster
+            err_change = err_old - err_new
+            log_err.append(err_new)
 
-        # update w & r
-        log_w.append(w_new)
-        log_r.append(r_new)
-        w_old = w_new
-        err_old = err_new
-    # update optimized results
-    wX, rH = w_new @ X_mean, r_new @ H
-    return {'w': w_new, 'r': r_new, 'wX': wX, 'rH': rH, 'n_iter': n_iter}
+            # termination criteria
+            n_iter += 1
+            continue_training = (n_iter < iter_limit) * (abs(err_change) > err_th)
+
+            # update w & r
+            log_w.append(w_new)
+            log_r.append(r_new)
+            w_old = w_new
+            err_old = err_new
+        # update optimized results
+        w, r, wX, rH = log_w[-1], log_r[-1], w @ X_mean, r @ H
+        _, r, rH = cca.symbol_correction(uX=wX, vY=rH, v=r)  # symbol correction
+
+    # symbol correction (final)
+    if check_symbol:
+        X_tar = X_mean[target_chan_idx][None, :]  # (1,Np)
+        r_tar = X_tar @ H.T @ sLA.pinv(H @ H.T)  # (1,response_length)
+        if utils.pearson_corr(X=r_tar, Y=r) < 0:
+            return {'w': -1 * w, 'r': -1 * r, 'wX': -1 * wX, 'rH': -1 * rH}
+    return {'w': w, 'r': r, 'wX': wX, 'rH': rH}
 
 
 def tlcca_feature(
@@ -1182,21 +1316,19 @@ def tlcca_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
         trans_model (dict): {'u_trans': ndarray (Nk,Nc),
-                             'v_trans': ndarray (Nk,2Nh),
-                             'r_trans': List[ndarray] Ne*(Nk, response length),
                              'w_trans': ndarray (Ne,Nk,Nc),
                              'vY_trans': ndarray (Ne,Nk,Np),
                              'rH_trans': ndarray (Ne,Nk,Np)}
             See details in TLCCA.tranfer_learning()
         n_components (int): Number of eigenvectors picked as filters. Nk.
-            Defaults to 1 in tlCCA algorithm.
+            Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne*Nte,Ne,3). 3-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
     """
     # load in models
-    u_trans = trans_model['u_trans']  # (Nk,Nc)
+    u_trans = trans_model['u_trans']  # (Ne,Nk,Nc)
     w_trans = trans_model['w_trans']  # (Ne,Nk,Nc)
     vY_trans = trans_model['vY_trans']  # (Ne,Nk,Np)
     rH_trans = trans_model['rH_trans']  # (Ne,Nk,Np)
@@ -1211,11 +1343,11 @@ def tlcca_feature(
     # 3-part discriminant coefficients
     rho_temp = np.zeros((n_test, n_events, 3))
     for nte in range(n_test):
-        uX_temp = utils.fast_stan_2d(u_trans @ X_test[nte])  # (Nk,Np)
-        uX_temp = np.tile(
-            A=np.reshape(uX_temp, -1, 'C'),
-            reps=(n_events, 1)
-        )  # (Nk,Np) -reshape-> (Nk*Np,) -repeat-> (Ne,Nk*Np)
+        uX_temp = np.reshape(
+            a=utils.fast_stan_3d(u_trans @ X_test[nte]),
+            newshape=(n_events, -1),
+            order='C'
+        )  # (Ne,Nk,Np) -reshape-> (Ne,Nk*Np)
         wX_temp = utils.fast_stan_3d(w_trans @ X_test[nte])  # (Ne,Nk,Np)
 
         # rho 1: corr(uX, vY)
@@ -1223,7 +1355,7 @@ def tlcca_feature(
 
         # rho 2: corr(wX, rH)
         rho_temp[nte, :, 1] = utils.fast_corr_2d(
-            X=np.reshape(wX_temp, (n_events, -1), 'C'),
+            X=np.reshape(a=wX_temp, newshape=(n_events, -1), order='C'),
             Y=rH_trans
         ) / n_points
 
@@ -1251,131 +1383,192 @@ class TLCCA(BasicTransfer):
         # initialization
         self.source_model = {}
 
-        # obtain initial filter(s) w & template(s) wX
-        init_model = tlcca_init_model(
+        # obtain r (impulse responses) & w (spatial filter)
+        w, r, wX, rH = [], [], [], []
+        if self.optimize_method == 'ALS':
+            # alternating least square (ALS) optimization: {r, w} = argmin||wX - rH||
+            init_model = fast_init_model(
+                X_train=self.X_source,
+                y_train=self.y_source,
+                sine_template=self.source_sine_template,
+                n_components=self.n_components,
+                method=self.source_info['init_model'],
+                w=self.source_info['w_init']
+            )
+            self.source_model['w_init'] = init_model['w_init']  # (Nk,Nc) or (Ne(s),Nk,Nc)
+
+            # ALS optimization
+            for ne, et in enumerate(self.source_info['event_type']):
+                als_model = solve_tlcca_func(
+                    w_init=self.source_model['w_init'][ne],
+                    X_mean=init_model['X_mean'][ne],
+                    H=self.H_source[ne],
+                    freq=self.stim_info[str(et)][0],
+                    phase=self.stim_info[str(et)][1],
+                    srate=self.srate,
+                    optimize_method='ALS',
+                    iter_limit=self.iter_limit,
+                    err_th=self.err_th,
+                    target_chan_idx=self.target_chan_idx
+                )
+                w.append(als_model['w'])  # (Nk,Nc)
+                r.append(als_model['r'])  # (Nk,Nrl)
+                wX.append(als_model['wX'])  # (Nk,Np)
+                rH.append(als_model['rH'])  # (Nk,Np)
+        elif self.optimize_method == 'CCA':
+            # CCA solution: {r, w} = CCA(H, X)
+            X_mean = utils.generate_mean(X=self.X_source, y=self.y_source)
+            for ne, et in enumerate(self.source_info['event_type']):
+                cca_model = solve_tlcca_func(
+                    w_init=None,
+                    X_mean=X_mean[ne],
+                    H=self.H_source[ne],
+                    freq=self.stim_info[str(et)][0],
+                    phase=self.stim_info[str(et)][1],
+                    srate=self.srate,
+                    optimize_method='CCA',
+                    n_components=self.n_components,
+                    target_chan_idx=self.target_chan_idx
+                )
+                w.append(cca_model['w'])  # (Nk,Nc)
+                r.append(cca_model['r'])  # (Nk,Nrl)
+                wX.append(cca_model['wX'])  # (Nk,Np)
+                rH.append(cca_model['rH'])  # (Nk,Np)
+        self.source_model['w'] = np.stack(w, axis=0)  # List[(Nk,Nc)] -> (Ne(s),Nk,Nc)
+        self.source_model['r'] = deepcopy(r)  # List[(Nk,Nrl)]
+        self.source_model['wX'] = np.stack(wX, axis=0)  # List[(Nk,Nc)] -> (Ne(s),Nk,Np)
+        self.source_model['rH'] = np.stack(rH, axis=0)  # List[(Nk,Nc)] -> (Ne(s),Nk,Np)
+
+        # spatial filters u, v from ms-eCCA process
+        msecca_model = cca.msecca_kernel(
             X_train=self.X_source,
             y_train=self.y_source,
-            sine_template=self.source_sine_template,
-            n_components=self.n_components,
-            method=self.source_info['init_model'],
-            w=self.source_info['w_init']
+            sine_template=self.sine_template_source,
+            events_group=self.source_info['events_group'],
+            n_components=self.n_components
         )
-        self.source_model['w_init'] = init_model['w_init']  # (Nk,Nc) or (Ne(s),Nk,Nc)
-
-        # alternating least square (ALS) optimization: {r, w} = argmin||wX - rH||
-        w, r, wX, rH = [], [], [], []
-        for ne, et in enumerate(self.train_info_source['event_type']):
-            als_model = tlcca_als_optimize(
-                w_init=self.source_model['w_init'][ne],
-                X_mean=init_model['X_mean'][ne],
-                H=self.source_H_correct[ne],
-                freq=self.stim_info[str(et)][0],
-                srate=self.srate,
-                iter_limit=self.iter_limit,
-                err_th=self.err_th
-            )
-            w.append(als_model['w'])  # (Nk,Nc)
-            r.append(als_model['r'])  # (Nk, response length)
-            wX.append(als_model['wX'])  # (Nk,Np)
-            rH.append(als_model['rH'])  # (Nk,Np)
-        self.source_model['w'] = np.stack(w, axis=0)  # (Ne(s),Nk,Nc)
-        self.source_model['r'] = r  # Ne(s)*(Nk, response length)
-        self.source_model['wX'] = np.stack(wX, axis=0)  # (Ne(s),Nk,Np)
-        self.source_model['rH'] = np.stack(rH, axis=0)  # (Ne(s),Nk,Np)
+        self.source_model['u'] = msecca_model['u']  # (Ne(s),Nk,Np)
+        self.source_model['v'] = msecca_model['v']  # (Ne(s),Nk,Np)
 
     def transfer_learning(self):
         """Transfer learning between exist & missing events."""
-        # spatial filters u, v from ms-eCCA process (common)
-        event_type_source = self.transfer_info['event_type_source']
-        source_n_events = event_type_source.shape[0]
-        self.train_info_source['events_group'] = [
-            np.arange(source_n_events) for ets in event_type_source
-        ]  # same filters u, v across all events
-        common_model = cca.msecca_kernel(
-            X_train=self.X_source,
-            y_train=self.y_source,
-            sine_template=self.source_sine_template,
-            train_info=self.train_info_source,
-            n_components=self.n_components
-        )
-        u_trans, v_trans = common_model['u'][0], common_model['v'][0]  # (Nk,Nc), (Nk,2Nh)
+        # load in models
+        r_source = self.source_model['r']  # List, Ne(s)*(Nk,Nrl)
+        w_source = self.source_model['w']  # (Ne(s),Nk,Nc)
+        u_source = self.source_model['u']  # (Ne(s),Nk,Nc)
+        v_source = self.source_model['v']  # (Ne(s),Nk,2*Nh)
 
-        # shifted r, w of unknown events
-        event_type_target = self.transfer_info['event_type_target']
-        r_trans, w_trans = [], []
-        for tet in event_type_target:  # tet is a label (int)
-            for tp in self.transfer_pair:
-                if tet == tp[0]:  # find the transfer pair
-                    source_idx = list(event_type_source).index(tp[1])
-                    r_trans.append(self.source_model['r'][source_idx])
-                    w_trans.append(self.source_model['w'][source_idx])
-                    break
-        w_trans = np.stack(w_trans, axis=0)  # (Ne,Nk,Nc)
+        # basic information
+        n_events = self.event_type.shape[0]  # Ne (full)
+        n_chans = w_source.shape[-1]  # Nc
+        n_points = self.source_info['n_points']  # Np
 
-        # transferred templates rH & vY
-        n_events = event_type_target.shape[0]
-        n_points = self.X_source.shape[-1]
+        # create tranferred model for unknown events
+        r_new = []
+        w_new = np.empty((1, self.n_components, n_chans))
+        u_new = np.empty_like((w_new))
+        v_new = np.empty((1, self.n_components, 2 * self.n_harmonics))
+        for tp in self.transfer_pair:
+            # the indices corresponding to self.source_info['event_type']
+            idx_src = list(self.source_info['event_type']).index(tp[0])
+
+            # make a copy
+            r_new.append(r_source[idx_src])
+            w_new = np.concatenate((w_new, w_source[idx_src][None, ...]), axis=0)
+            u_new = np.concatenate((u_new, u_source[idx_src][None, ...]), axis=0)
+            v_new = np.concatenate((v_new, v_source[idx_src][None, ...]), axis=0)
+        # remove the redundant parts
+        w_new = np.delete(w_new, 0, axis=0)
+        u_new = np.delete(u_new, 0, axis=0)
+        v_new = np.delete(v_new, 0, axis=0)
+
+        # concatenate source model & transferred model as target model
+        r_trans_temp = r_source + r_new
+        r_trans = [r_trans_temp[so] for so in self.sorted_order]
+        H_trans_temp = self.H_correct_source + self.H_correct_new
+        H_trans = [H_trans_temp[so] for so in self.sorted_order]
+        w_trans = np.concatenate((w_source, w_new), axis=0)[self.sorted_order]
+        u_trans = np.concatenate((u_source, u_new), axis=0)[self.sorted_order]
+        v_trans = np.concatenate((v_source, v_new), axis=0)[self.sorted_order]
+        del r_trans_temp, H_trans_temp
+
+        # create full-event templates rH & vY
         rH_trans = np.zeros((n_events, self.n_components, n_points))  # (Ne,Nk,Np)
-        vY_trans = np.zeros_like(rH_trans)
+        vY_trans = np.zeros_like(rH_trans)  # (Ne,Nk,Np)
         for ne in range(n_events):
-            rH_trans[ne] = r_trans[ne] @ self.H[ne]
-            vY_trans[ne] = v_trans @ self.sine_template[ne]
+            rH_trans[ne] = r_trans[ne] @ H_trans[ne]
+            vY_trans[ne] = v_trans[ne] @ self.sine_template[ne]
         rH_trans = utils.fast_stan_3d(rH_trans)
-        rH_trans = np.reshape(rH_trans, (n_events, -1), order='C')  # (Ne,Nk*Np)
         vY_trans = utils.fast_stan_3d(vY_trans)
-        vY_trans = np.reshape(vY_trans, (n_events, -1), order='C')  # (Ne,Nk*Np)
 
         # transfer model
         self.trans_model = {
-            'u_trans': u_trans, 'v_trans': v_trans,
-            'r_trans': r_trans, 'w_trans': w_trans,
+            'r_trans': r_trans, 'H_trans': H_trans,
+            'u_trans': u_trans, 'w_trans': w_trans, 'v_trans': v_trans,
             'vY_trans': vY_trans, 'rH_trans': rH_trans
         }
 
     def fit(
             self,
-            X_source: ndarray,
-            y_source: ndarray,
+            X_train: ndarray,
+            y_train: ndarray,
             stim_info: Dict[str, Tuple[Union[float, int], Union[float, int]]],
             n_harmonics: int = 1,
-            method: Optional[str] = 'msCCA',
+            init_method: Optional[str] = 'msCCA',
             w_init: Optional[ndarray] = None,
+            events_group: Optional[Dict[str, List[int]]] = None,
+            d: int = 2,
             transfer_pair: Optional[List[Tuple[int, int]]] = None,
             srate: Union[float, int] = 1000,
             rrate: int = 60,
-            len_scale: float = 0.99,
+            len_scale: float = 1.05,
+            optimize_method: str = 'CCA',
             amp_scale: float = 0.8,
             concat_method: str = 'dynamic',
             iter_limit: int = 200,
-            err_th: float = 0.00001):
+            err_th: float = 0.00001,
+            target_chan_idx: int = 7):
         """Train tlCCA model.
 
         Args:
-            X_source (ndarray): (Ne(s)*Nt,Nc,Np). Source training dataset.
+            X_train (ndarray): (Ne(s)*Nt,Nc,Np). Source training dataset.
                 Nt>=2, Ne (source) < Ne (full).
-            y_source (ndarray): (Ne(s)*Nt,). Labels for X_source.
+            y_train (ndarray): (Ne(s)*Nt,). Labels for X_source.
             stim_info (dict): {'label': (frequency, phase)}.
             n_harmonics (int): Number of harmonic components for sinusoidal templates.
                 Defaults to 1.
-            method (str): 'msCCA', 'TRCA' or 'DSP'. Defaults to 'msCCA'.
+            init_method (str): 'msCCA', 'TRCA' or 'DSP'. Defaults to 'msCCA'.
+                Only useful when optimize_method is 'ALS'.
             w_init (ndarray): (Ne,Nk,Nc). Initial spatial filter(s). Defaults to None.
-            transfer_pair (List[Tuple[int, int]], Optional): (target label, source label).
+                Only useful when optimize_method is 'ALS'.
+            events_group (Dict[str, List[int]], optional): {'event_id':[idx_1,idx_2,...]}.
+                If None, events_group will be generated according to parameter 'd'.
+                Only useful when init_method is 'msCCA' and optimize_method is 'ALS'.
+            d (int): The range of events to be merged.
+                Only useful when init_method is 'msCCA' and optimize_method is 'ALS'.
+            transfer_pair (List[Tuple[int, int]]): (source label, target label).
             srate (int or float): Sampling rate. Defaults to 1000 Hz.
             rrate (int or float): Refresh rate of stimulus devices. Defaults to 60 Hz.
-            len_scale (float): The multiplying power when calculating the length of data.
-                Defaults to 0.99.
-            amp_scale (float): The multiplying power when calculating the amplitudes of data.
+            len_scale (float): The multiplying coefficient for the length of data.
+                Defaults to 1.05.
+            amp_scale (float): The multiplying coefficient for the amplitudes of data.
                 Defaults to 0.8.
             concat_method (str): 'dynamic' or 'static'.
                 'static': Concatenated data is starting from 1 s.
                 'dynamic': Concatenated data is starting from 1 period.
+            optimize_method (str): 'CCA' or 'ALS'. Defaults to 'CCA'(faster and better).
+                If 'CCA', r,w = CCA(H, X);
+                If 'ALS', r,w = argmix||rH - wX||.
             iter_limit (int): Number of maximum iteration times. Defaults to 200.
-            err_th (float): The threshold (th) of ALS error. Stop iteration while
-                ALS error is smaller than err_th. Defaults to 10^-5.
+            err_th (float): The threshold (th) of ALS iteration error. Defaults to 10^-5.
+                Only useful when optimize_method is 'ALS'.
+            target_chan_idx (int): The index of target channel to correct of w & r.
+                Recommend to set to the channel 'Oz'. Defaults to 7.
+                See details in solve_tlcca_func().
         """
         # load in data
-        self.X_source = X_source
-        self.y_source = y_source
+        self.X_source = X_train
+        self.y_source = y_train
         self.stim_info = stim_info
         self.n_harmonics = n_harmonics
         self.transfer_pair = transfer_pair
@@ -1384,19 +1577,23 @@ class TLCCA(BasicTransfer):
         self.len_scale = len_scale
         self.amp_scale = amp_scale
         self.concat_method = concat_method
+        self.optimize_method = optimize_method
         self.iter_limit = iter_limit
         self.err_th = err_th
+        self.target_chan_idx = target_chan_idx
 
         # special check: Nk must be 1
         assert self.n_components == 1, 'Only support Nk=1 for now!'
+        assert self.transfer_pair is not None, "Please provide the input 'transfer_pair'"
 
         # create sinusoidal templates for full events
-        event_type_full = [tp[0] for tp in self.transfer_pair]
-        event_type_full = np.array(list(set(event_type_full)))
-        n_events = event_type_full.shape[0]  # Ne (total)
+        self.event_type = np.array(list(set(
+            [tp[0] for tp in self.transfer_pair] + [tp[1] for tp in self.transfer_pair]
+        )))
+        n_events = self.event_type.shape[0]  # Ne (total)
         n_points = self.X_source.shape[-1]  # Np
-        self.sine_template = np.zeros((n_events, self.n_harmonics, n_points))
-        for ne, etf in enumerate(event_type_full):
+        self.sine_template = np.zeros((n_events, 2 * self.n_harmonics, n_points))
+        for ne, etf in enumerate(self.event_type):
             self.sine_template[ne] = utils.sine_template(
                 freq=self.stim_info[str(etf)][0],
                 phase=self.stim_info[str(etf)][1],
@@ -1406,34 +1603,72 @@ class TLCCA(BasicTransfer):
             )
         del ne, etf
 
-        # create convolution matrices (H) and their corrected version (H_correct)
-        self.H = [[] for ne in range(n_events)]
-        self.H_correct = [[] for ne in range(n_events)]
-        for ne, etf in enumerate(event_type_full):
-            self.H[ne], self.H_correct[ne] = tlcca_conv_matrix(
-                freq=self.stim_info[str(etf)][0],
-                phase=self.stim_info[str(etf)][1],
-                n_points=n_points,
-                srate=self.srate,
-                rrate=self.rrate,
-                len_scale=self.len_scale,
-                amp_scale=self.amp_scale,
-                concat_method=self.concat_method
-            )  # (response length, Np)
-        del ne, etf
-
         # basic information of source domain
         self.source_info = utils.generate_data_info(X=self.X_source, y=self.y_source)
-        self.source_info['init_model'] = method
+        self.source_info['init_model'] = init_method
         self.source_info['w_init'] = w_init
         event_type_source = self.source_info['event_type']
+
+        # config events_group information for ms-eCCA model
+        if events_group is not None:
+            self.source_info['events_group'] = events_group
+        else:
+            self.source_info['events_group'] = utils.augmented_events(
+                event_type=event_type_source,
+                d=d
+            )
+
+        # config sinusoidal templates & convolution matrices of source domain
         self.sine_template_source, self.H_source, self.H_correct_source = [], [], []
-        for ne, etf in enumerate(event_type_full):
-            if etf in list(event_type_source):
+        for ne, et in enumerate(self.event_type):
+            if et in list(event_type_source):
                 self.sine_template_source.append(self.sine_template[ne])
-                self.H_source.append(self.H[ne])
-                self.H_correct_source.append(self.H_correct[ne])
+                H_temp, H_correct_temp = tlcca_conv_matrix(
+                    freq=self.stim_info[str(et)][0],
+                    phase=self.stim_info[str(et)][1],
+                    n_points=n_points,
+                    srate=self.srate,
+                    rrate=self.rrate,
+                    len_scale=self.len_scale,
+                    amp_scale=self.amp_scale,
+                    extract_method='Square',
+                    concat_method='dynamic',
+                    response_length=None
+                )
+                self.H_source.append(H_temp)
+                self.H_correct_source.append(H_correct_temp)
         self.sine_template_source = np.stack(self.sine_template_source, axis=0)
+        del H_temp, H_correct_temp, ne, et
+
+        # config information of transferred events
+        event_type_new = np.array([tp[1] for tp in self.transfer_pair])
+        event_type_concat = np.array(list(event_type_source) + list(event_type_new))
+        self.sorted_order = [item[0] for item in sorted(
+            enumerate(event_type_concat),
+            key=lambda x: x[1]
+        )]
+        del event_type_new, event_type_concat, event_type_source
+
+        # config convolution matrices of transferred events
+        self.H_new, self.H_correct_new = [], []
+        for (label_src, label_tar) in self.transfer_pair:
+            freq_src = self.stim_info[str(label_src)][0]  # frequency of source stimulus
+            response_length = int(np.round(self.srate * self.len_scale / freq_src))
+            H_temp, H_correct_temp = tlcca_conv_matrix(
+                freq=self.stim_info[str(label_tar)][0],
+                phase=self.stim_info[str(label_tar)][1],
+                n_points=n_points,
+                srate=srate,
+                rrate=rrate,
+                len_scale=len_scale,
+                amp_scale=amp_scale,
+                extract_method='Square',
+                concat_method='dynamic',
+                response_length=response_length
+            )
+            self.H_new.append(H_temp)
+            self.H_correct_new.append(H_correct_temp)
+        del label_src, label_tar, freq_src, response_length, H_temp, H_correct_temp
 
         # main process
         self.intra_source_training()
@@ -1445,7 +1680,7 @@ class TLCCA(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_temp (ndarray): (Ne*Nte,Ne,3). 3-D features.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         """
@@ -1504,7 +1739,7 @@ def sdlst_align_subject(
             Nc(t) may not be equal to Nc(s). Typically Nc(t)<=Nc(s).
             Ne(t) may not be equal to Ne(s). Typically Ne(t)<=Ne(s).
 
-    Returns: Tuple[ndarray, ndarray]
+    Returns:
         P_trans (ndarray): (Nc(t),Nc(s)). Subject-level transfer matrix.
         X_source_trans (ndarray): (Ne(s)*Nt(s),Nc(t),Np). Transferred X_source.
     """
@@ -1561,7 +1796,7 @@ def sdlst_align_dataset(
         X_target (ndarray): (Ne(t)*Nt(t),Nc(t),Np). Target-domain dataset. Nt(t)>=1
         y_target (ndarray): (Ne(t)*Nt(t),). Labels for X_target.
 
-    Returns: source_model (dict)
+    Returns:
         LST-1 (List[ndarray]): Ns*(Nc(t),Nc(s)). One-step LST projection matrices.
         LST-2 (ndarray): (Nc(t),Nc(t)). Two-step LST projection matrix.
         X-LST-1 (ndarray): (Ns*Ne*Nt,Nc(t),Np). Source dataset with one-step LST aligned.
@@ -1723,13 +1958,13 @@ class SDLST(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_ecca (ndarray): (Ne*Nte,Ne). Features from LST-CCA.
             rho_etrca (ndarray): (Ne*Nte,Ne). Features from LST-TRCA.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         """
         rho_etrca = self.trca_model.transform(X_test=X_test)['erho']
-        rho_ecca = self.ecca_model.transform(X_test=X_test)
+        rho_ecca = self.ecca_model.transform(X_test=X_test)['rho']
         rho = utils.combine_feature(features=[rho_ecca / 3, rho_etrca])
         return {'rho_ecca': rho_ecca, 'rho_etrca': rho_etrca, 'rho': rho}
 
@@ -1808,7 +2043,7 @@ def iismc_feature(
         standard (bool): Standard model. Defaults to True.
         ensemble (bool): Ensemble model. Defaults to True.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         erho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features (ensemble).
@@ -2090,7 +2325,7 @@ class IISMC(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
             erho_temp (ndarray): (Ne*Nte,Ne,4). 4-D features (ensemble).
@@ -2144,7 +2379,7 @@ def standardize_data_size(
         X_train (ndarray): (Ne*Nt,Nc,Np). Sklearn-style training dataset. Nt>=2.
         y_train (ndarray): (Ne*Nt,). Labels for X_train.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         X_source (ndarray): (Ne*Nt,Nc,Np). Subject-averaged & unifed X_source.
         y_source (ndarray): (Ne*Nt,). Labels for X_source.
         X_train (ndarray): (Ne*Nt,Nc,Np). Unified X_train.
@@ -2198,7 +2433,7 @@ def inter_subject_cca_kernel(
         n_components (int): Number of eigenvectors picked as filters.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         w (ndarray): (Ne,Nk,Nc). Spatial filter.
     """
     # basic information
@@ -2242,7 +2477,7 @@ def iiscca_feature(
         X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
         tdcca_model (dict): See details in iiscca_kernel().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne*Nte,Ne,6). 6-D features.
         rho (ndarray): (Ne*Nte,Ne). Intergrated features.
     """
@@ -2459,7 +2694,7 @@ class ASS_IISCCA(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho_temp (ndarray): (Ne*Nte,Ne,6). 6-D features.
             rho (ndarray): (Ne*Nte,Ne). Intergrated features.
         """
@@ -2586,7 +2821,7 @@ class LST_TRCA(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc(t),Np). Test dataset.
 
-        Returns: Dict[str, ndarray]
+        Returns:
             rho (ndarray): (Ne*Nte,Ne). Decision coefficients of TRCA.
             erho (ndarray): (Ne*Nte,Ne). Ensemble decision coefficients of eTRCA.
         """
@@ -2607,7 +2842,7 @@ class LST_TRCA(BasicTransfer):
         Args:
             X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
 
-        Returns: Union[Tuple[ndarray, ndarray], Tuple[int, int]]
+        Returns:
             y_standard (ndarray or int): (Ne*Nte,). Predict label(s).
             y_ensemble (ndarray or int): (Ne*Nte,). Predict label(s) (ensemble).
         """
@@ -2667,7 +2902,7 @@ def alpha_source_decomposition(
         n_components (int): Number of eigenvectors picked as filters. Nk.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         u_2 (ndarray): (Ne,Nk,Nc). Basic spatial filters for source dataset.
             See details in refer[11] blog, eq (4).
         u_3 (ndarray): (Ne,Nk,Nc). Basic spatial filters for source dataset.
@@ -2738,7 +2973,7 @@ def alpha_target_decomposition(
         n_components (int): Number of eigenvectors picked as filters. Nk.
             Defaults to 1.
 
-    Returns: Dict[str, ndarray]
+    Returns:
         u_1 (ndarray): (Ne,Nk,Nc). Basic spatial filters.
             See details in refer[11] blog, eq (3).
         v_1 (ndarray): (Ne,Nk,Nc). Basic spatial filters.
@@ -2912,7 +3147,7 @@ def alpha_align_subspace(
         source_model (dict): See details in alpha_source_decomposition().
         target_model (dict). See details in alpha_target_decomposition().
 
-    Returns: Dict[str, Union[List[ndarray], ndarray]]
+    Returns:
         P (List[ndarray]): (Ne,Nc,Nc). Transformation matrices (P_1 & P_2) of ASP.
         Q (List[ndarray]): (Ne,Nc,Nc). Transformation matrices (Q_1 & Q_2) of AC.
         u_1_asp (ndarray): (Ne,Nk,Nc). ASP spatial filters for target dataset.
@@ -2988,7 +3223,7 @@ def alpha_multi_dims_feature(
         target_model (dict): See details in alpha_target_decomposition().
         trans_model (dict): See details in alpha_align_subspace().
 
-    Returns: Dict[str, ndarray]
+    Returns:
         rho_temp (ndarray): (Ne,Nk,5). 5-D features.
         rho (ndarray): (Ne,Nk). Intergrated features.
     """
@@ -3140,8 +3375,8 @@ class ALPHA(BasicTransfer):
 
     def fit(
             self,
-            X_source: ndarray,
-            y_source: ndarray,
+            X_train: ndarray,
+            y_train: ndarray,
             sine_template: ndarray,
             cv_method: str = 'skf',
             **cv_paras):
@@ -3164,8 +3399,8 @@ class ALPHA(BasicTransfer):
                 refer: https://scikit-learn.org/stable/glossary.html#term-random_state.
         """
         # load in data
-        self.X_source = X_source
-        self.y_source = y_source
+        self.X_source = X_train
+        self.y_source = y_train
         self.sine_template = sine_template
         self.event_type = np.unique(self.y_source)
 
@@ -3204,7 +3439,7 @@ class ALPHA(BasicTransfer):
         # train source-domain model & subspace pooling
         self.intra_source_training()
 
-    def transform(self, X_test: ndarray):
+    def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
         self.intra_target_training(X_test=X_test)
         self.transfer_learning()
         return alpha_feature(
@@ -3239,4 +3474,885 @@ class FB_ALPHA(BasicFBTransfer):
             version='SSVEP'
         )
 
-# %% 12.
+
+# %% 12. Cross-stimulus transfer method using common impulse response
+def common_conv_matrix(
+        freqs: List[Union[int, float]],
+        phases: List[Union[int, float]],
+        n_points: int,
+        srate: Union[int, float] = 1000,
+        rrate: int = 60,
+        len_scale: float = 1.05,
+        amp_scale: float = 0.8,
+        extract_method: str = 'Square',
+        concat_method: str = 'dynamic',
+        resize_method: str = 'Lanczos') -> Tuple[ndarray, ndarray]:
+    """Create common convolution matrices (multi-event).
+
+    Args:
+        freqs (List[Union[int, float]]): Stimulus frequencies.
+        phases (List[Union[int, float]]): Stimulus phases (coefficients). 0-2 (pi).
+        n_points (int): Data length.
+        srate (int or float): Sampling rate. Defaults to 1000 Hz.
+        rrate (int or float): Refresh rate of stimulus devices. Defaults to 60 Hz.
+        len_scale (float): The multiplying power when calculating the length of data.
+            Defaults to 0.99.
+        amp_scale (float): The multiplying power when calculating the amplitudes of data.
+            Defaults to 0.8.
+        extrac_method (str): 'Square' or 'Cosine'. Defaults to 'Square'.
+            See details in utils.extract_periodic_impulse().
+        concat_method (str): 'dynamic' or 'static'.
+            'static': Concatenated data is starting from 1 s.
+            'dynamic': Concatenated data is starting from 1 period.
+        resize_method (str): 'nearest', 'linear', cubic', 'area', 'Lanczos',
+            'linear-exact', 'inverse-map', 'fill-outliers'.
+            Interpolation methods. Defaults to 'Lanczos'.
+
+    Returns:
+        H (ndarray): (Ne, response_length, *Np). Convolution matrices.
+        H_correct (ndarray): (Ne, response_length, *Np). Corrected H.
+    """
+    # basic information
+    n_events = len(freqs)  # Ne
+    common_response_length = round(srate * len_scale / freqs[0])  # longest length
+
+    # create convolution matrices for each event
+    H = np.zeros((n_events, common_response_length, n_points))
+    H_correct = np.zeros_like(H)
+    for ne in range(n_events):
+        freq, phase = freqs[ne], phases[ne]
+
+        # generate periodic impulse sequence (spikes)
+        periodic_impulse = utils.extract_periodic_impulse(
+            freq=freq,
+            phase=phase,
+            n_points=n_points,
+            srate=srate,
+            rrate=rrate,
+            method=extract_method
+        )  # (1,Np)
+
+        # config response length (sampling points)
+        response_length = round(srate * len_scale / freq)
+
+        # generate & correct convolution matrices
+        H_temp = utils.create_conv_matrix(
+            periodic_impulse=periodic_impulse,
+            response_length=response_length
+        )  # (response_length, Np)
+        H_correct_temp = utils.correct_conv_matrix(
+            H=H_temp,
+            freq=freq,
+            srate=srate,
+            amp_scale=amp_scale,
+            concat_method=concat_method
+        )  # (response_length, Np)
+
+        # resize convolution matrices
+        H[ne] = utils.resize_conv_matrix(
+            H=H_temp,
+            new_size=(n_points, common_response_length),
+            method=resize_method
+        )
+        H_correct[ne] = utils.resize_conv_matrix(
+            H=H_correct_temp,
+            new_size=(n_points, common_response_length),
+            method=resize_method
+        )
+    return H, H_correct
+
+
+def solve_tim_20243374314_func(
+        w_init: Union[ndarray, None],
+        X_mean: ndarray,
+        H: ndarray,
+        freq: Union[int, float],
+        phase: Union[int, float] = 0,
+        srate: Union[int, float] = 1000,
+        optimize_method: str = 'CCA',
+        iter_limit: int = 200,
+        err_th: float = 0.00001,
+        n_components: int = 1) -> Dict[str, Union[ndarray, int]]:
+    """Solve the optimization problem:
+    r, w = argmin||rH - wX||_2^2. In which r represents for common impulse response,
+    and w for common spatial filter.
+
+    Args:
+        w_init (Union[ndarray, None]): (Nk,Nc). Initial spatial filter w.
+            Only useful when optimize_method is 'ALS'.
+            If optimize_method is 'CCA', w_init could be NoneType.
+        X_mean (ndarray): (Ne,Nc,Np). Averaged template.
+        H (ndarray): (response_length,Np). Convolution matrix.
+        freq (Union[int, float]): Frequency of impulse response.
+        phase (Union[int, float]): Initial phase of impulse response. Defaults to 0.
+        srate (Union[int, float]): Sampling rate. Defaults to 1000 Hz.
+        optimize_method (str): 'CCA' or 'ALS'. Defaults to 'CCA'(faster and better).
+            If 'CCA', r,w = CCA(H, X);
+            If 'ALS', r,w = argmix||rH - wX||.
+        cal_method (str): 'lstsq' or 'pinv'. Methods to solve least squares problem:
+            x = min ||b - Ax||_2. If 'lstsq', use sLA.lstsq(); If 'pinv', use sLA.pinv().
+            Only useful when optimize_method is 'ALS'.
+        iter_limit (int): Number of maximum iteration times. Defaults to 200.
+            Only useful when optimize_method is 'ALS'.
+        err_th (float): The threshold (th) of ALS error. Stop iteration while
+            ALS error is smaller than err_th. Defaults to 10^-5.
+            Only useful when optimize_method is 'ALS'.
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1. Only useful when optimize_method is 'CCA'.
+
+    Returns:
+        w (ndarray): (Nk,Nc). Optimized common spatial filter.
+        r (ndarray): (Nk,Nrl). Optimized common impulse response.
+        wX (ndarray): (Nk,Ne*Np). w @ X_mean (reshaped).
+        rH (ndarray): (Nk,Ne*Np). r @ H (reshaped).
+    """
+    # reshape H (convolution matrices) & X_mean (avg-templates)
+    n_events, response_length, n_points = H.shape  # Ne, response_length, Np
+    n_chans = X_mean.shape[1]  # Nc
+    H = np.reshape(
+        a=np.transpose(H, axes=(1, 0, 2)),
+        newshape=(response_length, n_events * n_points),
+        order='C'
+    )  # (response_length, Ne*Np), concatenated H across events axis
+    X_mean = np.reshape(
+        a=np.transpose(X_mean, axes=(1, 0, 2)),
+        newshape=(n_chans, n_events * n_points),
+        order='C'
+    )  # (Nc, Ne*Np), concatenated X_mean across events axis
+
+    if optimize_method == 'CCA':
+        cca_model = cca.cca_kernel(
+            X=X_mean,
+            Y=utils.centralization(H),
+            n_components=n_components
+        )
+        w, r = cca_model['u'], cca_model['v']
+        wX, rH = cca_model['uX'], cca_model['vY']
+    elif optimize_method == 'ALS':
+        # initial impulse response (r) & template (rH)
+        r_init = np.tile(
+            A=utils.sin_wave(freq=freq, n_points=H.shape[0], phase=phase, srate=srate),
+            reps=(w_init.shape[0], 1)
+        )  # (Nk, response_length)
+        r_init = np.diag(1 / np.sqrt(np.diag(r_init @ r_init.T))) @ r_init  # ||r(i,:)|| = 1
+        rH_init = r_init @ H  # (Nk,Ne*Np)
+
+        # initial spatial filter (w) & template (wX)
+        wX_init = w_init @ X_mean  # (Nk,Ne*Np)
+
+        # iteration initialization
+        err_init = np.sum((wX_init - rH_init)**2)
+        err_old, err_change = err_init, 0
+        log_w, log_r, log_err = [w_init], [r_init], [err_init]
+
+        # start iteration
+        n_iter = 1
+        w_old = w_init
+        continue_training = True
+        while continue_training:
+            wX_temp = w_old @ X_mean  # (Nk,Np)
+
+            # calculate new impulse response (r_new)
+            r_new = wX_temp @ H.T @ sLA.pinv(H @ H.T)  # (Nk,Nrl)
+            r_new = np.diag(1 / np.sqrt(np.diag(r_new @ r_new.T))) @ r_new  # ||r(i,:)|| = 1
+
+            # calculate new spatial filter (w_new)
+            rH_temp = r_new @ H  # (Nk,Ne*Np)
+            w_new = rH_temp @ X_mean.T @ sLA.pinv(X_mean @ X_mean.T)  # (Nk,Nc)
+            w_new = np.diag(1 / np.sqrt(np.diag(w_new @ w_new.T))) @ w_new  # ||w(i,:)|| = 1
+
+            # update ALS error
+            err_new = np.sum((wX_temp - rH_temp)**2)  # faster
+            err_change = err_old - err_new
+            log_err.append(err_new)
+
+            # termination criteria
+            n_iter += 1
+            continue_training = (n_iter < iter_limit) * (abs(err_change) > err_th)
+
+            # update w & r
+            log_w.append(w_new)
+            log_r.append(r_new)
+            w_old = w_new
+            err_old = err_new
+        # update optimized results
+        w, r, wX, rH = log_w[-1], log_r[-1], w @ X_mean, r @ H
+        _, r, rH = cca.symbol_correction(uX=wX, vY=rH, v=r)  # symbol correction
+    return {'w': w, 'r': r, 'wX': wX, 'rH': rH}
+
+
+def tim_20243374314_feature(
+        X_test: ndarray,
+        sine_template: ndarray,
+        source_model: Dict[str, ndarray],
+        trans_model: Dict[str, ndarray],
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """The pattern matching process of algorithm TIM-20243374314.
+
+    Args:
+        X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        source_model (dict): {'w': ndarray (Nk,Nc)}
+            See details in TIM_20243374314.intra_source_training()
+        trans_model (dict): {'rH_trans': ndarray (Ne,Nk (or Ne*Nk),Np)}
+            See details in: TIM_20243374314.transfer_learning();
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1.
+
+    Returns:
+        rho_temp (ndarray): (Ne*Nte,Ne,2). 2-D features.
+        rho (ndarray): (Ne*Nte,Ne). Intergrated features.
+    """
+    # load in models
+    rH_trans = trans_model['rH_trans']  # (Ne,Nk(or Ne*Nk),Np)
+    w = source_model['w']
+
+    # basic information
+    n_events = rH_trans.shape[0]
+    n_test = X_test.shape[0]  # Ne*Nte
+    n_points = X_test.shape[-1]  # Np
+
+    # reshape matrix for faster computing
+    rH_trans = np.reshape(a=rH_trans, newshape=(n_events, -1), order='C')  # (Ne,Nk*Np)
+    w = np.tile(A=source_model['w'], reps=(n_events, 1, 1))  # (Nk,Nc) -repeat-> (Ne,Nk,Nc)
+
+    # 2-D features
+    rho_temp = np.zeros((n_test, n_events, 2))  # (Ne*Nte,Ne,2)
+    for nte in range(n_test):
+        wX_temp = utils.fast_stan_3d(w @ X_test[nte])  # (Ne,Nk,Np)
+
+        # rho 1: superposition model matching
+        rho_temp[nte, :, 0] = utils.fast_corr_2d(
+            X=np.reshape(a=wX_temp, newshape=(n_events, -1), order='C'),
+            Y=rH_trans
+        ) / n_points
+
+        # rho 2: CCA(wX, Y) | SLOW!
+        for nem in range(n_events):
+            cca_model = cca.cca_kernel(
+                X=wX_temp[nem],
+                Y=sine_template[nem],
+                n_components=n_components
+            )
+            rho_temp[nte, nem, 1] = cca_model['coef']
+    return {
+        'rho_temp': rho_temp,
+        'rho': utils.combine_feature([
+            rho_temp[..., 0],
+            rho_temp[..., 1]
+        ])
+    }
+
+
+class TIM_20243374314(BasicTransfer):
+    def intra_source_training(self):
+        """Intra-domain model training for source dataset."""
+        # initialization
+        self.source_model = {}
+
+        # obtain r (impulse responses) & w (spatial filter)
+        if self.optimize_method == 'ALS':
+            # ALS optimization: {r, w} = argmin||wX - rH||
+            init_model = fast_init_model(
+                X_train=self.X_source,
+                y_train=self.y_source,
+                sine_template=self.sine_template_source,
+                n_components=self.n_components,
+                method=self.source_info['init_model'],
+                w=self.source_info['w_init']
+            )
+            self.source_model['w_init'] = init_model['w_init'][0]  # common w | (Nk,Nc)
+
+            # ALS optimization
+            if self.correct_conv:
+                als_model = solve_tim_20243374314_func(
+                    w_init=self.source_model['w_init'],
+                    X_mean=init_model['X_mean'],
+                    H=self.H_correct_source,
+                    freq=self.freq_tar,
+                    phase=self.phase_tar,
+                    srate=self.srate,
+                    optimize_method='ALS',
+                    iter_limit=self.iter_limit,
+                    err_th=self.err_th
+                )
+            else:
+                als_model = solve_tim_20243374314_func(
+                    w_init=self.source_model['w_init'],
+                    X_mean=init_model['X_mean'],
+                    H=self.H_source,
+                    freq=self.freq_tar,
+                    phase=self.phase_tar,
+                    srate=self.srate,
+                    optimize_method='ALS',
+                    iter_limit=self.iter_limit,
+                    err_th=self.err_th
+                )
+            self.source_model['log_files'] = {
+                'log_w': als_model['log_w'],
+                'log_r': als_model['log_r'],
+                'log_err': als_model['log_err']
+            }
+        elif self.optimize_method == 'CCA':
+            # CCA solution: {r, w} = CCA(H, X)
+            X_mean = utils.generate_mean(X=self.X_source, y=self.y_source)
+
+            if self.correct_conv:
+                als_model = solve_tim_20243374314_func(
+                    w_init=None,
+                    X_mean=X_mean,
+                    H=self.H_correct_source,
+                    freq=self.freq_tar,
+                    phase=self.phase_tar,
+                    srate=self.srate,
+                    optimize_method='CCA',
+                    n_components=self.n_components
+                )
+            else:
+                als_model = solve_tim_20243374314_func(
+                    w_init=None,
+                    X_mean=X_mean,
+                    H=self.H_source,
+                    freq=self.freq_tar,
+                    phase=self.phase_tar,
+                    srate=self.srate,
+                    optimize_method='CCA',
+                    n_components=self.n_components
+                )
+        self.source_model['w'] = als_model['w']  # (Nk,Nc)
+        self.source_model['r'] = als_model['r']  # (Nk,Nrl)
+        self.source_model['wX'] = als_model['wX']  # (Nk,Ne*Np)
+        self.source_model['rH'] = als_model['rH']  # (Nk,Ne*Np)
+
+    def transfer_learning(self):
+        """Transfer learning between exist & missing events."""
+        # basic information & initialization
+        n_events = self.H_correct.shape[0]  # Ne
+        n_points = self.H_correct.shape[-1]  # Np
+        self.trans_model = {}
+
+        # superposition model: r @ H
+        if self.correct_conv is True:
+            H = self.H_correct
+        elif self.correct_conv is False:
+            H = self.H
+        rH_trans = np.zeros((n_events, self.source_model['r'].shape[0], n_points))
+        for ne in range(n_events):
+            rH_trans[ne] = self.source_model['r'] @ H[ne]
+        self.trans_model['rH_trans'] = utils.fast_stan_3d(rH_trans)
+
+    def fit(
+            self,
+            X_train: ndarray,
+            y_train: ndarray,
+            stim_info: Dict[str, Tuple[Union[float, int], Union[float, int]]],
+            n_harmonics: int = 1,
+            init_method: Optional[str] = 'DSP',
+            w_init: Optional[ndarray] = None,
+            srate: Union[float, int] = 1000,
+            rrate: int = 60,
+            len_scale: float = 1.05,
+            extract_method: str = 'Square',
+            optimize_method: str = 'CCA',
+            correct_conv: bool = True,
+            amp_scale: float = 0.8,
+            concat_method: str = 'dynamic',
+            iter_limit: int = 200,
+            err_th: float = 0.00001,
+            resize_method: str = 'Lanczos'):
+        """Train TIM-20243374314 model.
+
+        Args:
+            X_source (ndarray): (Ne(s)*Nt,Nc,Np). Source training dataset.
+                Nt>=2, Ne (source) <= Ne (full).
+            y_source (ndarray): (Ne(s)*Nt,). Labels for X_source.
+            stim_info (dict): {'label': (frequency, phase)}.
+            n_harmonics (int): Number of harmonic components for sinusoidal templates.
+                Defaults to 1.
+            init_method (str): 'msCCA', 'eTRCA' or 'DSP'. Defaults to 'DSP'.
+                Only useful when optimize_method is 'ALS'.
+            w_init (ndarray): (Nk,Nc). Initial common spatial filter. Defaults to None.
+            srate (int or float): Sampling rate. Defaults to 1000 Hz.
+            rrate (int or float): Refresh rate of stimulus devices. Defaults to 60 Hz.
+            len_scale (float): The multiplying power when calculating the length of data.
+                Defaults to 1.05.
+            extract_method (str): 'Square' or 'Cosine'. Defaults to 'Square'.
+                See details in utils.extract_periodic_impulse().
+            optimize_method (str): 'CCA' or 'ALS'. Defaults to 'CCA'(faster and better).
+                If 'CCA', r,w = CCA(H, X);
+                If 'ALS', r,w = argmix||rH - wX||.
+            correct_conv (bool): Use corrected H as convolution matrices.
+                Defaults to False, i.e. H.
+            amp_scale (float): The multiplying power when calculating the amplitudes of data.
+                Defaults to 0.8.
+            concat_method (str): 'dynamic' or 'static'.
+                'static': Concatenated data is starting from 1 s.
+                'dynamic': Concatenated data is starting from 1 period.
+            iter_limit (int): Number of maximum iteration times. Defaults to 200.
+            err_th (float): The threshold (th) of ALS error. Stop iteration while
+                ALS error is smaller than err_th. Defaults to 10^-5.
+            resize_method (str): 'nearest', 'linear', cubic', 'area', 'Lanczos',
+                'linear-exact', 'inverse-map', 'fill-outliers'.
+                Interpolation methods. Defaults to 'Lanczos'.
+        """
+        # load in data
+        self.X_source = X_train
+        self.y_source = y_train
+        self.stim_info = stim_info
+        self.n_harmonics = n_harmonics
+        self.srate = srate
+        self.rrate = rrate
+        self.len_scale = len_scale
+        self.amp_scale = amp_scale
+        self.correct_conv = correct_conv
+        self.concat_method = concat_method
+        self.extract_method = extract_method
+        self.optimize_method = optimize_method
+        self.iter_limit = iter_limit
+        self.err_th = err_th
+        self.resize_method = resize_method
+
+        # create sinusoidal templates for full events
+        label_lst = [int(label) for label in list(stim_info.keys())]
+        freq_lst = [stim_info[str(label)][0] for label in label_lst]
+        phase_lst = [stim_info[str(label)][1] for label in label_lst]
+
+        sorted_pairs = sorted(enumerate(freq_lst), key=lambda x: x[1])
+        sorted_idx = [sp[0] for sp in sorted_pairs]
+        del sorted_pairs
+
+        freqs = [freq_lst[si] for si in sorted_idx]
+        phases = [phase_lst[si] for si in sorted_idx]
+        self.event_type = np.array([label_lst[si] for si in sorted_idx])
+        del freq_lst, phase_lst, label_lst, sorted_idx
+
+        n_events = self.event_type.shape[0]  # Ne (total)
+        n_points = self.X_source.shape[-1]  # Np
+        self.sine_template = np.zeros((n_events, 2 * self.n_harmonics, n_points))
+        for ne, ett in enumerate(self.event_type):
+            self.sine_template[ne] = utils.sine_template(
+                freq=freqs[ne],
+                phase=phases[ne],
+                n_points=n_points,
+                n_harmonics=self.n_harmonics,
+                srate=self.srate
+            )
+        del ne, ett
+        self.freq_tar = freqs[0]  # lowest frequency, longest response
+        self.phase_tar = phases[0]
+
+        # create corrected, resized convolution matrices
+        self.H, self.H_correct = common_conv_matrix(
+            freqs=freqs,
+            phases=phases,
+            n_points=n_points,
+            srate=self.srate,
+            rrate=self.rrate,
+            len_scale=self.len_scale,
+            amp_scale=self.amp_scale,
+            extract_method=self.extract_method,
+            concat_method=self.concat_method,
+            resize_method=self.resize_method
+        )  # (Ne,Nrl, Np)
+        del freqs, phases
+
+        # basic information of source domain
+        self.source_info = utils.generate_data_info(X=self.X_source, y=self.y_source)
+        self.source_info['init_model'] = init_method
+        self.source_info['w_init'] = w_init
+        event_type_source = self.source_info['event_type']
+
+        # config sinusoidal templates & convolution matrices of source domain
+        self.sine_template_source, self.H_source, self.H_correct_source = [], [], []
+        for ne, etf in enumerate(self.event_type):
+            if etf in list(event_type_source):
+                self.sine_template_source.append(self.sine_template[ne])
+                self.H_source.append(self.H[ne])
+                self.H_correct_source.append(self.H_correct[ne])
+        self.sine_template_source = np.stack(self.sine_template_source, axis=0)
+        self.H_source = np.stack(self.H_source, axis=0)
+        self.H_correct_source = np.stack(self.H_correct_source, axis=0)
+        del ne, etf
+
+        # main process
+        self.intra_source_training()
+        self.transfer_learning()
+
+    def transform(self, X_test: ndarray) -> Dict[str, ndarray]:
+        """Transform test dataset to features.
+
+        Args:
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+
+        Returns:
+            rho_temp (ndarray): (Ne*Nte,Ne,3). 3-D features.
+            rho (ndarray): (Ne*Nte,Ne). Intergrated features.
+        """
+        return tim_20243374314_feature(
+            X_test=X_test,
+            sine_template=self.sine_template,
+            source_model=self.source_model,
+            trans_model=self.trans_model,
+            n_components=self.n_components
+        )
+
+
+class FB_TIM_20243374314(BasicFBTransfer):
+    def __init__(
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
+        """Basic configuration.
+
+        Args:
+            filter_bank (List[ndarray], optional):
+                See details in utils.generate_filter_bank(). Defaults to None.
+            with_filter_bank (bool): Whether the input data has been FB-preprocessed.
+                Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
+        """
+        self.n_components = n_components
+        super().__init__(
+            base_estimator=TIM_20243374314(n_components=self.n_components),
+            filter_bank=filter_bank,
+            with_filter_bank=with_filter_bank,
+            version='SSVEP'
+        )
+
+
+# %% 13. Cross-subject calibration-free classifiation based on transfer superposition theory
+def construct_prototype_filter(ws: ndarray, preprocessed: bool = True):
+    """Construct prototye filters from given ws.
+    Refer: https://ieeexplore.ieee.org/document/8616087/.
+
+    Args:
+        ws (ndarray): (Ns,Nk,Nc). Spatial filters from Ns source subjects.
+        preprocessed (bool): Whether the F-norm of w has been compressed to 1.
+            Defaults to True.
+
+    Returns:
+        u (ndarray): (Nk,Nc). Prototye filter.
+    """
+    # basic information
+    n_subjects, n_components, n_chans = ws.shape  # Ns, Nk, Nc
+    u = np.zeros((n_components, n_chans))  # (Nk,Nc)
+
+    # F-norm normalization
+    wn = deepcopy(ws)
+    if not preprocessed:
+        for ns in range(n_subjects):
+            for nk in range(n_components):
+                wn[ns, nk, :] /= sLA.norm(ws[ns, nk, :])
+        del ns, nk
+
+    # analytic solution
+    for nk in range(n_components):
+        Cuu = np.zeros((n_chans, n_chans))  # (Nc,Nc)
+        for ns in range(n_subjects):
+            Cuu += wn[ns, nk, :][:, None] @ wn[ns, nk, :][None, :]
+        u[nk] = utils.solve_ep(A=Cuu, n_components=1, mode='Max')
+    return u
+
+
+def tbme_20243406603_feature(
+        X_test: ndarray,
+        sine_template: ndarray,
+        source_model: Dict[str, Any],
+        n_components: int = 1) -> Dict[str, ndarray]:
+    """The pattern matching process of algorithm TBME-20243406603.
+
+    Args:
+        X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+        sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+        source_model (dict): {'w': ndarray (Ns,Ne,Nk,Nc),
+                              'rH': ndarray (Ns,Ne,Nk,Np),
+                              'Uw': ndarray (Ne,Nk,Nc),
+                              'UrH': ndarray (Ne,Nk,Np)}
+            See details in TIM_20243374314.intra_source_training()
+        n_components (int): Number of eigenvectors picked as filters. Nk.
+            Defaults to 1.
+
+    Returns:
+        rho_temp (ndarray): (Ne*Nte,Ne,3). 3-D features.
+        rho (ndarray): (Ne*Nte,Ne). Intergrated features.
+    """
+    # load in models
+    w = source_model['w']  # (Ns,Ne,Nk,Nc)
+    rH = source_model['rH']  # (Ns,Ne,Nk,Np)
+    Uw = source_model['Uw']  # (Ne,Nk,Nc)
+    UrH = source_model['UrH']  # (Ne,Nk,Np)
+
+    # basic information
+    n_subjects = w.shape[0]  # Ns
+    n_events = Uw.shape[0]  # Ne
+    n_test = X_test.shape[0]  # Ne*Nte, could be 1 for unsupervised scenario
+    n_points = X_test.shape[-1]  # Np
+
+    # reshape matrix for faster computing
+    rH = np.reshape(a=rH, newshape=(n_subjects, n_events, -1), order='C')  # (Ns,Ne,Nk*Np)
+    UrH = np.reshape(a=UrH, newshape=(n_events, -1), order='C')  # (Ne,Nk*Np)
+
+    # 3-D features
+    rho_temp = np.zeros((n_test, n_events, 3))  # (Ne*Nte,Ne,3)
+    for nte in range(n_test):
+        # rho 1: pattern matching with each source subject
+        wX_temp = np.reshape(
+            a=utils.fast_stan_4d(w @ X_test[nte]),
+            newshape=(n_subjects, n_events, -1),
+            order='C'
+        )  # (Ns,Ne,Nk,Nc) @ (Nc,Np) -flatten-> (Ns,Ne,Nk*Np)
+        rho_temp[nte, :, 0] = np.mean(
+            a=utils.fast_corr_3d(X=wX_temp, Y=rH),
+            axis=0
+        ) / n_points  # (Ns,Ne,Nk*Np) -corr-> (Ns,Ne) -avg-> (Ne,)
+
+        # rho 2: pattern matching with prototype model
+        UwX_temp = np.reshape(
+            a=utils.fast_stan_3d(Uw @ X_test[nte]),
+            newshape=(n_events, -1),
+            order='C'
+        )  # (Ne,Nk,Nc) @ (Nc,Np) -flatten-> (Ne,Nk*Np)
+        rho_temp[nte, :, 1] = utils.fast_corr_2d(X=UwX_temp, Y=UrH) / n_points
+
+        # rho 3: CCA | SLOW!
+        for nem in range(n_events):
+            cca_model = cca.cca_kernel(
+                X=X_test[nte],
+                Y=sine_template[nem],
+                n_components=n_components
+            )
+            rho_temp[nte, nem, 2] = cca_model['coef']
+    return {
+        'rho_temp': rho_temp,
+        'rho': utils.combine_feature([
+            rho_temp[..., 0],
+            rho_temp[..., 1],
+            rho_temp[..., 2]
+        ])
+    }
+
+
+class TBME_20243406603(BasicTransfer):
+    def intra_source_training(self):
+        """Intra-domain model training for source dataset."""
+        # basic information & initialization
+        n_events = self.event_type.shape[0]  # Ne
+        self.source_model = {}
+
+        # obtain r (impulse responses) & w (spatial filter) from source subjects
+        w, r, wX, rH = [], [], [], []
+        for nsub in range(self.n_subjects):
+            X_mean = utils.generate_mean(X=self.X_source[nsub], y=self.y_source[nsub])
+            w_temp, r_temp, wX_temp, rH_temp = [], [], [], []
+            for ne, et in enumerate(self.source_info[nsub]['event_type']):
+                cca_model = solve_tlcca_func(
+                    w_init=None,
+                    X_mean=X_mean[ne],
+                    H=self.H[ne],
+                    freq=self.stim_info[str(et)][0],
+                    phase=self.stim_info[str(et)][1],
+                    srate=self.srate,
+                    optimize_method='CCA',
+                    n_components=self.n_components,
+                    target_chan_idx=self.target_chan_idx
+                )
+                w_temp.append(cca_model['w'])  # (Nk,Nc)
+                r_temp.append(cca_model['r'])  # (Nk,Nrl)
+                wX_temp.append(cca_model['wX'])  # (Nk,Np)
+                rH_temp.append(cca_model['rH'])  # (Nk,Np)
+            del ne, et, cca_model, X_mean
+
+            # update source model
+            w.append(np.stack(w_temp, axis=0))  # List[(Nk,Nc)] -> (Ne,Nk,Nc)
+            r.append(r_temp)  # List[(Nk,Nrl)]
+            wX.append(np.stack(wX_temp, axis=0))  # List[(Nk,Np)] -> (Ne,Nk,Np)
+            rH.append(np.stack(rH_temp, axis=0))  # List[(Nk,Np)] -> (Ne,Nk,Np)
+        del w_temp, r_temp, wX_temp, rH_temp, nsub
+
+        # intergrade source model
+        self.source_model['w'] = np.stack(w, axis=0)  # List[(Ne,Nk,Nc)] -> (Ns,Ne,Nk,Nc)
+        self.source_model['r'] = deepcopy(r)  # List[List[(Nk,Nrl)]]
+        self.source_model['wX'] = np.stack(wX, axis=0)  # List[(Ne,Nk,Np)] -> (Ns,Ne,Nk,Np)
+        self.source_model['rH'] = np.stack(rH, axis=0)  # List[(Ne,Nk,Np)] -> (Ns,Ne,Nk,Np)
+        del w, r, wX, rH
+
+        # train prototye filters
+        Ur, Uw = [], []
+        for ne in range(n_events):
+            # prototye filters for impulse response (r): Ur
+            rs_temp = [self.source_model['r'][nsub][ne] for nsub in range(self.n_subjects)]
+            rs_temp = np.stack(rs_temp, axis=0)  # List[(Nk,Nrl)] -> (Ns,Nk,Nrl)
+            Ur.append(construct_prototype_filter(ws=rs_temp, preprocessed=False))  # (Nk,Nrl)
+
+            # prototype filters for spatial filters (w): Uw
+            ws_temp = self.source_model['w'][:, ne, ...]  # (Ns,Nk,Nc)
+            Uw.append(construct_prototype_filter(ws=ws_temp, preprocessed=True))  # (Nk,Nc)
+            del rs_temp, ws_temp
+        del ne
+        self.source_model['Ur'] = deepcopy(Ur)  # List[(Nk,Nrl)]
+        self.source_model['Uw'] = np.stack(Uw, axis=0)  # List[(Nk,Nc)] -> (Ne,Nk,Nc)
+        del Ur, Uw
+
+        # train prototype templates: rH
+        UrH = np.zeros_like(self.source_model['rH'][0])  # (Ne,Nk,Np)
+        for ne in range(n_events):
+            UrH[ne] = self.source_model['Ur'][ne] @ self.H_correct[ne]
+        self.source_model['UrH'] = deepcopy(UrH)
+        del UrH, ne
+
+    def fit(
+            self,
+            X_train: List[ndarray],
+            y_train: List[ndarray],
+            sine_template: ndarray,
+            stim_info: Dict[str, Tuple[Union[float, int], Union[float, int]]],
+            srate: Union[float, int] = 1000,
+            rrate: int = 60,
+            len_scale: float = 1.05,
+            amp_scale: float = 0.8,
+            concat_method: str = 'dynamic',
+            target_chan_idx: int = 7):
+        """Train model.
+
+        Args:
+            X_train (ndarray): List[(Ne*Nt,Nc,Np)]. Source training dataset. Nt>=2.
+            y_train (ndarray): List[(Ne(s)*Nt,)]. Labels for X_train.
+            sine_template (ndarray): (Ne,2*Nh,Np). Sinusoidal templates.
+            stim_info (dict): {'label': (frequency, phase)}.
+            srate (int or float): Sampling rate. Defaults to 1000 Hz.
+            rrate (int or float): Refresh rate of stimulus devices. Defaults to 60 Hz.
+            len_scale (float): The multiplying coefficient for the length of data.
+                Defaults to 1.05.
+            amp_scale (float): The multiplying coefficient for the amplitudes of data.
+                Defaults to 0.8.
+            concat_method (str): 'dynamic' or 'static'.
+                'static': Concatenated data is starting from 1 s.
+                'dynamic': Concatenated data is starting from 1 period.
+            target_chan_idx (int): The index of target channel to correct of w & r.
+                Recommend to set to the channel 'Oz'. Defaults to 7.
+                See details in solve_tlcca_func().
+        """
+        # load in data
+        self.X_source = X_train
+        self.y_source = y_train
+        self.sine_template = sine_template
+        self.stim_info = stim_info
+        self.srate = srate
+        self.rrate = rrate
+        self.len_scale = len_scale
+        self.amp_scale = amp_scale
+        self.concat_method = concat_method
+        self.target_chan_idx = target_chan_idx
+
+        # basic information of source domain
+        n_events = self.sine_template.shape[0]  # Ne
+        self.n_subjects = len(self.X_source)
+        self.event_type = np.array(
+            [int(list(stim_info.keys())[ne]) for ne in range(n_events)]
+        )
+        self.source_info = []
+        for nsub in range(self.n_subjects):
+            self.source_info.append(utils.generate_data_info(
+                X=self.X_source[nsub],
+                y=self.y_source[nsub]
+            ))
+
+        # config convolution matrices
+        n_points = self.X_source[0].shape[-1]  # Np
+        self.H, self.H_correct = [], []
+        for _, et in enumerate(self.event_type):
+            H_temp, H_correct_temp = tlcca_conv_matrix(
+                freq=self.stim_info[str(et)][0],
+                phase=self.stim_info[str(et)][1],
+                n_points=n_points,
+                srate=self.srate,
+                rrate=self.rrate,
+                len_scale=self.len_scale,
+                amp_scale=self.amp_scale,
+                extract_method='Square',
+                concat_method=self.concat_method,
+                response_length=None
+            )
+            self.H.append(H_temp)
+            self.H_correct.append(H_correct_temp)
+        del H_temp, H_correct_temp, et
+
+        # main process
+        self.intra_source_training()
+
+    def transform(self, X_test):
+        """Transform test dataset to features.
+
+        Args:
+            X_test (ndarray): (Ne*Nte,Nc,Np). Test dataset.
+
+        Returns:
+            rho_temp (ndarray): (Ne*Nte,Ne,3). 3-D features.
+            rho (ndarray): (Ne*Nte,Ne). Intergrated features.
+        """
+        return tbme_20243406603_feature(
+            X_test=X_test,
+            sine_template=self.sine_template,
+            source_model=self.source_model,
+            n_components=self.n_components
+        )
+
+
+class FB_TBME_20243406603(BasicFBTransfer):
+    def __init__(
+            self,
+            filter_bank: Optional[List] = None,
+            with_filter_bank: bool = True,
+            n_components: int = 1):
+        """Basic configuration.
+
+        Args:
+            filter_bank (List[ndarray], optional):
+                See details in utils.generate_filter_bank(). Defaults to None.
+            with_filter_bank (bool): Whether the input data has been FB-preprocessed.
+                Defaults to True.
+            n_components (int): Number of eigenvectors picked as filters.
+                Defaults to 1.
+        """
+        self.n_components = n_components
+        super().__init__(
+            base_estimator=TBME_20243406603(n_components=self.n_components),
+            filter_bank=filter_bank,
+            with_filter_bank=with_filter_bank,
+            version='SSVEP'
+        )
+
+    def fit(
+            self,
+            X_train: List[ndarray],
+            y_train: List[ndarray],
+            bank_weights: Optional[ndarray] = None,
+            **kwargs):
+        """Load in training dataset and pass it to sub-esimators.
+        See details in TBME_20243406603().fit().
+
+        Args:
+            X_train (ndarray): List[(Nb,Ne*Nt,Nc,Np)]. Source training dataset. Nt>=2.
+            y_train (ndarray): List[(Nb,Ne(s)*Nt,)]. Labels for X_train.
+            bank_weights (ndarray, optional): Weights for different filter banks.
+                Defaults to None (equal).
+        """
+        # basic information
+        self.Nb = X_train[0].shape[0]  # n_bands
+        n_subjects = len(X_train)  # Ns
+
+        # initialization
+        self.bank_weights = bank_weights
+        if self.version == 'SSVEP' and self.bank_weights is not None:
+            self.bank_weights = np.array([(nb + 1)**(-1.25) + 0.25 for nb in range(self.Nb)])
+        self.sub_estimator = [clone(self.base_estimator) for nb in range(self.Nb)]
+
+        # apply in each sub-band
+        for nb, se in enumerate(self.sub_estimator):
+            se.fit(
+                X_train=[X_train[nsub][nb] for nsub in range(n_subjects)],
+                y_train=y_train,
+                **kwargs
+            )
