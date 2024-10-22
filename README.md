@@ -10,15 +10,17 @@ Github的公式编辑有一些问题，每个算法的详细说明与公式推�
 
 ---
 
-最近更新：2024/08/04
+最近更新：2024/10/22
 
-（1）在`utils`里更新了一些基本步骤的功能性子函数，如`generate_data_info()`、`spatial_filtering()`等等，进而优化了`cca`、`trca`、`dsp`以及`transfer`四个基本库的代码结构
+（1）更新了论文 “Leveraging Transfer Superposition Theory for StableState Visual Evoked Potential Cross-Subject Frequency Recognition” 的算法：`transfer.TBME_20243406603()`
+
+（2）更新了论文 “Cross-Stimulus Transfer Method Using Common Impulse Response for Fast Calibration of SSVEP-Based BCIs” 的算法：`transfer.TIM_20243374314()`
 
 ---
 
 未来更新计划
 
-（1）cold-start
+（1）在 flowUs 页面更新 DSP、TDCA、ASS-IISCCA 等代码已包含在库中、但是没有专栏页面的算法。
 
 ---
 
@@ -30,4 +32,4 @@ Github的公式编辑有一些问题，每个算法的详细说明与公式推�
 
 （3）DSP 系列：`dsp.DSP()`、`dsp.TDCA()` 以及各自的 filter-bank 版本
 
-（4）迁移学习算法：`transfer.TNSRE_20233250953()`、`transfer.STCCA()`、`transfer.TLCCA()`、`transfer.SDLST()`、`transfer.TNSRE_20233305202()`、`transfer.IISMC()`、`transfer.ASS_IISCCA()`、`transfer.ALPHA()` 以及各自的 filter-bank 版本
+（4）迁移学习算法：`transfer.TNSRE_20233250953()`、`transfer.STCCA()`、`transfer.TLCCA()`、`transfer.SDLST()`、`transfer.TNSRE_20233305202()`、`transfer.IISMC()`、`transfer.ASS_IISCCA()`、`transfer.ALPHA()`、`transfer.TIM_20243374314()`、`transfer.TBME_20243406603()`以及各自的 filter-bank 版本
