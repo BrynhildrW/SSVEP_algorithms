@@ -1277,11 +1277,10 @@ def Imn(m: int, n: int) -> ndarray:
     """Concatenate identical matrices into a big matrix.
 
     Args:
-        m (int): Total number of identity matrix.
-        n (int): Dimensions of the identity matrix.
+        X (ndarray): (d1,d2,d3).
 
     Returns:
-        target (ndarray): (m*n, n).
+        X_new (ndarray): (d1,d2,d3).
     """
     Z = np.zeros((m * n, n))
     for i in range(m):

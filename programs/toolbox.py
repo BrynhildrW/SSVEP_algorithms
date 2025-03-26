@@ -726,12 +726,3 @@ class PreProcessing_BETA():
             filtered_data['bank'+str(idx_filter+1)] = filter_data
 
         return filtered_data
-
-
-
-
-
-
-
-
-
