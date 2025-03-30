@@ -242,8 +242,7 @@ def euclidean_alignment(X: ndarray) -> Tuple[ndarray, ndarray]:
 @njit(fastmath=True)
 def fast_stan_2d(X: ndarray) -> ndarray:
     """
-    Special version of standardization() for 2-dimensional X.
-    Use the JIT compiler to make python codes run faster.
+    Use the JIT compiler to make standardization() run faster for 2-dimensional X.
 
     Parameters
     -------
@@ -266,7 +265,7 @@ def fast_stan_2d(X: ndarray) -> ndarray:
 @njit(fastmath=True)
 def fast_stan_3d(X: ndarray) -> ndarray:
     """
-    Special version of standardization() for 3-D X.
+    Use the JIT compiler to make standardization() run faster for 3-D X.
 
     Parameters
     -------
@@ -289,7 +288,7 @@ def fast_stan_3d(X: ndarray) -> ndarray:
 @njit(fastmath=True)
 def fast_stan_4d(X: ndarray) -> ndarray:
     """
-    Special version of standardization() for 4-D X.
+    Use the JIT compiler to make standardization() run faster for 4-D X.
 
     Parameters
     -------
@@ -313,7 +312,7 @@ def fast_stan_4d(X: ndarray) -> ndarray:
 @njit(fastmath=True)
 def fast_stan_5d(X: ndarray) -> ndarray:
     """
-    Special version of standardization() for 5-D X.
+    Use the JIT compiler to make standardization() run faster for 5-D X.
 
     Parameters
     -------
@@ -352,11 +351,11 @@ def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
     Returns
     -------
     event_type : ndarray, shape (Ne,).
-    n_events : int. Ne.
+    n_events : int.
     n_train : ndarray, shape (Ne,).
         Trials of each event.
-    n_chans : int. Nc.
-    n_points : int. Np.
+    n_chans : int.
+    n_points : int.
     """
     event_type = np.unique(y)
     return {
@@ -434,7 +433,7 @@ def neighbor_edge(
 
 def neighbor_events(distribution: ndarray, width: int) -> Dict[str, List[int]]:
     """
-    Generate indices for merged events for each target event.
+    Generate indices for merged events for each target event. <p>
     Refers to: 10.1109/TIM.2022.3219497 (DOI).
 
     Parameters
@@ -889,12 +888,11 @@ def pearson_corr(
 
     Returns
     -------
-    corr_coef (Union[float, ndarray]):
-            float: X (m,n) & Y (m,n).
-            ndarray (l,): X (m,n) & Y (l,m,n).
+    out : float or ndarray.
+        If float: X (m,n) & Y (m,n).
+        If ndarray (l,): X (m,n) & Y (l,m,n).
     """
     # X_stan, Y_stan = standardization(X), standardization(Y)
-
     # reshape data into vector-style: reshape() is 5 times faster than flatten()
     X = np.reshape(X, -1, order='C')  # (m*n,)
     if parallel:  # Y: (l,m,n)
@@ -908,7 +906,7 @@ def pearson_corr(
 @njit(fastmath=True)
 def fast_corr_2d(X: ndarray, Y: ndarray) -> ndarray:
     """
-    Use the JIT compiler to make pearson_corr() run faster for 2-dimensional X. <p>
+    Use the JIT compiler to make pearson_corr() run faster for 2-D X. <p>
     X.shape[-1] is the reshaped length, not real length: <p>
     e.g. (Ne,Ne * Nk,Np) -reshape-> (Ne,Ne * Nk * Np) -> (Ne,) (return)
     -> 1 / Np * (Ne,) (real corr)
@@ -2010,6 +2008,7 @@ def solve_forward_propagation(
         w: ndarray) -> Tuple[ndarray, ndarray]:
     """
     Calculate propagation matrice(A) based on source responses(wX).
+
     A = argmin||A @ w @ X - X||.
 
     Parameters

@@ -78,4 +78,8 @@ $$
 $$
 $$
 \rho_{k,1} = \dfrac{1}{N_s} \sum_{s=1}^{N_s} {\rm corr} \left( \tilde{\pmb{w}}_k^{(s)} \pmb{\mathcal{X}}, \ \ \tilde{\pmb{r}}_k^{(s)} \pmb{H}_k \right), \ \ \ \ \rho_{k,2} = {\rm corr} \left( \hat{\pmb{\psi}}_k \pmb{\mathcal{X}}, \ \ \hat{\pmb{\gamma}}_k \pmb{H}_k \right), \ \ \ \ \rho_{k,3} = {\rm CCA} \left( \pmb{\mathcal{X}}, \ \ \pmb{Y}_k \right), \ \ \ \ \rho_{k,4} = \dfrac{1}{N_s} \sum_{s=1}^{N_s} {\rm corr} \left( \tilde{\pmb{w}} \pmb{\mathcal{X}}, \ \ \tilde{\pmb{r}} \pmb{H}_k \right), \ \ \ \ \rho_{k,5} = {\rm corr} \left( \hat{\pmb{\psi}} \pmb{\mathcal{X}}, \ \ \hat{\pmb{\gamma}} \pmb{H}_k \right)\\
+<<<<<<< HEAD
 $$
+=======
+$$
+>>>>>>> f98a241405947165f18cbcf12d9fa8332b5be891

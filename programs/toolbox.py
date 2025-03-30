@@ -13,11 +13,13 @@ from scipy import signal
 # warnings.filterwarnings('default')
 from sklearn.cross_decomposition import CCA
 
+
 def corr2(a, b):
     a = a - np.sum(a) / np.size(a)
     b = b - np.sum(b) / np.size(b)
     r = (a * b).sum() / math.sqrt((a * a).sum() * (b * b).sum())
     return r
+
 
 def acc_calculate(predict):
     """
@@ -31,7 +33,8 @@ def acc_calculate(predict):
     acc = acc_num / nTrials / nEvents
     return acc
 
-## msCCA
+
+# msCCA
 def cal_CCA(X, Y):
     """ CCA count
     :param X: (num of sample points * num of channels1 )
@@ -63,6 +66,7 @@ def cal_CCA(X, Y):
     corr_cca = corr[0, 1]
     return U.real, V.real, corr_cca.real
 
+
 def ms_eCCA_spatialFilter(
         mean_temp_all,
         iEvent,
@@ -85,11 +89,10 @@ def ms_eCCA_spatialFilter(
     :return:  U, V        Spatial Filters
     """
 
-    mean_temp_all = np.transpose(mean_temp_all, [1,0,2])
-
+    mean_temp_all = np.transpose(mean_temp_all, [1, 0, 2])
 
     [nTimes, nChannels, nEvents] = mean_temp_all.shape
-    d0 = nTemplates/2
+    d0 = nTemplates / 2
     d1 = nEvents
 
     n = iEvent + 1
@@ -102,27 +105,27 @@ def ms_eCCA_spatialFilter(
     else:
         template_st = (d1 - nTemplates + 1)
         template_ed = d1
-    template_st = int(template_st-1)
+    template_st = int(template_st - 1)
     template_ed = int(template_ed)
 
     #  Concatenation of the templates (or sine-cosine references)
-    mscca_ref = np.zeros((nTemplates *nTimes, 2 * Nh) )
-    mscca_template = np.zeros((nTemplates *nTimes,  nChannels))
+    mscca_ref = np.zeros((nTemplates * nTimes, 2 * Nh))
+    mscca_template = np.zeros((nTemplates * nTimes, nChannels))
 
     index = 0
     for j in range(template_st, template_ed, 1):
         # sine-cosine references
         f = f_list[j]
         phi = phi_list[j]
-        Ts = 1/fs
-        n = np.arange(nTimes)*Ts
-        Yf = np.zeros((nTimes , Nh*2))
+        Ts = 1 / fs
+        n = np.arange(nTimes) * Ts
+        Yf = np.zeros((nTimes, Nh * 2))
         for iNh in range(Nh):
-            y_sin = np.sin(2*np.pi*f*(iNh+1)*n+ (iNh+1)*np.pi*phi)
-            Yf[:,iNh*2] = y_sin
-            y_cos = np.cos(2*np.pi*f*(iNh+1)*n+ (iNh+1)*np.pi*phi)
-            Yf[:,iNh*2+1] = y_cos
-        mscca_ref[index * nTimes: (index+1) * nTimes , :] = Yf
+            y_sin = np.sin(2 * np.pi * f * (iNh + 1) * n + (iNh + 1) * np.pi * phi)
+            Yf[:, iNh * 2] = y_sin
+            y_cos = np.cos(2 * np.pi * f * (iNh + 1) * n + (iNh + 1) * np.pi * phi)
+            Yf[:, iNh * 2 + 1] = y_cos
+        mscca_ref[index * nTimes: (index + 1) * nTimes, :] = Yf
         # templates
         ss = mean_temp_all[:, :, j]
         # ss = ss - np.tile(np.mean(ss, 0), (ss.shape[0], 1))
@@ -131,14 +134,12 @@ def ms_eCCA_spatialFilter(
 
     # calculate U and V
     U, V, r = cal_CCA(mscca_template, mscca_ref)
-
     if r < 0:   # Symbol Control
         V = -V
-
     return U, V
 
 
-##tlCCA
+# tlCCA
 def square(t, duty=50):
     """
     adopted from Matlab square
@@ -155,6 +156,7 @@ def square(t, duty=50):
     # The actual square wave computation
     s = 2 * nodd - 1
     return s
+
 
 def _get_convH(f, ph, Fs, tw, refresh_rate, erp_period):
     """ obtain impulse response H
@@ -221,6 +223,7 @@ def _get_convH(f, ph, Fs, tw, refresh_rate, erp_period):
 
     return H
 
+
 def decompose_tlCCA(mean_temp, fre_list, ph_list, Fs, Oz_loc):
     """ decompose SSVEPs according to tlCCA
     source code: https://github.com/edwin465/SSVEP-Impulse-Response
@@ -247,7 +250,14 @@ def decompose_tlCCA(mean_temp, fre_list, ph_list, Fs, Oz_loc):
         dat_oz = dat[Oz_loc, :]  # for symbol correction
         # get w, r
         fre_period = 1.05 * (1 / fre_list[i])
-        H0 = _get_convH(f=fre_list[i], ph=ph_list[i], Fs=Fs, tw=tw, refresh_rate=60, erp_period=fre_period)
+        H0 = _get_convH(
+            f=fre_list[i],
+            ph=ph_list[i],
+            Fs=Fs,
+            tw=tw,
+            refresh_rate=60,
+            erp_period=fre_period
+        )
         w, r, corr = cal_CCA(dat.T, H0.T)
         if corr < 0:
             w = -w
@@ -260,6 +270,7 @@ def decompose_tlCCA(mean_temp, fre_list, ph_list, Fs, Oz_loc):
         w_all.append(w)
         r_all.append(r)
     return w_all, r_all
+
 
 def reconstruct_tlCCA(r, fre_list_target, fre_list_souce, ph_list, Fs, tw):
     """ reconstruct SSVEPs according to tlCCA
@@ -280,7 +291,14 @@ def reconstruct_tlCCA(r, fre_list_target, fre_list_souce, ph_list, Fs, tw):
     for i in range(n_event):
         # get H0
         fre_period = 1.05 * (1 / fre_list_souce[i])
-        H1 = _get_convH(f=fre_list_target[i], ph=ph_list[i], Fs=Fs, tw=tw, refresh_rate=60, erp_period=fre_period)
+        H1 = _get_convH(
+            f=fre_list_target[i],
+            ph=ph_list[i],
+            Fs=Fs,
+            tw=tw,
+            refresh_rate=60,
+            erp_period=fre_period
+        )
         y_hat = r[i] @ H1
         ind0 = np.where(y_hat == 0)[0]
         n_ind0 = ind0.shape[0]
@@ -289,6 +307,7 @@ def reconstruct_tlCCA(r, fre_list_target, fre_list_souce, ph_list, Fs, tw):
         y_hat = y_hat / np.std(y_hat, ddof=1)
         Hr[:, i] = y_hat
     return Hr
+
 
 def reconstruct_tlCCA_classification(r, fre_list_target, fre_list_souce, ph_list, Fs, tw):
     """ reconstruct SSVEPs according to tlCCA
@@ -311,15 +330,16 @@ def reconstruct_tlCCA_classification(r, fre_list_target, fre_list_souce, ph_list
         fre_period = 1.05 * (1 / fre_list_souce[i])
         H1 = _get_convH(f=fre_list_target[i], ph=ph_list[i], Fs=Fs, tw=tw, refresh_rate=60, erp_period=fre_period)
         y_hat = r[i] @ H1
-        ind0 = np.where(y_hat == 0)[0]
-        n_ind0 = ind0.shape[0]
+        # ind0 = np.where(y_hat == 0)[0]
+        # n_ind0 = ind0.shape[0]
         # y_hat[:n_ind0] = 0.8 * y_hat[Fs:Fs + n_ind0]
         y_hat = y_hat - np.mean(y_hat)
         y_hat = y_hat / np.std(y_hat, ddof=1)
         Hr[:, i] = y_hat
     return Hr
 
-def SS_tlCCA_test(test_data_S, hr ,u ,v ,w,  fs  , f , phi ,Nh):
+
+def SS_tlCCA_test(test_data_S, hr, u, v, w, fs, f, phi, Nh):
     """ test data under singel trials using tlCCA
     source code: https://github.com/edwin465/SSVEP-Impulse-Response
     from matlab to python
@@ -342,30 +362,30 @@ def SS_tlCCA_test(test_data_S, hr ,u ,v ,w,  fs  , f , phi ,Nh):
     # calculate corr_tlCCA
     nTimes = test_data_S.shape[-1]
 
-    Ts = 1/fs
-    n = np.arange(nTimes)*Ts
-    Yf_cca = np.zeros((nTimes , Nh*2))
+    Ts = 1 / fs
+    n = np.arange(nTimes) * Ts
+    Yf_cca = np.zeros((nTimes, Nh * 2))
     for iNh in range(Nh):
-        y_sin = np.sin(2*np.pi*f*(iNh+1)*n+(iNh+1)*np.pi*phi)
-        Yf_cca[:,iNh*2] = y_sin
-        y_cos = np.cos(2*np.pi*f*(iNh+1)*n+(iNh+1)*np.pi*phi)
-        Yf_cca[:,iNh*2+1] = y_cos
+        y_sin = np.sin(2 * np.pi * f * (iNh + 1) * n + (iNh + 1) * np.pi * phi)
+        Yf_cca[:, iNh * 2] = y_sin
+        y_cos = np.cos(2 * np.pi * f * (iNh + 1) * n + (iNh + 1) * np.pi * phi)
+        Yf_cca[:, iNh * 2 + 1] = y_cos
 
     rr1 = np.corrcoef(u.T @ test_data_S, v.T @ Yf_cca.T)
     rr2 = np.corrcoef(w.T @ test_data_S, hr)
     # _,_,rr3 = cal_CCA(np.expand_dims (w.T @ test_data_S,1), Yf_cca) # When inputting single channel data, the output has problems
     cca = CCA(n_components=1)
-    cca.fit(np.expand_dims (w.T @ test_data_S,1),Yf_cca)
-    X_train_r, Y_train_r = cca.transform(np.expand_dims (w.T @ test_data_S,1),Yf_cca)
+    cca.fit(np.expand_dims(w.T @ test_data_S, 1), Yf_cca)
+    X_train_r, Y_train_r = cca.transform(np.expand_dims(w.T @ test_data_S, 1), Yf_cca)
     rr3 = np.corrcoef(X_train_r[:, 0], Y_train_r[:, 0])[0, 1]  # The result of CCA is positive
     rr1_abs = rr1[0, 1]
     rr2_abs = rr2[0, 1]
 
-    corr_tlCCA = np.sign(rr1_abs) * (rr1_abs) ** 2 + np.sign(rr2_abs) * (rr2_abs)** 2 +  (rr3)** 2
-
+    corr_tlCCA = np.sign(rr1_abs) * (rr1_abs)**2 + np.sign(rr2_abs) * (rr2_abs)**2 + (rr3)**2
     return corr_tlCCA
 
-def tlCCA_test(test_data, HR ,U ,V , W, fs  , f_list , phi_list ,Nh):
+
+def tlCCA_test(test_data, HR, U, V, W, fs, f_list, phi_list, Nh):
     """ test data under mulple trials using tlCCA
 
     :parameter
@@ -383,14 +403,14 @@ def tlCCA_test(test_data, HR ,U ,V , W, fs  , f_list , phi_list ,Nh):
     rr            ndarray(n_test,n_events)
     """
     [nChannels, nTimes, nEvents] = test_data.shape
-    rr = np.zeros((nEvents,nEvents))
+    rr = np.zeros((nEvents, nEvents))
     for m in range(nEvents):  # the m-th test data
         r = np.zeros(nEvents)
         for n in range(nEvents):  # the n-th train data
             test = test_data[:, :, m]
             train = HR[:, n]
-            r[n] = SS_tlCCA_test(test, train ,u = U[:,n] ,v=V[:,n] , w = W[:,n], fs=fs  , f=f_list[n] , phi=phi_list[n] ,Nh=Nh)
-        rr[m,:] = r
+            r[n] = SS_tlCCA_test(test, train, u=U[:, n], v=V[:, n], w=W[:, n], fs=fs, f=f_list[n], phi=phi_list[n], Nh=Nh)
+        rr[m, :] = r
     return rr
 
 
@@ -398,17 +418,17 @@ class PreProcessing():
     """Adopted from OrionHH
     """
     CHANNELS = [
-        'FP1','FPZ','FP2','AF3','AF4','F7','F5','F3',
-        'F1','FZ','F2','F4','F6','F8','FT7','FC5',
-        'FC3','FC1','FCZ','FC2','FC4','FC6','FC8','T7',
-        'C5','C3','C1','CZ','C2','C4','C6','T8',
-        'M1','TP7','CP5','CP3','CP1','CPZ','CP2','CP4',
-        'CP6','TP8','M2','P7','P5','P3','P1','PZ',
-        'P2','P4','P6','P8','PO7','PO5','PO3','POZ',
-        'PO4','PO6','PO8','CB1','O1','OZ','O2','CB2'
-    ] # M1: 33. M2: 43.
+        'FP1', 'FPZ', 'FP2', 'AF3', 'AF4', 'F7', 'F5', 'F3',
+        'F1', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT7', 'FC5',
+        'FC3', 'FC1', 'FCZ', 'FC2', 'FC4', 'FC6', 'FC8', 'T7',
+        'C5', 'C3', 'C1', 'CZ', 'C2', 'C4', 'C6', 'T8',
+        'M1', 'TP7', 'CP5', 'CP3', 'CP1', 'CPZ', 'CP2', 'CP4',
+        'CP6', 'TP8', 'M2', 'P7', 'P5', 'P3', 'P1', 'PZ',
+        'P2', 'P4', 'P6', 'P8', 'PO7', 'PO5', 'PO3', 'POZ',
+        'PO4', 'PO6', 'PO8', 'CB1', 'O1', 'OZ', 'O2', 'CB2'
+    ]  # M1: 33. M2: 43.
 
-    def __init__(self, filepath,  t_begin, t_end, n_classes=40, fs_down=250, chans=None, num_filter=1):
+    def __init__(self, filepath, t_begin, t_end, n_classes=40, fs_down=250, chans=None, num_filter=1):
 
         self.filepath = filepath
         self.fs_down = fs_down
@@ -439,10 +459,9 @@ class PreProcessing():
             for _, char_value in enumerate(self.chans):
                 idx_loc.append(self.CHANNELS.index(char_value.upper()))
 
-        raw_data = raw_data[idx_loc, : , : , :] if idx_loc else raw_data
+        raw_data = raw_data[idx_loc, ...] if idx_loc else raw_data
 
         self.raw_fs = 250  # .mat sampling rate
-
         return raw_data
 
     def resample_data(self, raw_data):
@@ -452,10 +471,18 @@ class PreProcessing():
             n_chans * n_samples * n_classes * n_trials
         '''
         if self.raw_fs > self.fs_down:
-            raw_data_resampled = signal.resample(raw_data, round(self.fs_down*raw_data.shape[1]/self.raw_fs), axis=1)
+            raw_data_resampled = signal.resample(
+                raw_data,
+                round(self.fs_down * raw_data.shape[1] / self.raw_fs),
+                axis=1
+            )
         elif self.raw_fs < self.fs_down:
             warnings.warn('You are up-sampling, no recommended')
-            raw_data_resampled = signal.resample(raw_data, round(self.fs_down*raw_data.shape[1]/self.raw_fs), axis=1)
+            raw_data_resampled = signal.resample(
+                raw_data,
+                round(self.fs_down * raw_data.shape[1] / self.raw_fs),
+                axis=1
+            )
         else:
             raw_data_resampled = raw_data
 
@@ -480,7 +507,7 @@ class PreProcessing():
 
         wp = [2 * w_pass[0] / self.fs_down, 2 * w_pass[1] / self.fs_down]
         ws = [2 * w_stop[0] / self.fs_down, 2 * w_stop[1] / self.fs_down]
-        gpass = 4  
+        gpass = 4
         gstop = 30  # dB
 
         N, wn = signal.cheb1ord(wp, ws, gpass=gpass, gstop=gstop)
@@ -515,11 +542,12 @@ class PreProcessing():
         sos_system = dict()
         filtered_data = dict()
         for idx_filter in range(self.num_filter):
-            sos_system['filter'+str(idx_filter+1)] = self._get_iir_sos_band(w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
-                                                                            w_stop=[w_stop_2d[0, idx_filter],
-                                                                                    w_stop_2d[1, idx_filter]])
+            sos_system['filter' + str(idx_filter + 1)] = self._get_iir_sos_band(
+                w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
+                w_stop=[w_stop_2d[0, idx_filter], w_stop_2d[1, idx_filter]]
+            )
             filter_data = signal.sosfiltfilt(sos_system['filter' + str(idx_filter + 1)], data, axis=1)
-            filtered_data['bank'+str(idx_filter+1)] = filter_data[:,begin_point:end_point,:,:]
+            filtered_data['bank' + str(idx_filter + 1)] = filter_data[:, begin_point:end_point, :, :]
 
         return filtered_data
 
@@ -547,34 +575,36 @@ class PreProcessing():
             raise ValueError('num_filter should be less than or equal to w_pass_2d.shape[1]')
 
         begin_point, end_point = int(np.ceil(self.t_begin * self.fs_down)), int(np.ceil(self.t_end * self.fs_down) + 1)
-        data = data[:,begin_point:end_point,:,:]
+        data = data[:, begin_point:end_point, :, :]
 
         sos_system = dict()
         filtered_data = dict()
         for idx_filter in range(self.num_filter):
-            sos_system['filter'+str(idx_filter+1)] = self._get_iir_sos_band(w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
-                                                                            w_stop=[w_stop_2d[0, idx_filter],
-                                                                                    w_stop_2d[1, idx_filter]])
+            sos_system['filter' + str(idx_filter + 1)] = self._get_iir_sos_band(
+                w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
+                w_stop=[w_stop_2d[0, idx_filter], w_stop_2d[1, idx_filter]]
+            )
             filter_data = signal.sosfiltfilt(sos_system['filter' + str(idx_filter + 1)], data, axis=1)
-            filtered_data['bank'+str(idx_filter+1)] = filter_data
+            filtered_data['bank' + str(idx_filter + 1)] = filter_data
 
         return filtered_data
+
 
 class PreProcessing_BETA():
     """Adopted from OrionHH
     """
     CHANNELS = [
-        'FP1','FPZ','FP2','AF3','AF4','F7','F5','F3',
-        'F1','FZ','F2','F4','F6','F8','FT7','FC5',
-        'FC3','FC1','FCZ','FC2','FC4','FC6','FC8','T7',
-        'C5','C3','C1','CZ','C2','C4','C6','T8',
-        'M1','TP7','CP5','CP3','CP1','CPZ','CP2','CP4',
-        'CP6','TP8','M2','P7','P5','P3','P1','PZ',
-        'P2','P4','P6','P8','PO7','PO5','PO3','POZ',
-        'PO4','PO6','PO8','CB1','O1','OZ','O2','CB2'
-    ] # M1: 33. M2: 43.
+        'FP1', 'FPZ', 'FP2', 'AF3', 'AF4', 'F7', 'F5', 'F3',
+        'F1', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT7', 'FC5',
+        'FC3', 'FC1', 'FCZ', 'FC2', 'FC4', 'FC6', 'FC8', 'T7',
+        'C5', 'C3', 'C1', 'CZ', 'C2', 'C4', 'C6', 'T8',
+        'M1', 'TP7', 'CP5', 'CP3', 'CP1', 'CPZ', 'CP2', 'CP4',
+        'CP6', 'TP8', 'M2', 'P7', 'P5', 'P3', 'P1', 'PZ',
+        'P2', 'P4', 'P6', 'P8', 'PO7', 'PO5', 'PO3', 'POZ',
+        'PO4', 'PO6', 'PO8', 'CB1', 'O1', 'OZ', 'O2', 'CB2'
+    ]  # M1: 33. M2: 43.
 
-    def __init__(self, filepath,  t_begin, t_end, n_classes=40, fs_down=250, chans=None, num_filter=1):
+    def __init__(self, filepath, t_begin, t_end, n_classes=40, fs_down=250, chans=None, num_filter=1):
 
         self.filepath = filepath
         self.fs_down = fs_down
@@ -598,18 +628,16 @@ class PreProcessing_BETA():
         '''
         raw_mat = sio.loadmat(self.filepath)
         raw_data11 = raw_mat['data']  # (64, 1500, 40, 6)
-        data = raw_data11[0,0]['EEG']
-        raw_data = np.transpose(data,[0,1,3,2])
+        data = raw_data11[0, 0]['EEG']
+        raw_data = np.transpose(data, [0, 1, 3, 2])
 
         idx_loc = list()
         if isinstance(self.chans, list):
             for _, char_value in enumerate(self.chans):
                 idx_loc.append(self.CHANNELS.index(char_value.upper()))
 
-        raw_data = raw_data[idx_loc, : , : , :] if idx_loc else raw_data
-
+        raw_data = raw_data[idx_loc, ...] if idx_loc else raw_data
         self.raw_fs = 250  # .mat sampling rate
-
         return raw_data
 
     def resample_data(self, raw_data):
@@ -619,13 +647,20 @@ class PreProcessing_BETA():
             n_chans * n_samples * n_classes * n_trials
         '''
         if self.raw_fs > self.fs_down:
-            raw_data_resampled = signal.resample(raw_data, round(self.fs_down*raw_data.shape[1]/self.raw_fs), axis=1)
+            raw_data_resampled = signal.resample(
+                raw_data,
+                round(self.fs_down * raw_data.shape[1] / self.raw_fs),
+                axis=1
+            )
         elif self.raw_fs < self.fs_down:
             warnings.warn('You are up-sampling, no recommended')
-            raw_data_resampled = signal.resample(raw_data, round(self.fs_down*raw_data.shape[1]/self.raw_fs), axis=1)
+            raw_data_resampled = signal.resample(
+                raw_data,
+                round(self.fs_down * raw_data.shape[1] / self.raw_fs),
+                axis=1
+            )
         else:
             raw_data_resampled = raw_data
-
         return raw_data_resampled
 
     def _get_iir_sos_band(self, w_pass, w_stop):
@@ -647,12 +682,11 @@ class PreProcessing_BETA():
 
         wp = [2 * w_pass[0] / self.fs_down, 2 * w_pass[1] / self.fs_down]
         ws = [2 * w_stop[0] / self.fs_down, 2 * w_stop[1] / self.fs_down]
-        gpass = 4  
+        gpass = 4
         gstop = 30  # dB
 
         N, wn = signal.cheb1ord(wp, ws, gpass=gpass, gstop=gstop)
         sos_system = signal.cheby1(N, rp=0.5, Wn=wn, btype='bandpass', output='sos')
-
         return sos_system
 
     def filtered_data_iir(self, w_pass_2d, w_stop_2d, data):
@@ -682,11 +716,12 @@ class PreProcessing_BETA():
         sos_system = dict()
         filtered_data = dict()
         for idx_filter in range(self.num_filter):
-            sos_system['filter'+str(idx_filter+1)] = self._get_iir_sos_band(w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
-                                                                            w_stop=[w_stop_2d[0, idx_filter],
-                                                                                    w_stop_2d[1, idx_filter]])
+            sos_system['filter' + str(idx_filter + 1)] = self._get_iir_sos_band(
+                w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
+                w_stop=[w_stop_2d[0, idx_filter], w_stop_2d[1, idx_filter]]
+            )
             filter_data = signal.sosfiltfilt(sos_system['filter' + str(idx_filter + 1)], data, axis=1)
-            filtered_data['bank'+str(idx_filter+1)] = filter_data[:,begin_point:end_point,:,:]
+            filtered_data['bank' + str(idx_filter + 1)] = filter_data[:, begin_point:end_point, :, :]
 
         return filtered_data
 
@@ -714,24 +749,16 @@ class PreProcessing_BETA():
             raise ValueError('num_filter should be less than or equal to w_pass_2d.shape[1]')
 
         begin_point, end_point = int(np.ceil(self.t_begin * self.fs_down)), int(np.ceil(self.t_end * self.fs_down) + 1)
-        data = data[:,begin_point:end_point,:,:]
+        data = data[:, begin_point:end_point, :, :]
 
         sos_system = dict()
         filtered_data = dict()
         for idx_filter in range(self.num_filter):
-            sos_system['filter'+str(idx_filter+1)] = self._get_iir_sos_band(w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
-                                                                            w_stop=[w_stop_2d[0, idx_filter],
-                                                                                    w_stop_2d[1, idx_filter]])
+            sos_system['filter' + str(idx_filter + 1)] = self._get_iir_sos_band(
+                w_pass=[w_pass_2d[0, idx_filter], w_pass_2d[1, idx_filter]],
+                w_stop=[w_stop_2d[0, idx_filter], w_stop_2d[1, idx_filter]]
+            )
             filter_data = signal.sosfiltfilt(sos_system['filter' + str(idx_filter + 1)], data, axis=1)
-            filtered_data['bank'+str(idx_filter+1)] = filter_data
+            filtered_data['bank' + str(idx_filter + 1)] = filter_data
 
         return filtered_data
-
-
-
-
-
-
-
-
-

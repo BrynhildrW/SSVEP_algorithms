@@ -51,7 +51,6 @@ class PreProcessing(object):
         'P2', 'P4', 'P6', 'P8', 'PO7', 'PO5', 'PO3', 'POZ',
         'PO4', 'PO6', 'PO8', 'CB1', 'O1', 'OZ', 'O2', 'CB2'
     ]  # M1: 33. M2: 43.
-
     # TDMA order: 4-1-5-2-6-3
     TDMA = {'4': np.array([[True, False, False, False, False, False]]),
             '1': np.array([[False, True, False, False, False, False]]),
@@ -120,7 +119,6 @@ class PreProcessing(object):
 
     def load_data(self, file_path: str):
         """Load multiple .cnt files and construct mne.Epoch() objects.
-
         Args
             file_path (str): The path of the folder to which the .cnt files belongs.
         """
@@ -146,7 +144,6 @@ class PreProcessing(object):
             )  # remove slow drifts
             raw_cnts.append(raw_cnt)
         self.raw = concatenate_raws(raw_cnts)
-
         # layout picked channels' names
         self.picks = mne.pick_types(
             info=self.raw.info,
@@ -156,7 +153,6 @@ class PreProcessing(object):
             eog=False
         )
         self.n_chans = len(self.picks)
-
         # cunstom mapping for extracting events (big & small labels)
         mapping = {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6}
         for char_idx in range(1, self.n_chars + 1):
@@ -165,13 +161,11 @@ class PreProcessing(object):
             raw=self.raw,
             event_id=mapping
         )
-
         # check the integrity of label information
         self.n_labels = self.events.shape[0]  # total number of labels in .cnt files
         self.n_trial_labels = int(self.n_tdma * self.n_rounds + 1)  # small & big labels
         if np.mod(self.n_labels, self.n_trial_labels) != 0:
             raise Exception('Warning: Missing labels in some trials!')
-
         # re-arange continuous information of latencies & labels
         self.latencies = np.reshape(
             a=self.events[:, 0],
@@ -211,7 +205,6 @@ class PreProcessing(object):
                 y_ssvep_round[ncl] = self.n_events  # correct the '0th' type for SSVEP
             else:
                 y_ssvep_round[ncl] = temp_label
-
         # cunstom mapping for extracting events at round-level
         mapping_ssvep = {'4': 4}  # SSVEP stimuli always start at label 4
         events, events_id = mne.events_from_annotations(
@@ -232,7 +225,6 @@ class PreProcessing(object):
             reject_by_annotation=False
         ).get_data() * 1e6  # (n_trials*n_rounds, n_chans, n_points)
         # decim = int(1000 / self.sfreq)
-
         # reshape X_ssvep_round into (n_trials, n_rounds, n_chans, n_points)
         loc_ssvep_round = np.reshape(
             a=np.arange(0, X_ssvep_round.shape[0]),
@@ -360,7 +352,6 @@ class PreProcessing(object):
 
         if w_pass[0] < w_stop[0] or w_pass[1] > w_stop[1]:
             raise ValueError('It\'s a band-pass iir filter, please check the values between w_pass and w_stop.')
-
         # default filter parameters, ANCESTRAL! IMPORTANT!
         # normalized from 0 to 1, 1 is the Nyquist frequency
         wp = [2 * w_pass[0] / self.sfreq, 2 * w_pass[1] / self.sfreq]  # [low edge, high edge]
@@ -387,7 +378,6 @@ class PreProcessing(object):
                                       [72, 72, 72, 72, 72, 72, 72]])
                 bandwidth: [5-70], [14-70], ..., etc.
             data (ndarray): (..., n_points).
-
         Returns: Dict[str, ndarray]
             filtered_data (dict): {'bank1': ndarray, 'bank2': ndarray, ...}
         """
@@ -802,7 +792,6 @@ titles = ['Pretest', '7 - 8th Day', '14 - 15th Day', 'Postest']
 for nrow in range(4):
     for ncol in range(1):
         fig_idx = ncol + 1 * nrow
-
         ax = fig.add_subplot(gs[nrow:nrow + 1, ncol:ncol + 1])
         ax.set_title(titles[fig_idx], fontsize=20)
         ax.tick_params(axis='both', labelsize=16)
