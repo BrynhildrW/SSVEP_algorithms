@@ -432,7 +432,7 @@ class TRCA(BasicTRCA):
             Labels for X_train.
         """
         # basic information
-        self.X_train = utils.fast_stan_3d(X_train)
+        self.X_train = X_train
         self.y_train = y_train
         self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
