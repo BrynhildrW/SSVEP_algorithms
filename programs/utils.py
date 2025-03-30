@@ -49,9 +49,6 @@ Source codes: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/programs/
     * euclidean_dist()
     * cosine_sim()
     * minkowski_dist()
-    * mahalanobis_dist()
-    * root_matrix() (**deprecated by sqrtm()**)
-    * nega_root_matrix() (**deprecated by invsqrtm()**)
     * s_estimator()
 
 #. Temporally smoothing functions
@@ -100,8 +97,6 @@ Source codes: https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/programs/
 """
 
 # %% basic moduls
-from typing import Optional, List, Tuple, Dict, Union, Callable, Any
-from numpy import ndarray
 import numpy as np
 
 from scipy import linalg as sLA
@@ -123,8 +118,11 @@ from copy import deepcopy
 
 
 # %% 1. data preprocessing
-def centralization(X: ndarray) -> ndarray:
-    """
+def centralization(X):
+    r"""
+    Zero-mean:
+    :math:`\mathbb{E} \left(\pmb{x} \right) = 0`.
+
     Parameters
     ----------
     X: *ndarray of shape (...,Np).*
@@ -138,8 +136,9 @@ def centralization(X: ndarray) -> ndarray:
     return X - X.mean(axis=-1, keepdims=True)
 
 
-def normalization(X: ndarray) -> ndarray:
+def normalization(X):
     r"""
+    Normalization:
     :math:`\pmb{x} = \dfrac{\pmb{x} - \min(\pmb{x})}{\max(\pmb{x}) - \min(\pmb{x})}`.
 
     Parameters
@@ -157,7 +156,7 @@ def normalization(X: ndarray) -> ndarray:
     return (X - X_min) / (X_max - X_min)
 
 
-def standardization(X: ndarray) -> ndarray:
+def standardization(X):
     r"""
     :math:`{\rm Var} \left( \pmb{x} \right) = 1`
 
@@ -174,7 +173,7 @@ def standardization(X: ndarray) -> ndarray:
     return centralization(X) / np.std(X, axis=-1, keepdims=True)
 
 
-def channel_normalization(X: ndarray) -> ndarray:
+def channel_normalization(X):
     """
     Z-score normalization on each channel.
 
@@ -191,7 +190,7 @@ def channel_normalization(X: ndarray) -> ndarray:
     return fast_stan_3d(X)
 
 
-def trial_normalization(X: ndarray) -> ndarray:
+def trial_normalization(X):
     """
     After flattening the single-trial multi-channel data into a single channel,
     zero-mean and unit variance normalization are performed.
@@ -211,7 +210,7 @@ def trial_normalization(X: ndarray) -> ndarray:
     return (X - trial_mean) / trial_var
 
 
-def euclidean_alignment(X: ndarray) -> Tuple[ndarray, ndarray]:
+def euclidean_alignment(X):
     r"""
     Euclidean alignment by projection :math:`\pmb{P}^T \pmb{X}:`
 
@@ -240,9 +239,9 @@ def euclidean_alignment(X: ndarray) -> Tuple[ndarray, ndarray]:
 
 
 @njit(fastmath=True)
-def fast_stan_2d(X: ndarray) -> ndarray:
+def fast_stan_2d(X):
     """
-    Use the JIT compiler to make standardization() run faster for 2-dimensional X.
+    Use the JIT compiler to make ``standardization()`` run faster for 2-D input.
 
     Parameters
     ----------
@@ -252,7 +251,7 @@ def fast_stan_2d(X: ndarray) -> ndarray:
     Returns
     ----------
     X_new : *ndarray of shape (d1,d2).*
-        ``X`` after standardization.
+        Data after standardization.
     """
     dim_1 = X.shape[0]
     X_new = np.zeros_like(X)
@@ -263,19 +262,19 @@ def fast_stan_2d(X: ndarray) -> ndarray:
 
 
 @njit(fastmath=True)
-def fast_stan_3d(X: ndarray) -> ndarray:
+def fast_stan_3d(X):
     """
-    Use the JIT compiler to make standardization() run faster for 3-D X.
+    Use the JIT compiler to make ``standardization()`` run faster for 3-D input.
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2,d3).
+    ----------
+    X : *ndarray of shape (d1,d2,d3).*
         Input dataset.
 
     Returns
-    -------
-    X_new : ndarray of shape (d1,d2,d3).
-        X after standardization.
+    ----------
+    X_new : *ndarray of shape (d1,d2,d3).*
+        Data after standardization.
     """
     X_new = np.zeros_like(X)
     for d1 in range(X.shape[0]):
@@ -286,19 +285,19 @@ def fast_stan_3d(X: ndarray) -> ndarray:
 
 
 @njit(fastmath=True)
-def fast_stan_4d(X: ndarray) -> ndarray:
+def fast_stan_4d(X):
     """
-    Use the JIT compiler to make standardization() run faster for 4-D X.
+    Use the JIT compiler to make ``standardization()`` run faster for 4-D input.
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2,d3,d4).
+    ----------
+    X : *ndarray of shape (d1,d2,d3,d4).*
         Input dataset.
 
     Returns
-    -------
-    X_new : ndarray of shape (d1,d2,d3,d4).
-        X after standardization.
+    ----------
+    X_new : *ndarray of shape (d1,d2,d3,d4).*
+        Data after standardization.
     """
     X_new = np.zeros_like(X)
     for d1 in range(X.shape[0]):
@@ -310,26 +309,25 @@ def fast_stan_4d(X: ndarray) -> ndarray:
 
 
 @njit(fastmath=True)
-def fast_stan_5d(X: ndarray) -> ndarray:
+def fast_stan_5d(X):
     """
-    Use the JIT compiler to make standardization() run faster for 5-D X.
+    Use the JIT compiler to make ``standardization()`` run faster for 5-D input.
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2,d3,d4,d5).
+    ----------
+    X : *ndarray of shape (d1,d2,d3,d4,d5).*
         Input dataset.
 
     Returns
-    -------
-    X_new : ndarray of shape (d1,d2,d3,d4,d5).
-        X after standardization.
+    ----------
+    X_new : *ndarray of shape (d1,d2,d3,d4,d5).*
+        Data after standardization.
     """
     X_new = np.zeros_like(X)
-    dim_1, dim_2, dim_3, dim_4 = X.shape[0], X.shape[1], X.shape[2], X.shape[3]
-    for d1 in range(dim_1):
-        for d2 in range(dim_2):
-            for d3 in range(dim_3):
-                for d4 in range(dim_4):
+    for d1 in range(X.shape[0]):
+        for d2 in range(X.shape[1]):
+            for d3 in range(X.shape[2]):
+                for d4 in range(X.shape[3]):
                     X_new[d1, d2, d3, d4, :] = X[d1, d2, d3, d4, :] \
                         - np.mean(X[d1, d2, d3, d4, :])
                     X_new[d1, d2, d3, d4, :] = X_new[d1, d2, d3, d4, :] \
@@ -337,25 +335,29 @@ def fast_stan_5d(X: ndarray) -> ndarray:
     return X_new
 
 
-def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
+def generate_data_info(X, y):
     """
     Generate basic data information.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Nc,Np).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Nc,Np).*
         Input data.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``.
 
-    Returns
-    -------
-    event_type : ndarray of shape (Ne,).
-    n_events : int.
-    n_train : ndarray of shape (Ne,).
+    Returns (Dict)
+    --------------
+    'event_type' : *ndarray of shape (Ne,).*
+        Unique labels.
+    'n_events' : *int.*
+        Number of events.
+    'n_train' : *ndarray of shape (Ne,).*
         Trials of each event.
-    n_chans : int.
-    n_points : int.
+    'n_chans' : *int.*
+        Number of channels.
+    'n_points' : *int.*
+        Number of sampling points.
     """
     event_type = np.unique(y)
     return {
@@ -368,21 +370,22 @@ def generate_data_info(X: ndarray, y: ndarray) -> Dict[str, Any]:
 
 
 # %% 2. data gerenation
-def augmented_events(event_type: ndarray, d: int) -> Dict[str, List[int]]:
+def augmented_events(event_type, d):
     """
     Generate indices for merged events for each target event.
     Special function for ms- algorithms.
 
     Parameters
-    -------
-    event_type : ndarray of shape (Ne,).
+    ----------
+    event_type : *ndarray of shape (Ne,).*
         Unique labels.
-    d : int.
+    d : *int.*
         The range of events to be merged.
 
     Returns
-    -------
-    events_group (dict): {'events':[idx,]}
+    ----------
+    events_group : *dict.*
+        {'events': [idx,]}
     """
     events_group = {}
     n_events = len(event_type)
@@ -397,25 +400,23 @@ def augmented_events(event_type: ndarray, d: int) -> Dict[str, List[int]]:
     return events_group
 
 
-def neighbor_edge(
-        total_length: int,
-        neighbor_range: int,
-        current_index: int) -> Tuple[int, int]:
+def neighbor_edge(total_length, neighbor_range, current_index):
     """
     Decide the edge index (based on labels) of neighboring stimulus area.
 
     Parameters
-    -------
-    total_length : int.
-    neighbor_range : int.
+    ----------
+    total_length : *int.*
+        The length (sampling points) of data.
+    neighbor_range : *int.*
         Must be an odd number.
-    current_index : int.
-        From 0 to total_lenth - 1.
+    current_index : *int.*
+        From ``0`` to ``total_lenth - 1``.
 
     Returns
-    -------
-    (edge_idx_1, edge_idx_2) : Tuple[int,int].
-        edge_idx_2 is 1 more than the real index of the last element.
+    ----------
+    (edge_idx_1, edge_idx_2) : *Tuple[int,int].*
+        ``edge_idx_2`` is 1 more than the real index of the last element.
     """
     # check input
     assert neighbor_range % 2 == 0, "neighbor_range should be an odd number!"
@@ -431,21 +432,22 @@ def neighbor_edge(
         return current_index - half_length, current_index + half_length + 1
 
 
-def neighbor_events(distribution: ndarray, width: int) -> Dict[str, List[int]]:
+def neighbor_events(distribution, width):
     """
-    Generate indices for merged events for each target event. <p>
+    Generate indices for merged events for each target event.
+
     Refers to: 10.1109/TIM.2022.3219497 (DOI).
 
     Parameters
-    -------
-    distribution : ndarray of shape (m,n).
+    ----------
+    distribution : *ndarray of shape (m,n).*
         Real spatial distribution (labels) of each stimuli.
-    width : int.
-        Parameter 'neighbor_range' used in neighbor_edge(). Must be an odd number.
+    width : *int.*
+        Parameter ``neighbor_range`` used in ``neighbor_edge()``. Must be an odd number.
 
     Returns
-    -------
-    events_group : Dict[str, List[int]].
+    ----------
+    events_group : *Dict[str, List[int]].*
         {'event_id': [idx_1,idx_2,...]}.
     """
     n_rows, n_cols = distribution.shape
@@ -467,27 +469,23 @@ def neighbor_events(distribution: ndarray, width: int) -> Dict[str, List[int]]:
     return events_group
 
 
-def selected_events(
-        n_events: int,
-        select_num: int,
-        select_method: str = '2') -> List[int]:
+def selected_events(n_events, select_num, select_method='2'):
     """
-    Generate indices for selected events of total dataset.
-    Special function for stCCA.
+    Generate indices for selected events of total dataset. Special function for stCCA.
 
     Parameters
-    -------
-    n_events : int.
+    ----------
+    n_events : *int.*
         Number of total events.
-    select_num : int.
+    select_num : *int.*
         Number of selected events.
-    method : str, optional.
-        '1', '2', and '3'. Defaults to '2'. <p>
+    method : *str, optional.*
+        ``'1'``, ``'2'``, and ``'3'``. Defaults to ``'2'``.
         Details in https://ieeexplore.ieee.org/document/9177172/
 
     Returns
-    -------
-    select_events : List[int].
+    ----------
+    select_events : *List[int].*
         Indices of selected events.
     """
     if select_method == '1':
@@ -501,31 +499,27 @@ def selected_events(
                 for sen in range(select_num)]
 
 
-def reshape_dataset(
-        data: ndarray,
-        labels: Optional[ndarray] = None,
-        target_style: str = 'sklearn',
-        filter_bank: bool = False) -> Union[ndarray, Tuple[ndarray, ndarray]]:
+def reshape_dataset(data, labels=None, target_style='sklearn', filter_bank=False):
     """
     Reshape data array between public versionand sklearn version.
 
     Parameters
-    -------
-    data : ndarray. shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).
-        If filter_bank is True, shape (Nb,Ne,Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np).
-    labels : ndarray of shape (Ne*Nt,).
-        Labels for data (sklearn version). Defaults to None.
-    target_style : str.
-        'public' or 'sklearn'. Target style of transformed dataset.
-    filter_bank : bool.
+    ----------
+    data : *ndarray. shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).*
+        If filter_bank is True, *shape (Nb,Ne,Nt,Nc,Np)* or *(Nb,Ne*Nt,Nc,Np)*.
+    labels : *ndarray of shape (Ne*Nt,).*
+        Labels for data (sklearn version). Defaults to ``None``.
+    target_style : *str.*
+        ``'public'`` or ``'sklearn'``. Target style of transformed dataset.
+    filter_bank : *bool.*
         Multi-band data or single-band data.
 
     Returns
-    -------
-    X_total : ndarray of shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).
-        If filter_bank is True, shape (Nb,Ne,Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np).
-    y_total : ndarray of shape (Ne,).
-        Labels for X_total. Only exist while target_style is 'sklearn'.
+    ----------
+    X_total : *ndarray of shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).*
+        If filter_bank is True, *shape (Nb,Ne,Nt,Nc,Np)* or *(Nb,Ne*Nt,Nc,Np)*.
+    y_total : *ndarray of shape (Ne,).*
+        Labels for ``X_total``. Only exist while target_style is ``'sklearn'``.
     """
     # basic information
     n_points = data.shape[-1]  # Np
@@ -578,21 +572,21 @@ def reshape_dataset(
         return X_total, np.array(y_total).squeeze()
 
 
-def generate_mean(X: ndarray, y: ndarray) -> ndarray:
+def generate_mean(X, y):
     """
-    Calculate X_mean from X & y.
+    Calculate trial-averaged templates.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Nc,Np).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Nc,Np).*
         Input data.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``.
 
     Returns
-    -------
-    X_mean : ndarray of shape (Ne,Nc,Np).
-        Trial-averaged X.
+    ----------
+    X_mean : *ndarray of shape (Ne,Nc,Np).*
+        Trial-averaged ``X``.
     """
     # basic information
     event_type = np.unique(y)
@@ -607,30 +601,27 @@ def generate_mean(X: ndarray, y: ndarray) -> ndarray:
     return X_mean
 
 
-def generate_var(
-        X: ndarray,
-        y: Optional[ndarray] = None,
-        unbias: bool = False,
-        shrinkage: float = 0) -> ndarray:
+def generate_var(X, y=None, unbias=False, shrinkage=0):
     """
-    Calculate variance matrices from X & y.
+    Calculate variance matrices.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Nc,Np). Input data.
-    y : ndarray of shape (Ne*Nt,). Labels for X.
-        If None, ignore category information.
-    unbias : bool.
+    ----------
+    X : *ndarray of shape (Ne*Nt,Nc,Np).*
+        Input data.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for X. If None, ignore category information.
+    unbias : *bool.*
         Unbias estimation. Defaults to False.
-        When 'True', the result may fluctuate by 0.05%.
-    shrinkage : float, optional.
-        Strength for shrinkage covariance estimation. Defaults to 0 (no shrinkage). <p>
-        0.01 recommended while Nt is small (e.g. 2 for each class).
+        When ``'True'``, the result may fluctuate by 0.05%.
+    shrinkage : *float.*
+        Strength for shrinkage covariance estimation. Defaults to 0 (no shrinkage).
+        0.01 recommended while *Nt* is small (e.g. 2 for each class).
 
     Returns
-    -------
-    X_var : ndarray of shape (Ne,Nc,Nc) or (Nc,Nc).
-        Variance matrices of X.
+    ----------
+    X_var : *ndarray of shape (Ne,Nc,Nc) or (Nc,Nc).*
+        Variance matrices of ``X``.
     """
     # basic information
     n_chans = X.shape[-2]  # Nc
@@ -668,25 +659,22 @@ def generate_var(
     return X_var
 
 
-def generate_source_response(
-        X: ndarray,
-        y: ndarray,
-        w: ndarray) -> ndarray:
+def generate_source_response(X, y, w):
     """
-    Calculate wX on latent subspace.
+    Calculate source responses on latent subspace.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Nc,Np).
-        Sklearn-style dataset. Nt>=2.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X.
-    w : ndarray of shape (Ne,Nk,Nc).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Nc,Np).*
+        Sklearn-style dataset. *Nt>=2*.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``.
+    w : *ndarray of shape (Ne,Nk,Nc).*
         Spatial filters.
 
     Returns
-    -------
-    S : ndarray of shape (Ne*Nt,Nk,Np).
+    ----------
+    S : *ndarray of shape (Ne*Nt,Nk,Np).*
         Source responses.
     """
     # basic information
@@ -703,26 +691,23 @@ def generate_source_response(
     return S
 
 
-def spatial_filtering(
-        w: ndarray,
-        X: ndarray,
-        y: Optional[ndarray] = None) -> ndarray:
+def spatial_filtering(w, X, y=None):
     """
-    Process input data (X) with spatial filters (w).
+    Generate spatial filtered data.
 
     Parameters
-    -------
-    w : ndarray of shape (Ne,Nk,Nc) or (Nk,Nc).
+    ----------
+    w : *ndarray of shape (Ne,Nk,Nc) or (Nk,Nc).*
         Spatial filters
-    X : ndarray of shape (Ne,Nc,Np) or (Ne*Nt,Nc,Np).
+    X : *ndarray of shape (Ne,Nc,Np) or (Ne*Nt,Nc,Np).*
         Input dataset.
-    y : ndarray of shape (Ne*Nt,).
-        If None, X is trial-averaged. If not None, X is multi-trial dataset.
+    y : *ndarray of shape (Ne*Nt,).*
+        If ``None``, ``X`` is trial-averaged; Else ``X`` is multi-trial.
 
     Returns
-    -------
-    wX : ndarray of shape (Ne,Nk,Np) or (Ne*Nt,Nk,Np).
-        Spatial-filtered X.
+    ----------
+    wX : *ndarray of shape (Ne,Nk,Np) or (Ne*Nt,Nk,Np).*
+        Spatial-filtered ``X``.
     """
     # basic information
     n_components = w.shape[-2]  # Nk
@@ -750,39 +735,37 @@ def spatial_filtering(
 
 
 # %% 3. feature integration
-def sign_sta(x: Union[int, float, ndarray]) -> Union[int, float, ndarray]:
-    """
-    Standardization of decision coefficient based on sign(x).
+def sign_sta(x):
+    r"""
+    Standardization of decision coefficient based on :math:`{\rm sign} \left(x \right)`.
 
     Parameters
-    -------
-    x : int or float or ndarray.
+    ----------
+    x : *int or float or ndarray.*
+        Input data (or value).
 
     Returns
-    -------
-    out : int or float or ndarray.
-        out = sign(x)*x^2
+    ----------
+    out : *int or float or ndarray.*
+        :math:`{\rm sign} \left(x \right) \times x^2`
     """
     return np.sign(x) * (x**2)
 
 
-def combine_feature(
-        features: List[Union[int, float, ndarray]],
-        func: Callable[[Union[int, float, ndarray]],
-                       Union[int, float, ndarray]] = sign_sta) -> ndarray:
+def combine_feature(features, func=sign_sta):
     """
     Coefficient-level integration.
 
     Parameters
-    -------
-    features : List[Union[int, float, ndarray]].
+    ----------
+    features : *List[Union[int, float, ndarray]].*
         Different features.
-    func : function.
+    func : *function.*
         Quantization function.
 
     Returns
-    -------
-    coef : List[Union[int, float, ndarray]].
+    ----------
+    coef : *List[Union[int, float, ndarray]].*
         Integrated coefficients.
     """
     coef = np.zeros_like(features[0])
@@ -792,23 +775,20 @@ def combine_feature(
 
 
 # %% 4. algorithm evaluation
-def label_align(y_pred: ndarray, event_type: ndarray) -> ndarray:
+def label_align(y_pred, event_type):
     """
-    Alignment between predicted indices and real labels. <p>
-    For example, y_test=[1,2,5], y_pred=[0,1,2].
-    (Correct but with hidden danger in codes). <p>
-    This function will transform y_pred to [1,2,5].
+    Alignment between predicted **indices** and **real labels**.
 
     Parameters
-    -------
-    y_pred : ndarray of shape (Nte,).
+    ----------
+    y_pred : *ndarray of shape (Nte,).*
         Predict labels.
-    event_type : ndarray of shape (Ne,).
+    event_type : *ndarray of shape (Ne,).*
         Event ID arranged in ascending order.
 
     Returns
-    -------
-    correct_predict : ndarray of shape (Nte,).
+    ----------
+    correct_predict : *ndarray of shape (Nte,).*
         Corrected labels.
     """
     correct_predict = np.zeros_like(y_pred)
@@ -817,43 +797,41 @@ def label_align(y_pred: ndarray, event_type: ndarray) -> ndarray:
     return correct_predict
 
 
-def acc_compute(y_true: ndarray, y_pred: ndarray) -> float:
+def acc_compute(y_true, y_pred):
     """
     Compute accuracy.
 
     Parameters
-    -------
-    y_pred : ndarray of shape (n_test,).
+    ----------
+    y_pred : *ndarray of shape (n_test,).*
         Predict labels.
-    y_true : ndarray of shape (n_test,).
+    y_true : *ndarray of shape (n_test,).*
         Real labels for test dataset.
 
     Returns
-    -------
-    out : float.
+    ----------
+    out : *float.*
+        Accuracy. 0-1.
     """
     return np.sum(y_pred == y_true) / len(y_true)
 
 
-def itr_compute(
-        num: int,
-        time: Union[int, float],
-        acc: float) -> float:
+def itr_compute(num, time, acc):
     """
     Compute information transfer rate.
 
     Parameters
-    -------
-    num : int.
+    ----------
+    num : *int.*
         Number of targets.
-    time : int or float.
+    time : *int or float.*
         Unit: seconds.
-    acc : float.
+    acc : *float.*
         Accuracy. 0-1.
 
     Returns
-    -------
-    out : float.
+    ----------
+    out : *float.*
         ITR value.
     """
     part_a = log(num, 2)
@@ -868,29 +846,28 @@ def itr_compute(
 
 
 # %% 5. spatial distances
-def pearson_corr(
-        X: ndarray,
-        Y: ndarray,
-        parallel: bool = False) -> Union[float, ndarray]:
+def pearson_corr(X, Y, parallel=False):
     """
     Pearson correlation coefficient for EEG classification.
 
     Parameters
-    -------
-    X : ndarray of shape (m,n).
-        Spatial filtered (or multi-dimension) single-trial data (Nk,Np).
-    Y : ndarray of shape (l,m,n) or (m,n).
-        Templates while parallel=True (Ne,Nk,Np) or False (Nk,Np).
-    parallel : bool.
-        An accelerator. Defaults to False. <p>
-        If False, X could only be compared with Y of shape (m,n); <p>
-        If True, X could be compared with Y of shape (l,m,n).
+    ----------
+    X : *ndarray of shape (m,n).*
+        Spatial filtered (or multi-dimension) single-trial data *(Nk,Np)*.
+    Y : *ndarray of shape (l,m,n) or (m,n).*
+        Templates while ``parallel=True`` *(Ne,Nk,Np)* or ``False`` *(Nk,Np)*.
+    parallel : *bool.*
+        An accelerator. Defaults to False.
+            If False, ``X`` could only be compared with ``Y`` of shape *(m,n)*;
+
+            If True, ``X`` could be compared with ``Y`` of shape *(l,m,n)*.
 
     Returns
-    -------
-    out : float or ndarray.
-        If float: X (m,n) & Y (m,n).
-        If ndarray (l,): X (m,n) & Y (l,m,n).
+    ----------
+    out : *float or ndarray.*
+            If *float*: ``X`` *(m,n)* & ``Y`` *(m,n)*.
+
+            If *ndarray* of shape *(l,)*: ``X`` *(m,n)* & ``Y`` *(l,m,n)*.
     """
     # X_stan, Y_stan = standardization(X), standardization(Y)
     # reshape data into vector-style: reshape() is 5 times faster than flatten()
@@ -904,21 +881,25 @@ def pearson_corr(
 
 
 @njit(fastmath=True)
-def fast_corr_2d(X: ndarray, Y: ndarray) -> ndarray:
+def fast_corr_2d(X, Y):
     """
-    Use the JIT compiler to make pearson_corr() run faster for 2-D X. <p>
-    X.shape[-1] is the reshaped length, not real length: <p>
+    Use the JIT compiler to make ``pearson_corr()`` run faster for 2-D input.
+
+    NOTE: X.shape[-1] is the reshaped length, not real length:
     e.g. (Ne,Ne * Nk,Np) -reshape-> (Ne,Ne * Nk * Np) -> (Ne,) (return)
     -> 1 / Np * (Ne,) (real corr)
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2).
-    Y : ndarray of shape (d1,d2).
+    ----------
+    X : *ndarray of shape (d1,d2).*
+        Input data.
+    Y : *ndarray of shape (d1,d2).*
+        Input data.
 
     Returns
-    -------
-    corr : ndarray of shape (d1,).
+    ----------
+    corr : *ndarray of shape (d1,).*
+        Equivalent correlation coefficients.
     """
     dim_1 = X.shape[0]
     corr = np.zeros((dim_1))
@@ -928,18 +909,21 @@ def fast_corr_2d(X: ndarray, Y: ndarray) -> ndarray:
 
 
 @njit(fastmath=True)
-def fast_corr_3d(X: ndarray, Y: ndarray) -> ndarray:
+def fast_corr_3d(X, Y):
     """
-    Use the JIT compiler to make pearson_corr() run faster for 3-D X.
+    Use the JIT compiler to make ``pearson_corr()`` run faster for 3-D input.
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2,d3).
-    Y : ndarray of shape (d1,d2,d3).
+    ----------
+    X : *ndarray of shape (d1,d2,d3).*
+        Input data.
+    Y : *ndarray of shape (d1,d2,d3).*
+        Input data.
 
     Returns
-    -------
-    corr : ndarray of shape (d1,d2).
+    ----------
+    corr : *ndarray of shape (d1,d2).*
+        Equivalent correlation coefficients.
     """
     dim_1, dim_2 = X.shape[0], X.shape[1]
     corr = np.zeros((dim_1, dim_2))
@@ -950,18 +934,21 @@ def fast_corr_3d(X: ndarray, Y: ndarray) -> ndarray:
 
 
 @njit(fastmath=True)
-def fast_corr_4d(X: ndarray, Y: ndarray) -> ndarray:
+def fast_corr_4d(X, Y):
     """
-    Use the JIT compiler to make pearson_corr() run faster for 4-D X.
+    Use the JIT compiler to make ``pearson_corr()`` run faster for 4-D input.
 
     Parameters
-    -------
-    X : ndarray of shape (d1,d2,d3,d4).
-    Y : ndarray of shape (d1,d2,d3,d4).
+    ----------
+    X : *ndarray of shape (d1,d2,d3,d4).*
+        Input data.
+    Y : *ndarray of shape (d1,d2,d3,d4).*
+        Input data.
 
     Returns
-    -------
-    corr : ndarray of shape (d1,d2,d3).
+    ----------
+    corr : *ndarray of shape (d1,d2,d3).*
+        Equivalent correlation coefficients.
     """
     dim_1, dim_2, dim_3 = X.shape[0], X.shape[1], X.shape[2]
     corr = np.zeros((dim_1, dim_2, dim_3))
@@ -972,20 +959,20 @@ def fast_corr_4d(X: ndarray, Y: ndarray) -> ndarray:
     return corr
 
 
-def fisher_score(X: ndarray, y: ndarray) -> ndarray:
+def fisher_score(X, y):
     """
     Fisher Score (sequence).
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Np).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Np).*
         Single-channel input data.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``.
 
     Returns
-    -------
-    fs : ndarray of shape (Np,).
+    ----------
+    fs : *ndarray of shape (Np,).*
         Fisher-Score sequence.
     """
     # data information
@@ -1015,27 +1002,25 @@ def fisher_score(X: ndarray, y: ndarray) -> ndarray:
     return ite_d / itr_d
 
 
-def snr_time(
-        X: ndarray,
-        y: Optional[ndarray] = None,
-        output: str = 'array') -> ndarray:
+def snr_time(X, y=None, output='array'):
     """
     Signal-to-Noise ratio (sequence) in time domain.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Np).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Np).*
         Single-channel input data.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X. If None, X is single-category data.
-    output : str.
-        'array' or 'db'. Defaults to 'array'. <p>
-        If 'array', return array of shape (Ne,Np). <p>
-        If 'db', return array of shape (Ne,).
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``. If ``None``, ``X`` is single-category data.
+    output : *str.*
+        ``'array'`` or ``'db'``. Defaults to ``'array'``.
+            If ``'array'``, return array of shape *(Ne,Np)*;
+
+            If ``'db'``, return array of shape *(Ne,)*.
 
     Returns
-    -------
-    snr : ndarray, (Ne,Np) or (Ne,)
+    ----------
+    snr : *ndarray, (Ne,Np) or (Ne,)*
         SNR sequences (or values).
     """
     # basic information
@@ -1059,134 +1044,87 @@ def snr_time(
         return 10 * np.log10(np.mean(signal_power / noise_power, axis=-1))
 
 
-def euclidean_dist(X: ndarray, Y: ndarray) -> float:
-    """
+def euclidean_dist(X, Y):
+    r"""
     Euclidean distance.
 
+    :math:`D \left(\pmb{X}, \pmb{Y} \right) = \sum_{i} \sum_{j} {\left(\pmb{X}(i,j)
+    - \pmb{Y}(i,j) \right)}^2`
+
     Parameters
-    -------
-    X : ndarray of shape (m, n).
-    Y : ndarray of shape (m, n).
+    ----------
+    X : *ndarray of shape (m, n).*
+        Input data.
+    Y : *ndarray of shape (m, n).*
+        Input data.
 
     Returns
-    -------
+    ----------
     out : float.
+        Results
     """
     return np.sqrt(np.sum((X - Y)**2))
 
 
-def cosine_sim(x: ndarray, y: ndarray) -> float:
-    """
+def cosine_sim(x, y):
+    r"""
     Cosine similarity.
 
+    :math:`D \left(\pmb{x}, \pmb{y} \right)  = \dfrac{\pmb{x} \pmb{y}^T}
+    {\left\|\pmb{x} \right\| \times \left\|\pmb{y} \right\|}`
+
     Parameters
-    -------
-    x : ndarray of shape (Np,).
-    y : ndarray of shape (Np,).
+    ----------
+    x : *ndarray of shape (Np,).*
+        Input data.
+    y : *ndarray of shape (Np,).*
+        Input data.
 
     Returns
-    -------
-    out : float.
+    ----------
+    out : *float.*
+        Results.
     """
     return (x @ y) / np.sqrt((x @ x) * (y @ y))
 
 
-def minkowski_dist(
-        x: ndarray,
-        y: ndarray,
-        p: Union[int, float]) -> float:
-    """
+def minkowski_dist(x, y, p):
+    r"""
     Minkowski distance.
 
+    :math:`D \left(\pmb{x}, \pmb{y} \right) = {\left( \sum_{i=1}^{n}
+    {\left|x_i - y_i \right|}^p \right)}^{\frac{1}{p}}`
+
     Parameters
-    -------
-    x : ndarray of shape (Np,).
-    y : ndarray of shape (Np,).
-    p : int or float.
+    ----------
+    x : *ndarray of shape (Np,).*
+        Input data.
+    y : *ndarray of shape (Np,).*
+        Input data.
+    p : *int or float.*
         Hyper-parameter.
 
     Returns
-    -------
-    out : float.
+    ----------
+    out : *float.*
+        Results.
     """
     return np.sum(abs(x - y)**p)**(1 / p)
 
 
-def mahalanobis_dist(X: ndarray, y: ndarray) -> float:
-    """
-    Mahalanobis distance.
-
-    Parameters
-    -------
-    X : ndarray of shape (Nt,Np).
-        Training dataset.
-    y : ndarray of shape (Np,).
-        Test data.
-
-    Returns
-    -------
-    dist : float.
-    """
-    cov_XX = X.T @ X  # (Np,Np)
-    mean_X = X.mean(axis=0, keepdims=True)  # (1,Np)
-    dist = np.sqrt((mean_X - y) @ sLA.solve(cov_XX, (mean_X - y).T))
-    return dist
-
-
-def root_matrix(X: ndarray) -> ndarray:
-    """
-    Compute the root of a square matrix.
-    (Deprecated by pyriemann.utils.base.sqrtm())
-
-    Parameters
-    -------
-    X : ndarray of shape (m,m).
-        Square matrix.
-
-    Returns
-    -------
-    out : ndarray of shape (m,m).
-        X^(1/2).
-    """
-    # e_val, e_vec = sLA.eig(X)
-    # r_lambda = np.diag(np.sqrt(e_val))
-    # r_X = e_vec @ r_lambda @ sLA.inv(e_vec)
-    return sqrtm(X)
-
-
-def nega_root_matrix(X: ndarray) -> ndarray:
-    """
-    Compute the negative root of a square matrix.
-    (Deprecated by pyriemann.utils.base.invsqrtm())
-
-    Parameters
-    -------
-    X : ndarray of shape (m,m).
-        Square matrix.
-
-    Returns
-    -------
-    out : ndarray of shape (m,m).
-        X^(-1/2).
-    """
-    # e_val, e_vec = sLA.eig(X)
-    # nr_lambda = np.diag(1 / np.sqrt(e_val))
-    # nr_X = e_vec @ nr_lambda @ sLA.inv(e_vec)
-    return invsqrtm(X)
-
-
-def s_estimator(X: ndarray) -> float:
+def s_estimator(X):
     """
     Construct s-estimator.
 
     Parameters
-    -------
-    X : ndarray of shape (m,m).
-        Symmetric matrix.
+    ----------
+    X : *ndarray of shape (m,m).*
+        Symmetric input matrix.
 
     Returns
-    -------
-    s_estimator : float.
+    ----------
+    s_estimator : *float.*
+        Results
     """
     e_val, _ = sLA.eig(X)
     e_val = e_val / np.sum(e_val)  # normalized eigenvalues
@@ -1195,19 +1133,23 @@ def s_estimator(X: ndarray) -> float:
 
 
 # %% 6. temporally smoothing functions
-def tukeys_kernel(x: float, r: Union[int, float] = 3) -> float:
-    """
+def tukeys_kernel(x, r=3):
+    r"""
     Tukeys tri-cube kernel function.
 
+    :math:`f(x) = {\left( 1 - |x|^{r} \right)}^{r}`
+
     Parameters
-    -------
-    x : float.
-    r : int or float.
-        Defaults to 3.
+    ----------
+    x : *float.*
+        Input value.
+    r : *int or float.*
+        Hyper-parameter. Defaults to 3.
 
     Returns
-    -------
-    out : float.
+    ----------
+    out : *float.*
+        Results.
     """
     if abs(x) > 1:
         return 0
@@ -1215,25 +1157,22 @@ def tukeys_kernel(x: float, r: Union[int, float] = 3) -> float:
         return (1 - abs(x)**r)**r
 
 
-def weight_matrix(
-        n_points: int,
-        tau: Union[int, float],
-        r: Union[int, float] = 3) -> ndarray:
+def weight_matrix(n_points, tau, r=3):
     """
-    Weighting matrix based on kernel function.
+    Weighting matrix based on Tukeys kernel function.
 
     Parameters
-    -------
-    n_points : int.
+    ----------
+    n_points : *int.*
         Parameters that determine the size of the matrix.
-    tau : int or float.
+    tau : *int or float.*
         Hyper-parameter for weighting matrix.
-    r : int or float.
-        Hyper-parameter for kernel funtion.
+    r : *int or float.*
+        Hyper-parameter for kernel funtion. Defaults to 3.
 
     Returns
-    -------
-    W : ndarray of shape (Np,Np).
+    ----------
+    W : *ndarray of shape (Np,Np).*
         Weighting matrix.
     """
     W = np.eye(n_points)
@@ -1243,63 +1182,61 @@ def weight_matrix(
     return W
 
 
-def laplacian_matrix(W: ndarray) -> ndarray:
+def laplacian_matrix(W):
     """
     Laplace matrix for time smoothing.
 
     Parameters
-    -------
-    W : ndarray of shape (n_points, n_points).
+    ----------
+    W : *ndarray of shape (Np,Np).*
         Weighting matrix.
 
     Returns
-    -------
-    out : ndarray of shape (n_points, n_points).
+    ----------
+    out : *ndarray of shape (Np,Np).*
         Laplace matrix.
     """
     return np.diag(np.sum(W, axis=-1)) - W
 
 
 # %% 7. reduced QR decomposition
-def qr_projection(X: ndarray) -> ndarray:
+def qr_projection(X):
     """
-    Orthogonal projection based on QR decomposition of X.
+    Orthogonal projection based on QR decomposition.
 
     Parameters
-    -------
-    X : ndarray of shape (Np,m).
+    ----------
+    X : *ndarray of shape (Np,m).*
+        Input data.
 
     Returns
-    -------
-    P : ndarray of shape (Np,Np).
+    ----------
+    P : *ndarray of shape (Np,Np).*
+        Projection matrix.
     """
     Q, _ = sLA.qr(X, mode='economic')
     return Q @ Q.T
 
 
 # %% 8. Eigenvalue problems
-def pick_subspace(
-        e_vals: Union[ndarray, List[float]],
-        ratio: float,
-        min_n: Optional[int] = None,
-        max_n: Optional[int] = None) -> int:
+def pick_subspace(e_vals, ratio, min_n=None, max_n=None):
     """
     Optimize the number of subspaces.
 
     Parameters
-    -------
-    e_vals : array-like, shape (Nk,).
+    ----------
+    e_vals : *array-like of shape (Nk,).*
         Sequence of eigenvalues sorted in descending order.
-    ratio : float.
+    ratio : *float.*
         0-1. The ratio of the sum of picked eigenvalues to the total.
-    min_n: int.
-        Minimum number of the dimension of subspace. min_n >= 1.
-    max_n: int.
-        Maximum number of the dimension of subspace. max_n <= Nk.
+    min_n: *int.*
+        Minimum number of the dimension of subspace.
+    max_n: *int.*
+        Maximum number of the dimension of subspace.
 
     Returns
-    -------
-    n_components : int.
+    ----------
+    n_components : *int.*
         The optimized number of subspaces.
     """
     # basic information
@@ -1326,20 +1263,20 @@ def pick_subspace(
                 return n_components
 
 
-def normalize_eigenvectors(e_vec: ndarray):
+def normalize_eigenvectors(e_vec):
     """
     Adjust the sign of the eigenvector by selecting the element with the largest
     absolute value and ensuring it is positive.
 
     Parameters
-    -------
-    e_vec : ndarray of shape (m,m).
-        Column vectors, i.e. e_vec[:, i] is an eigenvector.
+    ----------
+    e_vec : *ndarray of shape (m,m).*
+        Column vectors. i.e. ``e_vec[:, i]`` is an eigenvector.
 
     Returns
-    -------
-    e_vec_norm : ndarray of shape (m,m).
-        Normalized e_vec.
+    ----------
+    e_vec_norm : *ndarray of shape (m,m).*
+        Normalized ``e_vec``.
     """
     e_vec_norm = np.zeros_like(e_vec)
     for i in range(e_vec.shape[1]):
@@ -1349,39 +1286,46 @@ def normalize_eigenvectors(e_vec: ndarray):
 
 
 def solve_gep(
-        A: ndarray,
-        B: Optional[ndarray] = None,
-        n_components: Optional[int] = 1,
-        mode: str = 'Max',
-        ratio: Optional[float] = None,
-        min_n: Optional[int] = None,
-        max_n: Optional[int] = None) -> ndarray:
-    """
+        A,
+        B=None,
+        n_components=1,
+        mode='Max',
+        ratio=None,
+        min_n=None,
+        max_n=None):
+    r"""
     Solve generalized eigenvalue problems (GEPs) based on Rayleigh quotient:
-    f(w) = (w @ A @ w^T) / (w @ B @ w^T) -> A @ w = lambda @ B @ w.
 
-    If B is None, solve eigenvalue problems (EPs):
-    f(w) = (w @ A @ w^T) / (w @ w^T) -> A @ w = lambda @ w
+    :math:`f(\pmb{w}) = \dfrac{\pmb{w} \pmb{A} {\pmb{w}}^T} {\pmb{w} \pmb{B} {\pmb{w}}^T}
+    \Longrightarrow  \pmb{A} \pmb{w} = \pmb{\lambda} \pmb{Bw}.`
+
+    If ``B`` is ``None``, solve eigenvalue problems (EPs):
+
+    :math:`f(\pmb{w}) = \dfrac{\pmb{w} \pmb{A} {\pmb{w}}^T}{\pmb{w} {\pmb{w}}^T}
+    \Longrightarrow \pmb{A} \pmb{w} = \pmb{\lambda} \pmb{w}.`
 
     Parameters
-    -------
-    A : ndarray of shape (m,m).
-    B : ndarray of shape (m,m), optional.
-    n_components : int.
+    ----------
+    A : *ndarray of shape (m,m).*
+        Input matrix.
+    B : *ndarray of shape (m,m), optional.*
+        Input matrix.
+    n_components : *int.*
         Number of eigenvectors picked as filters.
-    mode : str.
-        'Max' or 'Min'. Depends on target function.
-    ratio : float.
-        0-1. The ratio of the sum of useful (mode=='Max') or deprecated (mode=='Min')
-        eigenvalues to the total. Only useful when n_components is None.
-    min_n: int.
-        Minimum number of the dimension of subspace. min_n >= 1.
-    max_n: int.
-        Maximum number of the dimension of subspace. max_n <= Nk.
+    mode : *str.*
+        ``'Max'`` or ``'Min'``. Depends on target function.
+    ratio : *float.*
+        0-1. The ratio of the sum of useful (``mode='Max'``)
+        or deprecated (``mode='Min'``) eigenvalues to the total.
+        Only useful when ``n_components=None``.
+    min_n: *int.*
+        Minimum number of the dimension of subspace.
+    max_n: *int.*
+        Maximum number of the dimension of subspace.
 
     Returns
-    -------
-    w : ndarray of shape (Nk,m).
+    ----------
+    w : *ndarray of shape (Nk,m).*
         Picked eigenvectors.
     """
     # solve EPs
@@ -1407,20 +1351,21 @@ def solve_gep(
 
 
 # %% 9. Signal generation
-def Imn(m: int, n: int) -> ndarray:
+def Imn(m, n):
     """
     Concatenate identical matrices into a big matrix.
 
     Parameters
-    -------
-    m : int.
+    ----------
+    m : *int.*
         Total number of identity matrix.
-    n : int.
+    n : *int.*
         Dimensions of the identity matrix.
 
     Returns
-    -------
-    out : ndarray of shape (m*n, n).
+    ----------
+    out : *ndarray of shape (m*n, n).*
+        Concatenated matrix.
     """
     Z = np.zeros((m * n, n))
     for i in range(m):
@@ -1428,32 +1373,28 @@ def Imn(m: int, n: int) -> ndarray:
     return Z
 
 
-def square_wave(
-        freq: Union[int, float],
-        phase: Union[int, float],
-        n_points: int,
-        duty: Union[int, float] = 20,
-        srate: Union[int, float] = 1000) -> ndarray:
+def square_wave(freq, phase, n_points, duty=20, srate=1000):
     """
     Construct square waveforms.
+
     Adopted from: https://github.com/edwin465/SSVEP-Impulse-Response.
 
     Parameters
-    -------
-    freq : int or float.
+    ----------
+    freq : *int or float.*
         Frequency (Hz).
-    phase : float.
+    phase : *float.*
         Coefficients. 0-2 (pi).
-    n_points : int.
+    n_points : *int.*
         Number of sampling points.
-    duty : int or float.
-        Defaults to 50 (%).
-    srate : int or float.
-        Sampling rate (Hz). Defaults to 1000.
+    duty : *int or float.*
+        Defaults to ``50`` (%).
+    srate : *int or float.*
+        Sampling rate (Hz). Defaults to ``1000``.
 
     Returns
-    -------
-    out : ndarray of shape (n_points,).
+    ----------
+    out : *ndarray of shape (Np,).*
         Square sequence (amplitude ranging from 0 to 2).
     """
     time_points = np.arange(n_points) / srate
@@ -1466,59 +1407,50 @@ def square_wave(
     return 2 * nodd - 1
 
 
-def sin_wave(
-        freq: Union[int, float],
-        phase: Union[int, float],
-        n_points: int,
-        srate: Union[int, float] = 1000) -> ndarray:
+def sin_wave(freq, phase, n_points, srate=1000):
     """
     Construct sinusoidal waveforms.
 
     Parameters
-    -------
-    freq : int or float.
+    ----------
+    freq : *int or float.*
         Frequency (Hz).
-    phase : float.
+    phase : *float.*
         Coefficients. 0-2 (pi).
-    n_points : int.
+    n_points : *int.*
         Number of sampling points.
-    srate : int or float.
-        Sampling rate (Hz). Defaults to 1000.
+    srate : *int or float.*
+        Sampling rate (Hz). Defaults to ``1000``.
 
     Returns
-    -------
-    out : ndarray of shape (n_points,).
+    ----------
+    out : *ndarray of shape (Np,).*
         Sinusoidal sequence (amplitude ranging from -1 to 1).
     """
     time_points = np.arange(n_points) / srate
     return np.sin(2 * pi * freq * time_points + pi * phase)
 
 
-def sine_template(
-        freq: Union[int, float],
-        phase: Union[int, float],
-        n_points: int,
-        n_harmonics: int,
-        srate: Union[int, float] = 1000) -> ndarray:
+def sine_template(freq, phase, n_points, n_harmonics, srate=1000):
     """
     Create sine-cosine template for SSVEP signals.
 
     Parameters
-    -------
-    freq : int or float.
+    ----------
+    freq : *int or float.*
         Frequency (Hz).
-    phase : float.
+    phase : *float.*
         Coefficients. 0-2 (pi).
-    n_points : int.
+    n_points : *int.*
         Number of sampling points.
-    n_harmonics : int.
+    n_harmonics : *int.*
         Number of harmonics.
-    srate : int or float.
-        Sampling rate (Hz). Defaults to 1000.
+    srate : *int or float.*
+        Sampling rate (Hz). Defaults to ``1000``.
 
     Returns
-    -------
-    Y : ndarray of shape (2*Nh,Np).
+    ----------
+    Y : *ndarray of shape (2*Nh,Np).*
         Sine-cosine templates.
     """
     Y = np.zeros((2 * n_harmonics, n_points))  # (2Nh,Np)
@@ -1538,32 +1470,27 @@ def sine_template(
     return Y
 
 
-def get_resample_sequence(
-        seq: ndarray,
-        srate: Union[int, float] = 1000,
-        rrate: int = 60,
-        output_waveform: bool = True) -> Union[List[Tuple[int, float]],
-                                               Tuple[List[Tuple[int, float]], ndarray]]:
+def get_resample_sequence(seq, srate=1000, rrate=60, output_waveform=True):
     """
     Obtain the resampled sequence from original sequence.
 
     Parameters
-    -------
-    seq : ndarray of shape (1, signal_length).
+    ----------
+    seq : *ndarray of shape (1, signal_length).*
         Stimulus sequence of original sampling rate.
-    srate : int or float.
-        Sampling rate. Defaults to 1000 Hz.
-    rrate : int.
-        Refresh rate of stimulus devices. Defaults to 60 Hz.
-    output_waveform : bool.
-        Return resampled waveform or not. Defaults to False.
+    srate : *int or float.*
+        Sampling rate. Defaults to ``1000`` (Hz).
+    rrate : *int.*
+        Refresh rate of stimulus devices. Defaults to ``60`` (Hz).
+    output_waveform : *bool.*
+        Return resampled waveform or not. Defaults to ``False``.
 
     Returns
-    -------
-    rsp_seq: List[Tuple[int, float]].
-        (index, value). Resampled values and indices of stimulus sequence.
-    rsp_wave : ndarray of shape (1, resampled_length).
-        Only exist when output_waveform is True.
+    ----------
+    rsp_seq: *List[Tuple[int, float]].*
+        *(index, value)*. Resampled values and indices of stimulus sequence.
+    rsp_wave : *ndarray of shape (1, resampled_length).*
+        Only exist when ``output_waveform=True``.
     """
     # construct resampled sequence
     n_points = seq.shape[-1]  # Np
@@ -1595,36 +1522,37 @@ def get_resample_sequence(
 
 
 def extract_periodic_impulse(
-        freq: Union[int, float],
-        phase: Union[int, float],
-        n_points: int,
-        srate: Union[int, float] = 1000,
-        rrate: int = 60,
-        method: str = 'Square') -> ndarray:
+        freq,
+        phase,
+        n_points,
+        srate=1000,
+        rrate=60,
+        method='Square'):
     """
     Extract periodic impulse sequence from stimulus sequence.
 
     Parameters
-    -------
-    freq : int or float.
+    ---------
+    freq : *int or float.*
         Stimulus frequency (Hz).
-    phase : int or float.
+    phase : *int or float.*
         Stimulus phase (coefficients). 0-2 (pi).
-    n_points : int.
+    n_points : *int.*
         Total length of reconstructed signal.
-    srate : int or float.
-        Sampling rate. Defaults to 1000 Hz.
-    rrate : int.
-        Refresh rate of stimulus devices. Defaults to 60 Hz.
-    method : str.
-        'Square' or 'Cosine'. Defaults to 'Square'. <p>
-        If 'Square', pick up the moment of the rising edge of the square wave.
-            Adopted from: https://github.com/edwin465/SSVEP-Impulse-Response. <p>
-        If 'Cosine', pick up the peak moment of the resampled cosine wave.
+    srate : *int or float.*
+        Sampling rate. Defaults to ``1000`` (Hz).
+    rrate : *int.*
+        Refresh rate of stimulus devices. Defaults to ``60`` (Hz).
+    method : *str.*
+        ``'Square'`` or ``'Cosine'``. Defaults to ``'Square'``.
+            If ``'Square'``, pick up the moment of the rising edge of the square wave.
+            Adopted from: https://github.com/edwin465/SSVEP-Impulse-Response.
+
+            If ``'Cosine'``, pick up the peak moment of the resampled cosine wave.
 
     Returns
-    -------
-    out : ndarray. shape (1,Np).
+    ---------
+    out : *ndarray. shape (1,Np).*
         Periodic impulse sequence.
     """
     # obtain the actual stimulus strength
@@ -1681,22 +1609,20 @@ def extract_periodic_impulse(
     return periodic_impulse[:n_points]
 
 
-def create_conv_matrix(
-        periodic_impulse: ndarray,
-        response_length: int) -> ndarray:
+def create_conv_matrix(periodic_impulse, response_length):
     """
     Create the convolution matrix of the periodic impulse.
 
     Parameters
-    -------
-    periodic_impulse : ndarray of shape (1,Np).
+    ----------
+    periodic_impulse : *ndarray of shape (1,Np).*
         Impulse sequence of stimulus.
-    response_length : int.
+    response_length : *int.*
         Length of impulse response.
 
     Returns
-    -------
-    out (ndarray): (Nrl,Np).
+    ----------
+    out : *ndarray of shape (Nrl,Np).*
         Convolution matrix.
     """
     signal_length = periodic_impulse.shape[-1]
@@ -1706,34 +1632,31 @@ def create_conv_matrix(
     return H[:, :signal_length]
 
 
-def correct_conv_matrix(
-        H: ndarray,
-        freq: Union[int, float],
-        srate: Union[int, float],
-        amp_scale: Union[int, float] = 0.8,
-        concat_method: str = 'dynamic') -> ndarray:
+def correct_conv_matrix(H, freq, srate, amp_scale=0.8, concat_method='dynamic'):
     """
     Replace the blank values at the front of the reconstructed data
     with its subsequent fragment.
 
     Parameters
-    -------
-    H : ndarray of shape (Nrl,Np).
+    ----------
+    H : *ndarray of shape (Nrl,Np).*
         Convolution matrix.
-    freq : int or float.
+    freq : *int or float.*
         Stimulus frequency (Hz).
-    srate : int or float.
-        Sampling rate. Defaults to 1000 Hz.
-    amp_scale : float.
-        The multiplying power when calculating the amplitudes of data. Defaults to 0.8.
-    concat_method : str.
-        'dynamic' or 'static'. <p>
-        'static': Concatenated data is starting from 1 s. <p>
-        'dynamic': Concatenated data is starting from 1 period.
+    srate : *int or float.*
+        Sampling rate. Defaults to ``1000`` (Hz).
+    amp_scale : *float.*
+        The multiplying power when calculating the amplitudes of data.
+        Defaults to ``0.8``.
+    concat_method : *str.*
+        ``'dynamic'`` or ``'static'``. Defaults to ``'dynamic'``.
+            'static': Concatenated data is starting from 1 s.
+
+            'dynamic': Concatenated data is starting from 1 period.
 
     Returns
-    -------
-    out : ndarray of shape (Nrl,Np).
+    ----------
+    out : *ndarray of shape (Nrl,Np).*
         Corrected convolution matrix.
     """
     shift_length = np.where(H[0] != 0)[0][0] + 1  # Tuple -> ndarray -> int
@@ -1750,27 +1673,26 @@ def correct_conv_matrix(
     return H @ shift_matrix
 
 
-def resize_conv_matrix(
-        H: ndarray,
-        new_size: Tuple[int, int],
-        method: str = 'Lanczos') -> ndarray:
+def resize_conv_matrix(H, new_size, method='Lanczos'):
     """
-    Resize the convolution matrix (H) into the common shape (Common response length).
+    Resize the convolution matrix (``H``).
 
     Parameters
-    -------
-    H : ndarray of shape (Nrl,Np).
+    ----------
+    H : *ndarray of shape (Nrl,Np).*
         Convolution matrix. Nrl is the length of response.
-    new_size : Tuple[int, int]. (length, width).
-        NOTE: for a matrix with shape (m,n), length=n, width=m.
-    method : str.
-        'nearest', 'linear', cubic', 'area', 'Lanczos', 'linear-exact',
-        'inverse-map' and 'fill-outliers'.
-        Interpolation methods. Defaults to 'Lanczos'.
+    new_size : *Tuple[int, int].*
+        New size of ``H``. *(length, width)*.
+
+        **NOTE**: for a matrix with shape *(m,n)*, ``length=n``, ``width=m``.
+    method : *str.*
+        ``'nearest'``, ``'linear'``, ``'cubic'``, ``'area'``, ``'Lanczos'``,
+        ``'linear-exact'``, ``'inverse-map'`` and ``'fill-outliers'``.
+        Interpolation methods. Defaults to ``'Lanczos'``.
 
     Returns
-    -------
-    H_new : ndarray of shape (Nrl,Np).
+    ----------
+    H_new : *ndarray of shape (Nrl,Np).*
         Resized convolution matrix.
     """
     mapping = {
@@ -1790,30 +1712,25 @@ def resize_conv_matrix(
     )
 
 
-def solve_mcpe(
-        X: ndarray,
-        freq: float,
-        srate: Union[int, float] = 1000,
-        steps: int = 100,
-        average: bool = False) -> ndarray:
+def solve_mcpe(X, freq, srate=1000, steps=1000, average=False):
     """
     Calculate the phase for SSVEP signal by Maximum Correlation Phase Estimation (MCPE).
 
     Parameters
-    -------
-    X : ndarray of shape (Nt,Np).
+    ----------
+    X : *ndarray of shape (Nt,Np).*
         Single-channel input data of one class.
-    freq : float.
+    freq : *float.*
         Target (stimulus) frequency.
-    srate : int or float.
-        Sampling rate (Hz). Defaults to 1000.
-    average : bool.
-        Whether return the phase of X_mean. Defaults to False.
+    srate : *int or float.*
+        Sampling rate (Hz). Defaults to ``1000``.
+    average : *bool.*
+        Whether return the phase of ``X_mean``. Defaults to ``False``.
         i.e. return multiple-trial phases as an array.
 
     Returns
-    -------
-    phases : ndarray of shape (Nt,) or (1,).
+    ----------
+    phases : *ndarray of shape (Nt,) or (1,).*
         Estimated phases (radians).
     """
     # initialization
@@ -1841,36 +1758,36 @@ def solve_mcpe(
 
 # %% 10. Filter-bank technology
 def generate_filter_bank(
-        passbands: List[Tuple[float, float]],
-        stopbands: List[Tuple[float, float]],
-        srate: float,
-        order: Optional[int] = None,
-        gpass: float = 3,
-        gstop: float = 40,
-        rp: float = 0.5) -> List[ndarray]:
+        passbands,
+        stopbands,
+        srate,
+        order,
+        gpass=3,
+        gstop=40,
+        rp=0.5):
     """
     Generate Chebyshev type I filters according to input paramters.
 
     Parameters
-    -------
-    passbands : List[Tuple[float,float]].
+    ----------
+    passbands : *List[Tuple[float,float]].*
         Passband edge frequencies.
-    stopbands : List[Tuple[float,float]].
+    stopbands : *List[Tuple[float,float]].*
         Stopband edge frequencies.
-    srate : float.
+    srate : *float.*
         Sampling rate.
-    order : int, optional.
+    order : *int, optional.*
         Order of filters.
-    gpass : float.
+    gpass : *float.*
         The maximum loss in the passband (dB).
-    gstop : float.
+    gstop : *float.*
         The minimum attenuation in the stopband (dB).
-    rp : float.
+    rp : *float.*
         Ripple of filters. Default to 0.5 dB.
 
     Returns
-    -------
-    filter_bank : List[ndarray].
+    ----------
+    filter_bank : *List[ndarray].*
         Second-order sections representation of the IIR filters.
     """
     filter_bank = []
@@ -1885,28 +1802,44 @@ def generate_filter_bank(
 
 
 class FilterBank(BaseEstimator, TransformerMixin):
-    """Basic filter-bank object"""
+    """
+    Basic filter-bank object.
+
+    Parameters
+    ----------
+    base_estimator : ``BaseEstimator``.
+        Sub-models.
+    filter_bank : *List[ndarray], optional.*
+        See details in ``generate_filter_bank()``. Defaults to ``None``.
+    with_filter_bank : *bool.*
+        Whether the input data has been FB-preprocessed. Defaults to ``True``.
+    version : *str, optional.*
+        If ``'SSVEP'``, bank_weights will be set according to refrence:
+        (DOI) 10.1088/1741-2560/12/4/046008.
+
+    Attributes
+    ----------
+    Nb : *int.*
+        Number of filter banks.
+    bank_weights : *ndarray, shape (Nb,).*
+        Weights for different filter banks. Defaults to ``None``.
+    sub_estimator : *List[BaseEstimator].*
+        ``BaseEstimator`` objects for each filter bank.
+    sub_features : *List[ndarray] or List[Tuple[ndarray, ndarray]].*
+        Features of each filter bank.
+
+    Raises
+    ----------
+    Assertion
+        If ``filter_bank`` is not ``None``, ``with_filter_bank`` must not be ``True``.
+    """
     def __init__(
             self,
-            base_estimator: BaseEstimator,
-            filter_bank: Optional[List] = None,
-            with_filter_bank: bool = True,
-            version: Optional[str] = None):
-        """
-        Basic configuration.
-
-        Parameters
-        -------
-        base_estimator : BaseEstimator.
-            Sub-model.
-        filter_bank : List[ndarray], optional.
-            See details in generate_filter_bank(). Defaults to False.
-        with_filter_bank : bool.
-            Whether the input data has been FB-preprocessed. Defaults to True.
-        version : str, optional.
-            If 'SSVEP', bank_weights wiil be set according to refrence:
-            (DOI) 10.1088/1741-2560/12/4/046008.
-        """
+            base_estimator,
+            filter_bank=None,
+            with_filter_bank=True,
+            version=None):
+        """Basic configuration."""
         self.base_estimator = base_estimator
         assert bool(filter_bank) != with_filter_bank, 'Check filter bank configuration!'
         self.filter_bank = filter_bank
@@ -1915,21 +1848,21 @@ class FilterBank(BaseEstimator, TransformerMixin):
 
     def fit(
             self,
-            X_train: ndarray,
-            y_train: ndarray,
-            bank_weights: Optional[ndarray] = None,
+            X_train,
+            y_train,
+            bank_weights=None,
             **kwargs):
         """
         Load in training dataset and pass it to sub-esimators.
 
         Parameters
-        -------
-        X_train : ndarray of shape (Ne*Nt,...,Np) or (Nb,Ne*Nt,...,Np).
+        ----------
+        X_train : *ndarray of shape (Ne*Nt,...,Np) or (Nb,Ne*Nt,...,Np).*
             Sklearn-style training dataset.
-        y_train : ndarray of shape (Ne*Nt,).
-            Labels for X_train.
-        bank_weights : ndarray of shape (Nb,), optional.
-            Weights for different filter banks. Defaults to None (equal).
+        y_train : *ndarray of shape (Ne*Nt,).*
+            Labels for ``X_train``.
+        bank_weights : *ndarray of shape (Nb,), optional.*
+            Weights for different filter banks. Defaults to ``None``.
         """
         if self.with_filter_bank:  # X_train has been filterd: (Nb,Ne*Nt,...,Np)
             self.Nb = X_train.shape[0]
@@ -1951,21 +1884,21 @@ class FilterBank(BaseEstimator, TransformerMixin):
 
     def transform(
             self,
-            X_test: ndarray,
-            **kwargs) -> Dict[str, ndarray]:
+            X_test,
+            **kwargs):
         """
         Transform test dataset to multi-band discriminant features.
 
         Parameters
-        -------
-        X_test : ndarray of shape (Ne*Nte,...,Np) or (Nb,Ne*Nt,...,Np).
+        ----------
+        X_test : *ndarray of shape (Ne*Nte,...,Np) or (Nb,Ne*Nt,...,Np).*
             Sklearn-style test dataset.
 
         Returns
-        -------
-        fb_rho : ndarray of shape (Nb,Ne*Nte,Ne).
+        ----------
+        fb_rho : *ndarray of shape (Nb,Ne*Nte,Ne).*
             Multi-band decision coefficients.
-        rho : ndarray of shape (Ne*Nte,Ne).
+        rho : *ndarray of shape (Ne*Nte,Ne).*
             Intergrated decision coefficients.
         """
         if not self.with_filter_bank:
@@ -1982,50 +1915,46 @@ class FilterBank(BaseEstimator, TransformerMixin):
         }
         return features
 
-    def fb_transform(self, X_train: ndarray) -> ndarray:
+    def fb_transform(self, X_train):
         """
-        Transform single-band X_train into multi-band X_train.
+        Transform single-band ``X_train`` into multi-band ``X_train``.
 
         Parameters
-        -------
-        X_train : ndarray of shape (Ne*Nt,...,Np).
+        ----------
+        X_train : *ndarray of shape (Ne*Nt,...,Np).*
             Sklearn-style training dataset.
 
         Returns
-        -------
-        X_fb : ndarray of shape (Nb,Ne*Nt,...,Np).
-            Multi-band X_train.
+        ----------
+        X_fb : *ndarray of shape (Nb,Ne*Nt,...,Np).*
+            Multi-band ``X_train``.
         """
-        X_fb = np.stack([sosfiltfilt(sos, X_train, axis=-1)
+        return np.stack([sosfiltfilt(sos, X_train, axis=-1)
                          for sos in self.filter_bank])
-        return X_fb
 
 
 # %% 11. Linear transformation
-def solve_forward_propagation(
-        X: ndarray,
-        y: ndarray,
-        w: ndarray) -> Tuple[ndarray, ndarray]:
-    """
-    Calculate propagation matrice(A) based on source responses(wX).
+def solve_forward_propagation(X, y, w):
+    r"""
+    Calculate propagation matrice based on source responses.
 
-    A = argmin||A @ w @ X - X||.
+    :math:`\hat{\pmb{A}} = \arg\min \left\| \pmb{A} \pmb{w} \pmb{X} - \pmb{X} \right\|`.
 
     Parameters
-    -------
-    X : ndarray of shape (Ne*Nt,Nc,Np).
-        Multi-trial dataset. Nt>=2.
-    y : ndarray of shape (Ne*Nt,).
-        Labels for X.
-    w : ndarray of shape (Ne,Nk,Nc).
+    ----------
+    X : *ndarray of shape (Ne*Nt,Nc,Np).*
+        Multi-trial dataset. *Nt>=2*.
+    y : *ndarray of shape (Ne*Nt,).*
+        Labels for ``X``.
+    w : *ndarray of shape (Ne,Nk,Nc).*
         Spatial filters.
 
     Returns
-    -------
-    A : ndarray of shape (Ne,Nc,Nk).
+    ----------
+    A : *ndarray of shape (Ne,Nc,Nk).*
         Propagation matrices.
-    s : ndarray of shape (Ne*Nt,Nk,Np).
-        Spatial filtered X (wX).
+    s : *ndarray of shape (Ne*Nt,Nk,Np).*
+        Spatial filtered data.
     """
     # basic information
     event_type = list(np.unique(y))
@@ -2047,22 +1976,25 @@ def solve_forward_propagation(
     return A, s
 
 
-def solve_coral(Cs: ndarray, Ct: ndarray) -> ndarray:
-    """
-    Solve CORAL problem: Q = min || Q^T Cs Q - Ct ||_F^2.
+def solve_coral(Cs, Ct):
+    r"""
+    Solve CORAL problem
 
-    Q = Cs^(-1/2) @ Ct^(1/2).
+    :math:`\hat{\pmb{Q}} = \min \left\| {\pmb{Q}}^T \pmb{C}_s \pmb{Q}
+    - \pmb{C}_t \right\|_F^2`.
+
+    :math:`\hat{\pmb{Q}} = {\pmb{C}_s}^(-\frac{1}{2}) @ {\pmb{C}_t}^{\frac{1}{2}}`.
 
     Parameters
-    -------
-    Cs : ndarray of shape (n,n).
+    ----------
+    Cs : *ndarray of shape (n,n).*
         Second-order statistics of source dataset.
-    Ct : ndarray of shape (n,n).
+    Ct : *ndarray of shape (n,n).*
         Second-order statistics of target dataset.
 
     Returns
-    -------
-    Q : ndarray of shape (n,n).
-        Linear transformation matrix Q.
+    ----------
+    Q : *ndarray of shape (n,n).*
+        Linear transformation matrix.
     """
     return np.real(invsqrtm(Cs) @ sqrtm(Ct))
