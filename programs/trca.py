@@ -5,15 +5,11 @@
 
 Task-related component analysis (TRCA) series.
     1. (e)TRCA: https://ieeexplore.ieee.org/document/7904641/
-    1. (e)TRCA: https://ieeexplore.ieee.org/document/7904641/
             DOI: 10.1109/TBME.2017.2694818
-    2. ms-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
     2. ms-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/ab2373
             DOI: 10.1088/1741-2552/ab2373
     3. (e)TRCA-R: https://ieeexplore.ieee.org/document/9006809/
-    3. (e)TRCA-R: https://ieeexplore.ieee.org/document/9006809/
             DOI: 10.1109/TBME.2020.2975552
-    4. sc-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
     4. sc-(e)TRCA: https://iopscience.iop.org/article/10.1088/1741-2552/abfdfa
             DOI: 10.1088/1741-2552/abfdfa
     5. TS-CORRCA: https://ieeexplore.ieee.org/document/8387802/
@@ -35,43 +31,18 @@ Notations:
     n_harmonics: Nh
     n_bands: Nb
     trail-normalization: TN
-    5. TS-CORRCA: https://ieeexplore.ieee.org/document/8387802/
-            DOI: 10.1109/TNSRE.2018.2848222
-    6. xTRCA:
-            DOI:
-    7. LA-TRCA:
-            DOI:
-
-Notations:
-    n_events: Ne
-    n_train: Nt
-    n_test: Nte
-    train_trials: Ne*Nt
-    test_trials: Ne*Nte
-    n_chans: Nc
-    n_points: Np
-    n_components: Nk
-    n_harmonics: Nh
-    n_bands: Nb
-    trail-normalization: TN
-
 """
 
-# %% Basic modules
+
 # %% Basic modules
 import utils
 
 from abc import abstractmethod
 from typing import Optional, List, Tuple, Dict, Union
 
-from abc import abstractmethod
-from typing import Optional, List, Tuple, Dict, Union
-
 import numpy as np
 from numpy import ndarray
-from numpy import ndarray
 
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
 
@@ -422,33 +393,7 @@ def trca_feature(
         w, wX = trca_model['w'], trca_model['wX']  # (Ne,Nk,Nc), (Ne,Nk,Np)
         n_events = wX.shape[0]  # Ne
         wX = utils.fast_stan_2d(np.reshape(wX, (n_events, -1), 'C'))  # (Ne,Nk*Np)
-        w, wX = trca_model['w'], trca_model['wX']  # (Ne,Nk,Nc), (Ne,Nk,Np)
-        n_events = wX.shape[0]  # Ne
-        wX = utils.fast_stan_2d(np.reshape(wX, (n_events, -1), 'C'))  # (Ne,Nk*Np)
     if ensemble:
-        ew, ewX = trca_model['ew'], trca_model['ewX']  # (Ne*Nk,Nc), (Ne,Ne*Nk,Np)
-        n_events = ewX.shape[0]  # Ne
-        ewX = utils.fast_stan_2d(np.reshape(ewX, (n_events, -1), 'C'))  # (Ne,Ne*Nk*Np)
-
-    # pattern matching
-    rho = np.zeros((n_test, n_events))
-    erho = np.zeros_like(rho)
-    if standard:
-        for nte in range(n_test):
-            X_temp = np.reshape(w @ X_test[nte], (n_events, -1), 'C')  # (Ne,Nk*Np)
-            X_temp = utils.fast_stan_2d(X_temp)  # (Ne,Nk*Np)
-
-            rho[nte] = utils.fast_corr_2d(X=X_temp, Y=wX) / X_temp.shape[-1]
-    if ensemble:
-        for nte in range(n_test):
-            X_temp = np.tile(
-                A=np.reshape(ew @ X_test[nte], -1, 'C'),
-                reps=(n_events, 1)
-            )  # (Ne*Nk,Np) -reshape-> (Ne*Nk*Np,) -repeat-> (Ne,Ne*Nk*Np)
-            X_temp = utils.fast_stan_2d(X_temp)  # (Ne,Ne*Nk*Np)
-
-            erho[nte] = utils.fast_corr_2d(X=X_temp, Y=ewX) / X_temp.shape[-1]
-    return {'rho': rho, 'erho': erho}
         ew, ewX = trca_model['ew'], trca_model['ewX']  # (Ne*Nk,Nc), (Ne,Ne*Nk,Np)
         n_events = ewX.shape[0]  # Ne
         ewX = utils.fast_stan_2d(np.reshape(ewX, (n_events, -1), 'C'))  # (Ne,Ne*Nk*Np)
@@ -478,16 +423,7 @@ class TRCA(BasicTRCA):
     def fit(self, X_train: ndarray, y_train: ndarray):
         """
         Train (e)TRCA model.
-    def fit(self, X_train: ndarray, y_train: ndarray):
-        """
-        Train (e)TRCA model.
 
-        Parameters
-        -------
-        X_train : ndarray, shape (Ne*Nt,Nc,Np).
-            Training dataset. Nt>=2.
-        y_train : ndarray, shape (Ne*Nt,).
-            Labels for X_train.
         Parameters
         -------
         X_train : ndarray, shape (Ne*Nt,Nc,Np).
@@ -501,12 +437,8 @@ class TRCA(BasicTRCA):
         self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
-        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
-        assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train TRCA filters & templates
-        self.training_model = trca_kernel(
         self.training_model = trca_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
@@ -685,7 +617,6 @@ def mstrca_kernel(
         ensemble=ensemble
     )
     return {'Q': Q_total, 'S': S_total, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
-    return {'Q': Q_total, 'S': S_total, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
 
 
 class MS_TRCA(TRCA):
@@ -716,9 +647,6 @@ class MS_TRCA(TRCA):
         self.d = d
         self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         if events_group is not None:
-        self.d = d
-        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        if events_group is not None:
             self.events_group = events_group
         else:
             self.events_group = utils.augmented_events(
@@ -727,15 +655,8 @@ class MS_TRCA(TRCA):
             )
         n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
-            self.events_group = utils.augmented_events(
-                event_type=self.event_type,
-                d=self.d
-            )
-        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
-        assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train ms-TRCA models & templates
-        self.training_model = mstrca_kernel(
         self.training_model = mstrca_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
@@ -883,7 +804,6 @@ def trcar_kernel(
         ensemble=ensemble
     )
     return {'Q': Q, 'S': S, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
-    return {'Q': Q, 'S': S, 'w': w, 'ew': ew, 'wX': wX, 'ewX': ewX}
 
 
 class TRCA_R(TRCA):
@@ -910,13 +830,9 @@ class TRCA_R(TRCA):
         self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
         n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
-        self.event_type = np.unique(y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
-        assert np.min(n_train) > 1, 'Insufficient training samples!'
         self.projection = projection
 
         # train TRCA-R models & templates
-        self.training_model = trcar_kernel(
         self.training_model = trcar_kernel(
             X_train=self.X_train,
             y_train=self.y_train,
@@ -1314,9 +1230,6 @@ class SC_TRCA(BasicTRCA):
         self.event_type = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
         n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
         assert np.min(n_train) > 1, 'Insufficient training samples!'
-        self.event_type = np.unique(self.y_train)  # [0,1,2,...,Ne-1]
-        n_train = np.array([np.sum(self.y_train == et) for et in self.event_type])
-        assert np.min(n_train) > 1, 'Insufficient training samples!'
 
         # train sc-TRCA models & templates
         self.training_model = sctrca_kernel(
@@ -1391,22 +1304,6 @@ class FB_SC_TRCA(BasicFBTRCA):
             base_estimator=SC_TRCA(
                 standard=self.standard,
                 ensemble=self.ensemble,
-                n_components=self.n_components
-            ),
-            filter_bank=filter_bank,
-            with_filter_bank=with_filter_bank,
-            version='SSVEP'
-        )
-
-
-# %% 5. two-stage CORRCA | TS-CORRCA
-
-
-# %% 6. cross-correlation TRCA | xTRCA
-
-
-# %% 7. latency-aligned TRCA | LA-TRCA
-
                 n_components=self.n_components
             ),
             filter_bank=filter_bank,
