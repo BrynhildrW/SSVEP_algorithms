@@ -1,0 +1,1798 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils module &mdash; SSVEP-ML 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=7c91f8fd"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="trca module" href="trca.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SSVEP-ML
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">programs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cca.html">cca module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html">dsp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html">transfer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html">trca module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#utils.FilterBank"><code class="docutils literal notranslate"><span class="pre">FilterBank</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#utils.FilterBank.fb_transform"><code class="docutils literal notranslate"><span class="pre">FilterBank.fb_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utils.FilterBank.fit"><code class="docutils literal notranslate"><span class="pre">FilterBank.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utils.FilterBank.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FilterBank.set_fit_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utils.FilterBank.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FilterBank.set_transform_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utils.FilterBank.transform"><code class="docutils literal notranslate"><span class="pre">FilterBank.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.Imn"><code class="docutils literal notranslate"><span class="pre">Imn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.acc_compute"><code class="docutils literal notranslate"><span class="pre">acc_compute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.augmented_events"><code class="docutils literal notranslate"><span class="pre">augmented_events()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.centralization"><code class="docutils literal notranslate"><span class="pre">centralization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.channel_normalization"><code class="docutils literal notranslate"><span class="pre">channel_normalization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.combine_feature"><code class="docutils literal notranslate"><span class="pre">combine_feature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.correct_conv_matrix"><code class="docutils literal notranslate"><span class="pre">correct_conv_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.cosine_sim"><code class="docutils literal notranslate"><span class="pre">cosine_sim()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.create_conv_matrix"><code class="docutils literal notranslate"><span class="pre">create_conv_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.euclidean_alignment"><code class="docutils literal notranslate"><span class="pre">euclidean_alignment()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.euclidean_dist"><code class="docutils literal notranslate"><span class="pre">euclidean_dist()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.extract_periodic_impulse"><code class="docutils literal notranslate"><span class="pre">extract_periodic_impulse()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_corr_2d"><code class="docutils literal notranslate"><span class="pre">fast_corr_2d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_corr_3d"><code class="docutils literal notranslate"><span class="pre">fast_corr_3d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_corr_4d"><code class="docutils literal notranslate"><span class="pre">fast_corr_4d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_stan_2d"><code class="docutils literal notranslate"><span class="pre">fast_stan_2d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_stan_3d"><code class="docutils literal notranslate"><span class="pre">fast_stan_3d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_stan_4d"><code class="docutils literal notranslate"><span class="pre">fast_stan_4d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fast_stan_5d"><code class="docutils literal notranslate"><span class="pre">fast_stan_5d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.fisher_score"><code class="docutils literal notranslate"><span class="pre">fisher_score()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.generate_data_info"><code class="docutils literal notranslate"><span class="pre">generate_data_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.generate_filter_bank"><code class="docutils literal notranslate"><span class="pre">generate_filter_bank()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.generate_mean"><code class="docutils literal notranslate"><span class="pre">generate_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.generate_source_response"><code class="docutils literal notranslate"><span class="pre">generate_source_response()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.generate_var"><code class="docutils literal notranslate"><span class="pre">generate_var()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.get_resample_sequence"><code class="docutils literal notranslate"><span class="pre">get_resample_sequence()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.itr_compute"><code class="docutils literal notranslate"><span class="pre">itr_compute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.label_align"><code class="docutils literal notranslate"><span class="pre">label_align()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.laplacian_matrix"><code class="docutils literal notranslate"><span class="pre">laplacian_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.mahalanobis_dist"><code class="docutils literal notranslate"><span class="pre">mahalanobis_dist()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.minkowski_dist"><code class="docutils literal notranslate"><span class="pre">minkowski_dist()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.nega_root_matrix"><code class="docutils literal notranslate"><span class="pre">nega_root_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.neighbor_edge"><code class="docutils literal notranslate"><span class="pre">neighbor_edge()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.neighbor_events"><code class="docutils literal notranslate"><span class="pre">neighbor_events()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.normalization"><code class="docutils literal notranslate"><span class="pre">normalization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.normalize_eigenvectors"><code class="docutils literal notranslate"><span class="pre">normalize_eigenvectors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.pearson_corr"><code class="docutils literal notranslate"><span class="pre">pearson_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.pick_subspace"><code class="docutils literal notranslate"><span class="pre">pick_subspace()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.qr_projection"><code class="docutils literal notranslate"><span class="pre">qr_projection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.reshape_dataset"><code class="docutils literal notranslate"><span class="pre">reshape_dataset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.resize_conv_matrix"><code class="docutils literal notranslate"><span class="pre">resize_conv_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.root_matrix"><code class="docutils literal notranslate"><span class="pre">root_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.s_estimator"><code class="docutils literal notranslate"><span class="pre">s_estimator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.selected_events"><code class="docutils literal notranslate"><span class="pre">selected_events()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.sign_sta"><code class="docutils literal notranslate"><span class="pre">sign_sta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.sin_wave"><code class="docutils literal notranslate"><span class="pre">sin_wave()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.sine_template"><code class="docutils literal notranslate"><span class="pre">sine_template()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.snr_time"><code class="docutils literal notranslate"><span class="pre">snr_time()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.solve_coral"><code class="docutils literal notranslate"><span class="pre">solve_coral()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.solve_forward_propagation"><code class="docutils literal notranslate"><span class="pre">solve_forward_propagation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.solve_gep"><code class="docutils literal notranslate"><span class="pre">solve_gep()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.solve_mcpe"><code class="docutils literal notranslate"><span class="pre">solve_mcpe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.spatial_filtering"><code class="docutils literal notranslate"><span class="pre">spatial_filtering()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.square_wave"><code class="docutils literal notranslate"><span class="pre">square_wave()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.standardization"><code class="docutils literal notranslate"><span class="pre">standardization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.trial_normalization"><code class="docutils literal notranslate"><span class="pre">trial_normalization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.tukeys_kernel"><code class="docutils literal notranslate"><span class="pre">tukeys_kernel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils.weight_matrix"><code class="docutils literal notranslate"><span class="pre">weight_matrix()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SSVEP-ML</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">programs</a></li>
+      <li class="breadcrumb-item active">utils module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-utils">
+<span id="utils-module"></span><h1>utils module<a class="headerlink" href="#module-utils" title="Link to this heading">¶</a></h1>
+<p>Utilization functions.</p>
+<p>Author: Brynhildr Wu &lt;<a class="reference external" href="mailto:brynhildrwu&#37;&#52;&#48;gmail&#46;com">brynhildrwu<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</p>
+<p>Source codes: <a class="reference external" href="https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/programs/utils.py">https://github.com/BrynhildrW/SSVEP_algorithms/blob/main/programs/utils.py</a></p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>Data preprocessing:</dt><dd><ul class="simple">
+<li><p>centralization()</p></li>
+<li><p>normalization()</p></li>
+<li><p>standardization()</p></li>
+<li><p>channel_normalization()</p></li>
+<li><p>trial_normalization()</p></li>
+<li><p>euclidean_alignment()</p></li>
+<li><p>fast_stan_2d()</p></li>
+<li><p>fast_stan_3d()</p></li>
+<li><p>fast_stan_4d()</p></li>
+<li><p>fast_stan_5d()</p></li>
+<li><p>generate_data_info()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Data generation</dt><dd><ul class="simple">
+<li><p>augmented_events()</p></li>
+<li><p>neighbor_edge()</p></li>
+<li><p>neighbor_events()</p></li>
+<li><p>selected_events()</p></li>
+<li><p>reshape_dataset()</p></li>
+<li><p>generate_mean()</p></li>
+<li><p>generate_var()</p></li>
+<li><p>generate_source_response()</p></li>
+<li><p>spatial_filtering()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Feature integration</dt><dd><ul class="simple">
+<li><p>sign_sta()</p></li>
+<li><p>combine_feature()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Algorithm evaluation</dt><dd><ul class="simple">
+<li><p>label_align()</p></li>
+<li><p>acc_compute()</p></li>
+<li><p>itr_compute()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Spatial distances</dt><dd><ul class="simple">
+<li><p>pearson_corr()</p></li>
+<li><p>fast_corr_2d()</p></li>
+<li><p>fast_corr_3d()</p></li>
+<li><p>fast_corr_4d()</p></li>
+<li><p>fisher_score()</p></li>
+<li><p>snr_time()</p></li>
+<li><p>euclidean_dist()</p></li>
+<li><p>cosine_sim()</p></li>
+<li><p>minkowski_dist()</p></li>
+<li><p>mahalanobis_dist()</p></li>
+<li><p>root_matrix() (<strong>deprecated by sqrtm()</strong>)</p></li>
+<li><p>nega_root_matrix() (<strong>deprecated by invsqrtm()</strong>)</p></li>
+<li><p>s_estimator()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Temporally smoothing functions</dt><dd><ul class="simple">
+<li><p>tukeys_kernel()</p></li>
+<li><p>weight_matrix()</p></li>
+<li><p>laplacian_matrix()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Reduced QR decomposition</dt><dd><ul class="simple">
+<li><p>qr_projection()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Eigenvalue problems</dt><dd><ul class="simple">
+<li><p>pick_subspace()</p></li>
+<li><p>normalize_eigenvectors()</p></li>
+<li><p>solve_gep()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Signal generation</dt><dd><ul class="simple">
+<li><p>Imn()</p></li>
+<li><p>sin_wave()</p></li>
+<li><p>sine_template()</p></li>
+<li><p>get_resample_sequence()</p></li>
+<li><p>extract_periodic_impulse()</p></li>
+<li><p>create_conv_matrix()</p></li>
+<li><p>correct_conv_matrix()</p></li>
+<li><p>solve_mcpe()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Filter-bank technology</dt><dd><ul class="simple">
+<li><p>generate_filter_bank()</p></li>
+<li><p>(class) FilterBank()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Linear transformation</dt><dd><ul class="simple">
+<li><p>forward_propagation()</p></li>
+<li><p>solve_coral()</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ol>
+<p><strong>Notations</strong>:</p>
+<ul class="simple">
+<li><p>Number of events: <cite>Ne</cite></p></li>
+<li><p>Number of (training) samples (for each event): <cite>Nt</cite></p></li>
+<li><p>Number of (testing) samples: <cite>Nte</cite></p></li>
+<li><p>Total number of training trials: <cite>Ne*Nt</cite></p></li>
+<li><p>Total number of testing trials: <cite>Ne*Nte</cite></p></li>
+<li><p>Number of channels: <cite>Nc</cite></p></li>
+<li><p>Number of sampling points: <cite>Np</cite></p></li>
+<li><p>Number of dimensions of sub-space: <cite>Nk</cite></p></li>
+<li><p>Number of harmonics for sinusoidal templates: <cite>Nh</cite></p></li>
+<li><p>Number of filter banks: <cite>Nb</cite></p></li>
+</ul>
+<dl class="py class">
+<dt class="sig sig-object py" id="utils.FilterBank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">FilterBank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_estimator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseEstimator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_bank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_filter_bank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.FilterBank" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerMixin</span></code></p>
+<p>Basic filter-bank object</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="utils.FilterBank.fb_transform">
+<span class="sig-name descname"><span class="pre">fb_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.FilterBank.fb_transform" title="Link to this definition">¶</a></dt>
+<dd><p>Transform single-band X_train into multi-band X_train.</p>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_train<span class="classifier">ndarray of shape (Ne*Nt,…,Np).</span></dt><dd><p>Sklearn-style training dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_fb<span class="classifier">ndarray of shape (Nb,Ne*Nt,…,Np).</span></dt><dd><p>Multi-band X_train.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="utils.FilterBank.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bank_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.FilterBank.fit" title="Link to this definition">¶</a></dt>
+<dd><p>Load in training dataset and pass it to sub-esimators.</p>
+<section id="id1">
+<h2>Parameters<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_train<span class="classifier">ndarray of shape (Ne*Nt,…,Np) or (Nb,Ne*Nt,…,Np).</span></dt><dd><p>Sklearn-style training dataset.</p>
+</dd>
+<dt>y_train<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X_train.</p>
+</dd>
+<dt>bank_weights<span class="classifier">ndarray of shape (Nb,), optional.</span></dt><dd><p>Weights for different filter banks. Defaults to None (equal).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="utils.FilterBank.set_fit_request">
+<span class="sig-name descname"><span class="pre">set_fit_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'$UNCHANGED$'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bank_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'$UNCHANGED$'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'$UNCHANGED$'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#utils.FilterBank" title="utils.FilterBank"><span class="pre">FilterBank</span></a></span></span><a class="headerlink" href="#utils.FilterBank.set_fit_request" title="Link to this definition">¶</a></dt>
+<dd><p>Request metadata passed to the <code class="docutils literal notranslate"><span class="pre">fit</span></code> method.</p>
+<p>Note that this method is only relevant if
+<code class="docutils literal notranslate"><span class="pre">enable_metadata_routing=True</span></code> (see <code class="xref py py-func docutils literal notranslate"><span class="pre">sklearn.set_config()</span></code>).
+Please see <span class="xref std std-ref">User Guide</span> on how the routing
+mechanism works.</p>
+<p>The options for each parameter are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">True</span></code>: metadata is requested, and passed to <code class="docutils literal notranslate"><span class="pre">fit</span></code> if provided. The request is ignored if metadata is not provided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">False</span></code>: metadata is not requested and the meta-estimator will not pass it to <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>: metadata is not requested, and the meta-estimator will raise an error if the user provides it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">str</span></code>: metadata should be passed to the meta-estimator with this given alias instead of the original name.</p></li>
+</ul>
+<p>The default (<code class="docutils literal notranslate"><span class="pre">sklearn.utils.metadata_routing.UNCHANGED</span></code>) retains the
+existing request. This allows you to change the request for some
+parameters and not others.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 1.3.</span></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is only relevant if this estimator is used as a
+sub-estimator of a meta-estimator, e.g. used inside a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Pipeline</span></code>. Otherwise it has no effect.</p>
+</div>
+<section id="id2">
+<h2>Parameters<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_train<span class="classifier">str, True, False, or None,                     default=sklearn.utils.metadata_routing.UNCHANGED</span></dt><dd><p>Metadata routing for <code class="docutils literal notranslate"><span class="pre">X_train</span></code> parameter in <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p>
+</dd>
+<dt>bank_weights<span class="classifier">str, True, False, or None,                     default=sklearn.utils.metadata_routing.UNCHANGED</span></dt><dd><p>Metadata routing for <code class="docutils literal notranslate"><span class="pre">bank_weights</span></code> parameter in <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p>
+</dd>
+<dt>y_train<span class="classifier">str, True, False, or None,                     default=sklearn.utils.metadata_routing.UNCHANGED</span></dt><dd><p>Metadata routing for <code class="docutils literal notranslate"><span class="pre">y_train</span></code> parameter in <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="id3">
+<h2>Returns<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>self<span class="classifier">object</span></dt><dd><p>The updated object.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="utils.FilterBank.set_transform_request">
+<span class="sig-name descname"><span class="pre">set_transform_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'$UNCHANGED$'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#utils.FilterBank" title="utils.FilterBank"><span class="pre">FilterBank</span></a></span></span><a class="headerlink" href="#utils.FilterBank.set_transform_request" title="Link to this definition">¶</a></dt>
+<dd><p>Request metadata passed to the <code class="docutils literal notranslate"><span class="pre">transform</span></code> method.</p>
+<p>Note that this method is only relevant if
+<code class="docutils literal notranslate"><span class="pre">enable_metadata_routing=True</span></code> (see <code class="xref py py-func docutils literal notranslate"><span class="pre">sklearn.set_config()</span></code>).
+Please see <span class="xref std std-ref">User Guide</span> on how the routing
+mechanism works.</p>
+<p>The options for each parameter are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">True</span></code>: metadata is requested, and passed to <code class="docutils literal notranslate"><span class="pre">transform</span></code> if provided. The request is ignored if metadata is not provided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">False</span></code>: metadata is not requested and the meta-estimator will not pass it to <code class="docutils literal notranslate"><span class="pre">transform</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>: metadata is not requested, and the meta-estimator will raise an error if the user provides it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">str</span></code>: metadata should be passed to the meta-estimator with this given alias instead of the original name.</p></li>
+</ul>
+<p>The default (<code class="docutils literal notranslate"><span class="pre">sklearn.utils.metadata_routing.UNCHANGED</span></code>) retains the
+existing request. This allows you to change the request for some
+parameters and not others.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 1.3.</span></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is only relevant if this estimator is used as a
+sub-estimator of a meta-estimator, e.g. used inside a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Pipeline</span></code>. Otherwise it has no effect.</p>
+</div>
+<section id="id4">
+<h2>Parameters<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_test<span class="classifier">str, True, False, or None,                     default=sklearn.utils.metadata_routing.UNCHANGED</span></dt><dd><p>Metadata routing for <code class="docutils literal notranslate"><span class="pre">X_test</span></code> parameter in <code class="docutils literal notranslate"><span class="pre">transform</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="id5">
+<h2>Returns<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>self<span class="classifier">object</span></dt><dd><p>The updated object.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="utils.FilterBank.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.FilterBank.transform" title="Link to this definition">¶</a></dt>
+<dd><p>Transform test dataset to multi-band discriminant features.</p>
+<section id="id6">
+<h2>Parameters<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_test<span class="classifier">ndarray of shape (Ne*Nte,…,Np) or (Nb,Ne*Nt,…,Np).</span></dt><dd><p>Sklearn-style test dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id7">
+<h2>Returns<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>fb_rho<span class="classifier">ndarray of shape (Nb,Ne*Nte,Ne).</span></dt><dd><p>Multi-band decision coefficients.</p>
+</dd>
+<dt>rho<span class="classifier">ndarray of shape (Ne*Nte,Ne).</span></dt><dd><p>Intergrated decision coefficients.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.Imn">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">Imn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.Imn" title="Link to this definition">¶</a></dt>
+<dd><p>Concatenate identical matrices into a big matrix.</p>
+<section id="id8">
+<h2>Parameters<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>m<span class="classifier">int.</span></dt><dd><p>Total number of identity matrix.</p>
+</dd>
+<dt>n<span class="classifier">int.</span></dt><dd><p>Dimensions of the identity matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id9">
+<h2>Returns<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h2>
+<p>out : ndarray of shape (m*n, n).</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.acc_compute">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">acc_compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.acc_compute" title="Link to this definition">¶</a></dt>
+<dd><p>Compute accuracy.</p>
+<section id="id10">
+<h2>Parameters<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>y_pred<span class="classifier">ndarray of shape (n_test,).</span></dt><dd><p>Predict labels.</p>
+</dd>
+<dt>y_true<span class="classifier">ndarray of shape (n_test,).</span></dt><dd><p>Real labels for test dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id11">
+<h2>Returns<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h2>
+<p>out : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.augmented_events">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">augmented_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.augmented_events" title="Link to this definition">¶</a></dt>
+<dd><p>Generate indices for merged events for each target event.
+Special function for ms- algorithms.</p>
+<section id="id12">
+<h2>Parameters<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>event_type<span class="classifier">ndarray of shape (Ne,).</span></dt><dd><p>Unique labels.</p>
+</dd>
+<dt>d<span class="classifier">int.</span></dt><dd><p>The range of events to be merged.</p>
+</dd>
+</dl>
+</section>
+<section id="id13">
+<h2>Returns<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h2>
+<p>events_group (dict): {‘events’:[idx,]}</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.centralization">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">centralization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.centralization" title="Link to this definition">¶</a></dt>
+<dd><section id="id14">
+<h2>Parameters<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X: <em>ndarray of shape (…,Np).</em></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id15">
+<h2>Returns<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out: <em>ndarray of shape (…,Np).</em></dt><dd><p>Data after centralization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.channel_normalization">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">channel_normalization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.channel_normalization" title="Link to this definition">¶</a></dt>
+<dd><p>Z-score normalization on each channel.</p>
+<section id="id16">
+<h2>Parameters<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Input dataset</p>
+</dd>
+</dl>
+</section>
+<section id="id17">
+<h2>Returns<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>out<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Data after normalization</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.combine_feature">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">combine_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">features:</span> <span class="pre">~typing.List[int</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">~numpy.ndarray],</span> <span class="pre">func:</span> <span class="pre">~typing.Callable[[int</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">~numpy.ndarray],</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">~numpy.ndarray]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">sign_sta&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.combine_feature" title="Link to this definition">¶</a></dt>
+<dd><p>Coefficient-level integration.</p>
+<section id="id18">
+<h2>Parameters<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>features<span class="classifier">List[Union[int, float, ndarray]].</span></dt><dd><p>Different features.</p>
+</dd>
+<dt>func<span class="classifier">function.</span></dt><dd><p>Quantization function.</p>
+</dd>
+</dl>
+</section>
+<section id="id19">
+<h2>Returns<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>coef<span class="classifier">List[Union[int, float, ndarray]].</span></dt><dd><p>Integrated coefficients.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.correct_conv_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">correct_conv_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'dynamic'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.correct_conv_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Replace the blank values at the front of the reconstructed data
+with its subsequent fragment.</p>
+<section id="id20">
+<h2>Parameters<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>H<span class="classifier">ndarray of shape (Nrl,Np).</span></dt><dd><p>Convolution matrix.</p>
+</dd>
+<dt>freq<span class="classifier">int or float.</span></dt><dd><p>Stimulus frequency (Hz).</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate. Defaults to 1000 Hz.</p>
+</dd>
+<dt>amp_scale<span class="classifier">float.</span></dt><dd><p>The multiplying power when calculating the amplitudes of data. Defaults to 0.8.</p>
+</dd>
+<dt>concat_method<span class="classifier">str.</span></dt><dd><p>‘dynamic’ or ‘static’. &lt;p&gt;
+‘static’: Concatenated data is starting from 1 s. &lt;p&gt;
+‘dynamic’: Concatenated data is starting from 1 period.</p>
+</dd>
+</dl>
+</section>
+<section id="id21">
+<h2>Returns<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (Nrl,Np).</span></dt><dd><p>Corrected convolution matrix.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.cosine_sim">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">cosine_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.cosine_sim" title="Link to this definition">¶</a></dt>
+<dd><p>Cosine similarity.</p>
+<section id="id22">
+<h2>Parameters<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
+<p>x : ndarray of shape (Np,).
+y : ndarray of shape (Np,).</p>
+</section>
+<section id="id23">
+<h2>Returns<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h2>
+<p>out : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.create_conv_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">create_conv_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">periodic_impulse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.create_conv_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Create the convolution matrix of the periodic impulse.</p>
+<section id="id24">
+<h2>Parameters<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>periodic_impulse<span class="classifier">ndarray of shape (1,Np).</span></dt><dd><p>Impulse sequence of stimulus.</p>
+</dd>
+<dt>response_length<span class="classifier">int.</span></dt><dd><p>Length of impulse response.</p>
+</dd>
+</dl>
+</section>
+<section id="id25">
+<h2>Returns<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out (ndarray): (Nrl,Np).</dt><dd><p>Convolution matrix.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.euclidean_alignment">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">euclidean_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.euclidean_alignment" title="Link to this definition">¶</a></dt>
+<dd><p>Euclidean alignment by projection <span class="math notranslate nohighlight">\(\pmb{P}^T \pmb{X}:\)</span></p>
+<p><span class="math notranslate nohighlight">\(\pmb{P} = \min \left\| \pmb{P}^T \pmb{X} &#64; \pmb{X}^T &#64; \pmb{P} - \pmb{I} \right\|_F^2.\)</span></p>
+<section id="id26">
+<h2>Parameters<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id27">
+<h2>Returns<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>P<span class="classifier"><em>ndarray of shape (Nc,Nc).</em></span></dt><dd><p>Transformation matrix.</p>
+</dd>
+<dt>X_ea<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Aligned <code class="docutils literal notranslate"><span class="pre">X</span></code>.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.euclidean_dist">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">euclidean_dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.euclidean_dist" title="Link to this definition">¶</a></dt>
+<dd><p>Euclidean distance.</p>
+<section id="id28">
+<h2>Parameters<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (m, n).
+Y : ndarray of shape (m, n).</p>
+</section>
+<section id="id29">
+<h2>Returns<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h2>
+<p>out : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.extract_periodic_impulse">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">extract_periodic_impulse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Square'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.extract_periodic_impulse" title="Link to this definition">¶</a></dt>
+<dd><p>Extract periodic impulse sequence from stimulus sequence.</p>
+<section id="id30">
+<h2>Parameters<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>freq<span class="classifier">int or float.</span></dt><dd><p>Stimulus frequency (Hz).</p>
+</dd>
+<dt>phase<span class="classifier">int or float.</span></dt><dd><p>Stimulus phase (coefficients). 0-2 (pi).</p>
+</dd>
+<dt>n_points<span class="classifier">int.</span></dt><dd><p>Total length of reconstructed signal.</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate. Defaults to 1000 Hz.</p>
+</dd>
+<dt>rrate<span class="classifier">int.</span></dt><dd><p>Refresh rate of stimulus devices. Defaults to 60 Hz.</p>
+</dd>
+<dt>method<span class="classifier">str.</span></dt><dd><p>‘Square’ or ‘Cosine’. Defaults to ‘Square’. &lt;p&gt;
+If ‘Square’, pick up the moment of the rising edge of the square wave.</p>
+<blockquote>
+<div><p>Adopted from: <a class="reference external" href="https://github.com/edwin465/SSVEP-Impulse-Response">https://github.com/edwin465/SSVEP-Impulse-Response</a>. &lt;p&gt;</p>
+</div></blockquote>
+<p>If ‘Cosine’, pick up the peak moment of the resampled cosine wave.</p>
+</dd>
+</dl>
+</section>
+<section id="id31">
+<h2>Returns<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray. shape (1,Np).</span></dt><dd><p>Periodic impulse sequence.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_corr_2d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_corr_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_corr_2d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make pearson_corr() run faster for 2-D X. &lt;p&gt;
+X.shape[-1] is the reshaped length, not real length: &lt;p&gt;
+e.g. (Ne,Ne * Nk,Np) -reshape-&gt; (Ne,Ne * Nk * Np) -&gt; (Ne,) (return)
+-&gt; 1 / Np * (Ne,) (real corr)</p>
+<section id="id32">
+<h2>Parameters<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (d1,d2).
+Y : ndarray of shape (d1,d2).</p>
+</section>
+<section id="id33">
+<h2>Returns<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h2>
+<p>corr : ndarray of shape (d1,).</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_corr_3d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_corr_3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_corr_3d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make pearson_corr() run faster for 3-D X.</p>
+<section id="id34">
+<h2>Parameters<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (d1,d2,d3).
+Y : ndarray of shape (d1,d2,d3).</p>
+</section>
+<section id="id35">
+<h2>Returns<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h2>
+<p>corr : ndarray of shape (d1,d2).</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_corr_4d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_corr_4d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_corr_4d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make pearson_corr() run faster for 4-D X.</p>
+<section id="id36">
+<h2>Parameters<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (d1,d2,d3,d4).
+Y : ndarray of shape (d1,d2,d3,d4).</p>
+</section>
+<section id="id37">
+<h2>Returns<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h2>
+<p>corr : ndarray of shape (d1,d2,d3).</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_stan_2d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_stan_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_stan_2d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make standardization() run faster for 2-dimensional X.</p>
+<section id="id38">
+<h2>Parameters<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (d1,d2).</em></span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id39">
+<h2>Returns<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X_new<span class="classifier"><em>ndarray of shape (d1,d2).</em></span></dt><dd><p><code class="docutils literal notranslate"><span class="pre">X</span></code> after standardization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_stan_3d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_stan_3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_stan_3d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make standardization() run faster for 3-D X.</p>
+<section id="id40">
+<h2>Parameters<a class="headerlink" href="#id40" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (d1,d2,d3).</span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id41">
+<h2>Returns<a class="headerlink" href="#id41" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_new<span class="classifier">ndarray of shape (d1,d2,d3).</span></dt><dd><p>X after standardization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_stan_4d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_stan_4d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_stan_4d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make standardization() run faster for 4-D X.</p>
+<section id="id42">
+<h2>Parameters<a class="headerlink" href="#id42" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (d1,d2,d3,d4).</span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id43">
+<h2>Returns<a class="headerlink" href="#id43" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_new<span class="classifier">ndarray of shape (d1,d2,d3,d4).</span></dt><dd><p>X after standardization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fast_stan_5d">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fast_stan_5d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fast_stan_5d" title="Link to this definition">¶</a></dt>
+<dd><p>Use the JIT compiler to make standardization() run faster for 5-D X.</p>
+<section id="id44">
+<h2>Parameters<a class="headerlink" href="#id44" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (d1,d2,d3,d4,d5).</span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id45">
+<h2>Returns<a class="headerlink" href="#id45" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_new<span class="classifier">ndarray of shape (d1,d2,d3,d4,d5).</span></dt><dd><p>X after standardization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.fisher_score">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">fisher_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.fisher_score" title="Link to this definition">¶</a></dt>
+<dd><p>Fisher Score (sequence).</p>
+<section id="id46">
+<h2>Parameters<a class="headerlink" href="#id46" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Np).</span></dt><dd><p>Single-channel input data.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X.</p>
+</dd>
+</dl>
+</section>
+<section id="id47">
+<h2>Returns<a class="headerlink" href="#id47" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>fs<span class="classifier">ndarray of shape (Np,).</span></dt><dd><p>Fisher-Score sequence.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.generate_data_info">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">generate_data_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.generate_data_info" title="Link to this definition">¶</a></dt>
+<dd><p>Generate basic data information.</p>
+<section id="id48">
+<h2>Parameters<a class="headerlink" href="#id48" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Nc,Np).</span></dt><dd><p>Input data.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X.</p>
+</dd>
+</dl>
+</section>
+<section id="id49">
+<h2>Returns<a class="headerlink" href="#id49" title="Link to this heading">¶</a></h2>
+<p>event_type : ndarray of shape (Ne,).
+n_events : int.
+n_train : ndarray of shape (Ne,).</p>
+<blockquote>
+<div><p>Trials of each event.</p>
+</div></blockquote>
+<p>n_chans : int.
+n_points : int.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.generate_filter_bank">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">generate_filter_bank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passbands</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopbands</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpass</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gstop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.generate_filter_bank" title="Link to this definition">¶</a></dt>
+<dd><p>Generate Chebyshev type I filters according to input paramters.</p>
+<section id="id50">
+<h2>Parameters<a class="headerlink" href="#id50" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>passbands<span class="classifier">List[Tuple[float,float]].</span></dt><dd><p>Passband edge frequencies.</p>
+</dd>
+<dt>stopbands<span class="classifier">List[Tuple[float,float]].</span></dt><dd><p>Stopband edge frequencies.</p>
+</dd>
+<dt>srate<span class="classifier">float.</span></dt><dd><p>Sampling rate.</p>
+</dd>
+<dt>order<span class="classifier">int, optional.</span></dt><dd><p>Order of filters.</p>
+</dd>
+<dt>gpass<span class="classifier">float.</span></dt><dd><p>The maximum loss in the passband (dB).</p>
+</dd>
+<dt>gstop<span class="classifier">float.</span></dt><dd><p>The minimum attenuation in the stopband (dB).</p>
+</dd>
+<dt>rp<span class="classifier">float.</span></dt><dd><p>Ripple of filters. Default to 0.5 dB.</p>
+</dd>
+</dl>
+</section>
+<section id="id51">
+<h2>Returns<a class="headerlink" href="#id51" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>filter_bank<span class="classifier">List[ndarray].</span></dt><dd><p>Second-order sections representation of the IIR filters.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.generate_mean">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">generate_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.generate_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate X_mean from X &amp; y.</p>
+<section id="id52">
+<h2>Parameters<a class="headerlink" href="#id52" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Nc,Np).</span></dt><dd><p>Input data.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X.</p>
+</dd>
+</dl>
+</section>
+<section id="id53">
+<h2>Returns<a class="headerlink" href="#id53" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_mean<span class="classifier">ndarray of shape (Ne,Nc,Np).</span></dt><dd><p>Trial-averaged X.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.generate_source_response">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">generate_source_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.generate_source_response" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate wX on latent subspace.</p>
+<section id="id54">
+<h2>Parameters<a class="headerlink" href="#id54" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Nc,Np).</span></dt><dd><p>Sklearn-style dataset. Nt&gt;=2.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X.</p>
+</dd>
+<dt>w<span class="classifier">ndarray of shape (Ne,Nk,Nc).</span></dt><dd><p>Spatial filters.</p>
+</dd>
+</dl>
+</section>
+<section id="id55">
+<h2>Returns<a class="headerlink" href="#id55" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>S<span class="classifier">ndarray of shape (Ne*Nt,Nk,Np).</span></dt><dd><p>Source responses.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.generate_var">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">generate_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unbias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shrinkage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.generate_var" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate variance matrices from X &amp; y.</p>
+<section id="id56">
+<h2>Parameters<a class="headerlink" href="#id56" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (Ne*Nt,Nc,Np). Input data.
+y : ndarray of shape (Ne*Nt,). Labels for X.</p>
+<blockquote>
+<div><p>If None, ignore category information.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>unbias<span class="classifier">bool.</span></dt><dd><p>Unbias estimation. Defaults to False.
+When ‘True’, the result may fluctuate by 0.05%.</p>
+</dd>
+<dt>shrinkage<span class="classifier">float, optional.</span></dt><dd><p>Strength for shrinkage covariance estimation. Defaults to 0 (no shrinkage). &lt;p&gt;
+0.01 recommended while Nt is small (e.g. 2 for each class).</p>
+</dd>
+</dl>
+</section>
+<section id="id57">
+<h2>Returns<a class="headerlink" href="#id57" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_var<span class="classifier">ndarray of shape (Ne,Nc,Nc) or (Nc,Nc).</span></dt><dd><p>Variance matrices of X.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.get_resample_sequence">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">get_resample_sequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_waveform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.get_resample_sequence" title="Link to this definition">¶</a></dt>
+<dd><p>Obtain the resampled sequence from original sequence.</p>
+<section id="id58">
+<h2>Parameters<a class="headerlink" href="#id58" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>seq<span class="classifier">ndarray of shape (1, signal_length).</span></dt><dd><p>Stimulus sequence of original sampling rate.</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate. Defaults to 1000 Hz.</p>
+</dd>
+<dt>rrate<span class="classifier">int.</span></dt><dd><p>Refresh rate of stimulus devices. Defaults to 60 Hz.</p>
+</dd>
+<dt>output_waveform<span class="classifier">bool.</span></dt><dd><p>Return resampled waveform or not. Defaults to False.</p>
+</dd>
+</dl>
+</section>
+<section id="id59">
+<h2>Returns<a class="headerlink" href="#id59" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>rsp_seq: List[Tuple[int, float]].</dt><dd><p>(index, value). Resampled values and indices of stimulus sequence.</p>
+</dd>
+<dt>rsp_wave<span class="classifier">ndarray of shape (1, resampled_length).</span></dt><dd><p>Only exist when output_waveform is True.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.itr_compute">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">itr_compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.itr_compute" title="Link to this definition">¶</a></dt>
+<dd><p>Compute information transfer rate.</p>
+<section id="id60">
+<h2>Parameters<a class="headerlink" href="#id60" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>num<span class="classifier">int.</span></dt><dd><p>Number of targets.</p>
+</dd>
+<dt>time<span class="classifier">int or float.</span></dt><dd><p>Unit: seconds.</p>
+</dd>
+<dt>acc<span class="classifier">float.</span></dt><dd><p>Accuracy. 0-1.</p>
+</dd>
+</dl>
+</section>
+<section id="id61">
+<h2>Returns<a class="headerlink" href="#id61" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">float.</span></dt><dd><p>ITR value.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.label_align">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">label_align</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.label_align" title="Link to this definition">¶</a></dt>
+<dd><p>Alignment between predicted indices and real labels. &lt;p&gt;
+For example, y_test=[1,2,5], y_pred=[0,1,2].
+(Correct but with hidden danger in codes). &lt;p&gt;
+This function will transform y_pred to [1,2,5].</p>
+<section id="id62">
+<h2>Parameters<a class="headerlink" href="#id62" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>y_pred<span class="classifier">ndarray of shape (Nte,).</span></dt><dd><p>Predict labels.</p>
+</dd>
+<dt>event_type<span class="classifier">ndarray of shape (Ne,).</span></dt><dd><p>Event ID arranged in ascending order.</p>
+</dd>
+</dl>
+</section>
+<section id="id63">
+<h2>Returns<a class="headerlink" href="#id63" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>correct_predict<span class="classifier">ndarray of shape (Nte,).</span></dt><dd><p>Corrected labels.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.laplacian_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">laplacian_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">W</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.laplacian_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Laplace matrix for time smoothing.</p>
+<section id="id64">
+<h2>Parameters<a class="headerlink" href="#id64" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>W<span class="classifier">ndarray of shape (n_points, n_points).</span></dt><dd><p>Weighting matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id65">
+<h2>Returns<a class="headerlink" href="#id65" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (n_points, n_points).</span></dt><dd><p>Laplace matrix.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.mahalanobis_dist">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">mahalanobis_dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.mahalanobis_dist" title="Link to this definition">¶</a></dt>
+<dd><p>Mahalanobis distance.</p>
+<section id="id66">
+<h2>Parameters<a class="headerlink" href="#id66" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Nt,Np).</span></dt><dd><p>Training dataset.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Np,).</span></dt><dd><p>Test data.</p>
+</dd>
+</dl>
+</section>
+<section id="id67">
+<h2>Returns<a class="headerlink" href="#id67" title="Link to this heading">¶</a></h2>
+<p>dist : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.minkowski_dist">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">minkowski_dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.minkowski_dist" title="Link to this definition">¶</a></dt>
+<dd><p>Minkowski distance.</p>
+<section id="id68">
+<h2>Parameters<a class="headerlink" href="#id68" title="Link to this heading">¶</a></h2>
+<p>x : ndarray of shape (Np,).
+y : ndarray of shape (Np,).
+p : int or float.</p>
+<blockquote>
+<div><p>Hyper-parameter.</p>
+</div></blockquote>
+</section>
+<section id="id69">
+<h2>Returns<a class="headerlink" href="#id69" title="Link to this heading">¶</a></h2>
+<p>out : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.nega_root_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">nega_root_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.nega_root_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the negative root of a square matrix.
+(Deprecated by pyriemann.utils.base.invsqrtm())</p>
+<section id="id70">
+<h2>Parameters<a class="headerlink" href="#id70" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>Square matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id71">
+<h2>Returns<a class="headerlink" href="#id71" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>X^(-1/2).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.neighbor_edge">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">neighbor_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">total_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbor_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.neighbor_edge" title="Link to this definition">¶</a></dt>
+<dd><p>Decide the edge index (based on labels) of neighboring stimulus area.</p>
+<section id="id72">
+<h2>Parameters<a class="headerlink" href="#id72" title="Link to this heading">¶</a></h2>
+<p>total_length : int.
+neighbor_range : int.</p>
+<blockquote>
+<div><p>Must be an odd number.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>current_index<span class="classifier">int.</span></dt><dd><p>From 0 to total_lenth - 1.</p>
+</dd>
+</dl>
+</section>
+<section id="id73">
+<h2>Returns<a class="headerlink" href="#id73" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>(edge_idx_1, edge_idx_2)<span class="classifier">Tuple[int,int].</span></dt><dd><p>edge_idx_2 is 1 more than the real index of the last element.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.neighbor_events">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">neighbor_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.neighbor_events" title="Link to this definition">¶</a></dt>
+<dd><p>Generate indices for merged events for each target event. &lt;p&gt;
+Refers to: 10.1109/TIM.2022.3219497 (DOI).</p>
+<section id="id74">
+<h2>Parameters<a class="headerlink" href="#id74" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>distribution<span class="classifier">ndarray of shape (m,n).</span></dt><dd><p>Real spatial distribution (labels) of each stimuli.</p>
+</dd>
+<dt>width<span class="classifier">int.</span></dt><dd><p>Parameter ‘neighbor_range’ used in neighbor_edge(). Must be an odd number.</p>
+</dd>
+</dl>
+</section>
+<section id="id75">
+<h2>Returns<a class="headerlink" href="#id75" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>events_group<span class="classifier">Dict[str, List[int]].</span></dt><dd><p>{‘event_id’: [idx_1,idx_2,…]}.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.normalization">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">normalization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.normalization" title="Link to this definition">¶</a></dt>
+<dd><p><span class="math notranslate nohighlight">\(\pmb{x} = \dfrac{\pmb{x} - \min(\pmb{x})}{\max(\pmb{x}) - \min(\pmb{x})}\)</span>.</p>
+<section id="id76">
+<h2>Parameters<a class="headerlink" href="#id76" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (…,Np).</em></span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id77">
+<h2>Returns<a class="headerlink" href="#id77" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>out<span class="classifier"><em>ndarray of shape (…,Np).</em></span></dt><dd><p>Data after normalization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.normalize_eigenvectors">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">normalize_eigenvectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">e_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.normalize_eigenvectors" title="Link to this definition">¶</a></dt>
+<dd><p>Adjust the sign of the eigenvector by selecting the element with the largest
+absolute value and ensuring it is positive.</p>
+<section id="id78">
+<h2>Parameters<a class="headerlink" href="#id78" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>e_vec<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>Column vectors, i.e. e_vec[:, i] is an eigenvector.</p>
+</dd>
+</dl>
+</section>
+<section id="id79">
+<h2>Returns<a class="headerlink" href="#id79" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>e_vec_norm<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>Normalized e_vec.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.pearson_corr">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">pearson_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.pearson_corr" title="Link to this definition">¶</a></dt>
+<dd><p>Pearson correlation coefficient for EEG classification.</p>
+<section id="id80">
+<h2>Parameters<a class="headerlink" href="#id80" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (m,n).</span></dt><dd><p>Spatial filtered (or multi-dimension) single-trial data (Nk,Np).</p>
+</dd>
+<dt>Y<span class="classifier">ndarray of shape (l,m,n) or (m,n).</span></dt><dd><p>Templates while parallel=True (Ne,Nk,Np) or False (Nk,Np).</p>
+</dd>
+<dt>parallel<span class="classifier">bool.</span></dt><dd><p>An accelerator. Defaults to False. &lt;p&gt;
+If False, X could only be compared with Y of shape (m,n); &lt;p&gt;
+If True, X could be compared with Y of shape (l,m,n).</p>
+</dd>
+</dl>
+</section>
+<section id="id81">
+<h2>Returns<a class="headerlink" href="#id81" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">float or ndarray.</span></dt><dd><p>If float: X (m,n) &amp; Y (m,n).
+If ndarray (l,): X (m,n) &amp; Y (l,m,n).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.pick_subspace">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">pick_subspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">e_vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#utils.pick_subspace" title="Link to this definition">¶</a></dt>
+<dd><p>Optimize the number of subspaces.</p>
+<section id="id82">
+<h2>Parameters<a class="headerlink" href="#id82" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>e_vals<span class="classifier">array-like, shape (Nk,).</span></dt><dd><p>Sequence of eigenvalues sorted in descending order.</p>
+</dd>
+<dt>ratio<span class="classifier">float.</span></dt><dd><p>0-1. The ratio of the sum of picked eigenvalues to the total.</p>
+</dd>
+<dt>min_n: int.</dt><dd><p>Minimum number of the dimension of subspace. min_n &gt;= 1.</p>
+</dd>
+<dt>max_n: int.</dt><dd><p>Maximum number of the dimension of subspace. max_n &lt;= Nk.</p>
+</dd>
+</dl>
+</section>
+<section id="id83">
+<h2>Returns<a class="headerlink" href="#id83" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>n_components<span class="classifier">int.</span></dt><dd><p>The optimized number of subspaces.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.qr_projection">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">qr_projection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.qr_projection" title="Link to this definition">¶</a></dt>
+<dd><p>Orthogonal projection based on QR decomposition of X.</p>
+<section id="id84">
+<h2>Parameters<a class="headerlink" href="#id84" title="Link to this heading">¶</a></h2>
+<p>X : ndarray of shape (Np,m).</p>
+</section>
+<section id="id85">
+<h2>Returns<a class="headerlink" href="#id85" title="Link to this heading">¶</a></h2>
+<p>P : ndarray of shape (Np,Np).</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.reshape_dataset">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">reshape_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sklearn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_bank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.reshape_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Reshape data array between public versionand sklearn version.</p>
+<section id="id86">
+<h2>Parameters<a class="headerlink" href="#id86" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>data<span class="classifier">ndarray. shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).</span></dt><dd><p>If filter_bank is True, shape (Nb,Ne,Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np).</p>
+</dd>
+<dt>labels<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for data (sklearn version). Defaults to None.</p>
+</dd>
+<dt>target_style<span class="classifier">str.</span></dt><dd><p>‘public’ or ‘sklearn’. Target style of transformed dataset.</p>
+</dd>
+<dt>filter_bank<span class="classifier">bool.</span></dt><dd><p>Multi-band data or single-band data.</p>
+</dd>
+</dl>
+</section>
+<section id="id87">
+<h2>Returns<a class="headerlink" href="#id87" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X_total<span class="classifier">ndarray of shape (Ne,Nt,Nc,Np) (public) or (Ne*Nt,Nc,Np) (sklearn).</span></dt><dd><p>If filter_bank is True, shape (Nb,Ne,Nt,Nc,Np) or (Nb,Ne*Nt,Nc,Np).</p>
+</dd>
+<dt>y_total<span class="classifier">ndarray of shape (Ne,).</span></dt><dd><p>Labels for X_total. Only exist while target_style is ‘sklearn’.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.resize_conv_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">resize_conv_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Lanczos'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.resize_conv_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Resize the convolution matrix (H) into the common shape (Common response length).</p>
+<section id="id88">
+<h2>Parameters<a class="headerlink" href="#id88" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>H<span class="classifier">ndarray of shape (Nrl,Np).</span></dt><dd><p>Convolution matrix. Nrl is the length of response.</p>
+</dd>
+<dt>new_size<span class="classifier">Tuple[int, int]. (length, width).</span></dt><dd><p>NOTE: for a matrix with shape (m,n), length=n, width=m.</p>
+</dd>
+<dt>method<span class="classifier">str.</span></dt><dd><p>‘nearest’, ‘linear’, cubic’, ‘area’, ‘Lanczos’, ‘linear-exact’,
+‘inverse-map’ and ‘fill-outliers’.
+Interpolation methods. Defaults to ‘Lanczos’.</p>
+</dd>
+</dl>
+</section>
+<section id="id89">
+<h2>Returns<a class="headerlink" href="#id89" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>H_new<span class="classifier">ndarray of shape (Nrl,Np).</span></dt><dd><p>Resized convolution matrix.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.root_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">root_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.root_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the root of a square matrix.
+(Deprecated by pyriemann.utils.base.sqrtm())</p>
+<section id="id90">
+<h2>Parameters<a class="headerlink" href="#id90" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>Square matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id91">
+<h2>Returns<a class="headerlink" href="#id91" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>X^(1/2).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.s_estimator">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">s_estimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.s_estimator" title="Link to this definition">¶</a></dt>
+<dd><p>Construct s-estimator.</p>
+<section id="id92">
+<h2>Parameters<a class="headerlink" href="#id92" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (m,m).</span></dt><dd><p>Symmetric matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id93">
+<h2>Returns<a class="headerlink" href="#id93" title="Link to this heading">¶</a></h2>
+<p>s_estimator : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.selected_events">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">selected_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_events</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'2'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.selected_events" title="Link to this definition">¶</a></dt>
+<dd><p>Generate indices for selected events of total dataset.
+Special function for stCCA.</p>
+<section id="id94">
+<h2>Parameters<a class="headerlink" href="#id94" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>n_events<span class="classifier">int.</span></dt><dd><p>Number of total events.</p>
+</dd>
+<dt>select_num<span class="classifier">int.</span></dt><dd><p>Number of selected events.</p>
+</dd>
+<dt>method<span class="classifier">str, optional.</span></dt><dd><p>‘1’, ‘2’, and ‘3’. Defaults to ‘2’. &lt;p&gt;
+Details in <a class="reference external" href="https://ieeexplore.ieee.org/document/9177172/">https://ieeexplore.ieee.org/document/9177172/</a></p>
+</dd>
+</dl>
+</section>
+<section id="id95">
+<h2>Returns<a class="headerlink" href="#id95" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>select_events<span class="classifier">List[int].</span></dt><dd><p>Indices of selected events.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.sign_sta">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">sign_sta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.sign_sta" title="Link to this definition">¶</a></dt>
+<dd><p>Standardization of decision coefficient based on sign(x).</p>
+<section id="id96">
+<h2>Parameters<a class="headerlink" href="#id96" title="Link to this heading">¶</a></h2>
+<p>x : int or float or ndarray.</p>
+</section>
+<section id="id97">
+<h2>Returns<a class="headerlink" href="#id97" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">int or float or ndarray.</span></dt><dd><p>out = sign(x)*x^2</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.sin_wave">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">sin_wave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.sin_wave" title="Link to this definition">¶</a></dt>
+<dd><p>Construct sinusoidal waveforms.</p>
+<section id="id98">
+<h2>Parameters<a class="headerlink" href="#id98" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>freq<span class="classifier">int or float.</span></dt><dd><p>Frequency (Hz).</p>
+</dd>
+<dt>phase<span class="classifier">float.</span></dt><dd><p>Coefficients. 0-2 (pi).</p>
+</dd>
+<dt>n_points<span class="classifier">int.</span></dt><dd><p>Number of sampling points.</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate (Hz). Defaults to 1000.</p>
+</dd>
+</dl>
+</section>
+<section id="id99">
+<h2>Returns<a class="headerlink" href="#id99" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (n_points,).</span></dt><dd><p>Sinusoidal sequence (amplitude ranging from -1 to 1).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.sine_template">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">sine_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_harmonics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.sine_template" title="Link to this definition">¶</a></dt>
+<dd><p>Create sine-cosine template for SSVEP signals.</p>
+<section id="id100">
+<h2>Parameters<a class="headerlink" href="#id100" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>freq<span class="classifier">int or float.</span></dt><dd><p>Frequency (Hz).</p>
+</dd>
+<dt>phase<span class="classifier">float.</span></dt><dd><p>Coefficients. 0-2 (pi).</p>
+</dd>
+<dt>n_points<span class="classifier">int.</span></dt><dd><p>Number of sampling points.</p>
+</dd>
+<dt>n_harmonics<span class="classifier">int.</span></dt><dd><p>Number of harmonics.</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate (Hz). Defaults to 1000.</p>
+</dd>
+</dl>
+</section>
+<section id="id101">
+<h2>Returns<a class="headerlink" href="#id101" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>Y<span class="classifier">ndarray of shape (2*Nh,Np).</span></dt><dd><p>Sine-cosine templates.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.snr_time">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">snr_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'array'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.snr_time" title="Link to this definition">¶</a></dt>
+<dd><p>Signal-to-Noise ratio (sequence) in time domain.</p>
+<section id="id102">
+<h2>Parameters<a class="headerlink" href="#id102" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Np).</span></dt><dd><p>Single-channel input data.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X. If None, X is single-category data.</p>
+</dd>
+<dt>output<span class="classifier">str.</span></dt><dd><p>‘array’ or ‘db’. Defaults to ‘array’. &lt;p&gt;
+If ‘array’, return array of shape (Ne,Np). &lt;p&gt;
+If ‘db’, return array of shape (Ne,).</p>
+</dd>
+</dl>
+</section>
+<section id="id103">
+<h2>Returns<a class="headerlink" href="#id103" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>snr<span class="classifier">ndarray, (Ne,Np) or (Ne,)</span></dt><dd><p>SNR sequences (or values).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.solve_coral">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">solve_coral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Cs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ct</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.solve_coral" title="Link to this definition">¶</a></dt>
+<dd><p>Solve CORAL problem: Q = min || Q^T Cs Q - Ct ||_F^2.</p>
+<p>Q = Cs^(-1/2) &#64; Ct^(1/2).</p>
+<section id="id104">
+<h2>Parameters<a class="headerlink" href="#id104" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>Cs<span class="classifier">ndarray of shape (n,n).</span></dt><dd><p>Second-order statistics of source dataset.</p>
+</dd>
+<dt>Ct<span class="classifier">ndarray of shape (n,n).</span></dt><dd><p>Second-order statistics of target dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id105">
+<h2>Returns<a class="headerlink" href="#id105" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>Q<span class="classifier">ndarray of shape (n,n).</span></dt><dd><p>Linear transformation matrix Q.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.solve_forward_propagation">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">solve_forward_propagation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#utils.solve_forward_propagation" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate propagation matrice(A) based on source responses(wX).</p>
+<p>A = argmin||A &#64; w &#64; X - X||.</p>
+<section id="id106">
+<h2>Parameters<a class="headerlink" href="#id106" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Ne*Nt,Nc,Np).</span></dt><dd><p>Multi-trial dataset. Nt&gt;=2.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>Labels for X.</p>
+</dd>
+<dt>w<span class="classifier">ndarray of shape (Ne,Nk,Nc).</span></dt><dd><p>Spatial filters.</p>
+</dd>
+</dl>
+</section>
+<section id="id107">
+<h2>Returns<a class="headerlink" href="#id107" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>A<span class="classifier">ndarray of shape (Ne,Nc,Nk).</span></dt><dd><p>Propagation matrices.</p>
+</dd>
+<dt>s<span class="classifier">ndarray of shape (Ne*Nt,Nk,Np).</span></dt><dd><p>Spatial filtered X (wX).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.solve_gep">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">solve_gep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Max'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.solve_gep" title="Link to this definition">¶</a></dt>
+<dd><p>Solve generalized eigenvalue problems (GEPs) based on Rayleigh quotient:
+f(w) = (w &#64; A &#64; w^T) / (w &#64; B &#64; w^T) -&gt; A &#64; w = lambda &#64; B &#64; w.</p>
+<p>If B is None, solve eigenvalue problems (EPs):
+f(w) = (w &#64; A &#64; w^T) / (w &#64; w^T) -&gt; A &#64; w = lambda &#64; w</p>
+<section id="id108">
+<h2>Parameters<a class="headerlink" href="#id108" title="Link to this heading">¶</a></h2>
+<p>A : ndarray of shape (m,m).
+B : ndarray of shape (m,m), optional.
+n_components : int.</p>
+<blockquote>
+<div><p>Number of eigenvectors picked as filters.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>mode<span class="classifier">str.</span></dt><dd><p>‘Max’ or ‘Min’. Depends on target function.</p>
+</dd>
+<dt>ratio<span class="classifier">float.</span></dt><dd><p>0-1. The ratio of the sum of useful (mode==’Max’) or deprecated (mode==’Min’)
+eigenvalues to the total. Only useful when n_components is None.</p>
+</dd>
+<dt>min_n: int.</dt><dd><p>Minimum number of the dimension of subspace. min_n &gt;= 1.</p>
+</dd>
+<dt>max_n: int.</dt><dd><p>Maximum number of the dimension of subspace. max_n &lt;= Nk.</p>
+</dd>
+</dl>
+</section>
+<section id="id109">
+<h2>Returns<a class="headerlink" href="#id109" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>w<span class="classifier">ndarray of shape (Nk,m).</span></dt><dd><p>Picked eigenvectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.solve_mcpe">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">solve_mcpe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.solve_mcpe" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the phase for SSVEP signal by Maximum Correlation Phase Estimation (MCPE).</p>
+<section id="id110">
+<h2>Parameters<a class="headerlink" href="#id110" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>X<span class="classifier">ndarray of shape (Nt,Np).</span></dt><dd><p>Single-channel input data of one class.</p>
+</dd>
+<dt>freq<span class="classifier">float.</span></dt><dd><p>Target (stimulus) frequency.</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate (Hz). Defaults to 1000.</p>
+</dd>
+<dt>average<span class="classifier">bool.</span></dt><dd><p>Whether return the phase of X_mean. Defaults to False.
+i.e. return multiple-trial phases as an array.</p>
+</dd>
+</dl>
+</section>
+<section id="id111">
+<h2>Returns<a class="headerlink" href="#id111" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>phases<span class="classifier">ndarray of shape (Nt,) or (1,).</span></dt><dd><p>Estimated phases (radians).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.spatial_filtering">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">spatial_filtering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.spatial_filtering" title="Link to this definition">¶</a></dt>
+<dd><p>Process input data (X) with spatial filters (w).</p>
+<section id="id112">
+<h2>Parameters<a class="headerlink" href="#id112" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>w<span class="classifier">ndarray of shape (Ne,Nk,Nc) or (Nk,Nc).</span></dt><dd><p>Spatial filters</p>
+</dd>
+<dt>X<span class="classifier">ndarray of shape (Ne,Nc,Np) or (Ne*Nt,Nc,Np).</span></dt><dd><p>Input dataset.</p>
+</dd>
+<dt>y<span class="classifier">ndarray of shape (Ne*Nt,).</span></dt><dd><p>If None, X is trial-averaged. If not None, X is multi-trial dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id113">
+<h2>Returns<a class="headerlink" href="#id113" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>wX<span class="classifier">ndarray of shape (Ne,Nk,Np) or (Ne*Nt,Nk,Np).</span></dt><dd><p>Spatial-filtered X.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.square_wave">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">square_wave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.square_wave" title="Link to this definition">¶</a></dt>
+<dd><p>Construct square waveforms.
+Adopted from: <a class="reference external" href="https://github.com/edwin465/SSVEP-Impulse-Response">https://github.com/edwin465/SSVEP-Impulse-Response</a>.</p>
+<section id="id114">
+<h2>Parameters<a class="headerlink" href="#id114" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>freq<span class="classifier">int or float.</span></dt><dd><p>Frequency (Hz).</p>
+</dd>
+<dt>phase<span class="classifier">float.</span></dt><dd><p>Coefficients. 0-2 (pi).</p>
+</dd>
+<dt>n_points<span class="classifier">int.</span></dt><dd><p>Number of sampling points.</p>
+</dd>
+<dt>duty<span class="classifier">int or float.</span></dt><dd><p>Defaults to 50 (%).</p>
+</dd>
+<dt>srate<span class="classifier">int or float.</span></dt><dd><p>Sampling rate (Hz). Defaults to 1000.</p>
+</dd>
+</dl>
+</section>
+<section id="id115">
+<h2>Returns<a class="headerlink" href="#id115" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out<span class="classifier">ndarray of shape (n_points,).</span></dt><dd><p>Square sequence (amplitude ranging from 0 to 2).</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.standardization">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">standardization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.standardization" title="Link to this definition">¶</a></dt>
+<dd><p><span class="math notranslate nohighlight">\({\rm Var} \left( \pmb{x} \right) = 1\)</span></p>
+<section id="id116">
+<h2>Parameters<a class="headerlink" href="#id116" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (…,Np).</em></span></dt><dd><p>Input dataset</p>
+</dd>
+</dl>
+</section>
+<section id="id117">
+<h2>Returns<a class="headerlink" href="#id117" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>out<span class="classifier"><em>ndarray of shape (…,Np).</em></span></dt><dd><p>Data after standardization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.trial_normalization">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">trial_normalization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.trial_normalization" title="Link to this definition">¶</a></dt>
+<dd><p>After flattening the single-trial multi-channel data into a single channel,
+zero-mean and unit variance normalization are performed.</p>
+<section id="id118">
+<h2>Parameters<a class="headerlink" href="#id118" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>X<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Input dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="id119">
+<h2>Returns<a class="headerlink" href="#id119" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>out<span class="classifier"><em>ndarray of shape (Ne*Nt,Nc,Np).</em></span></dt><dd><p>Data after normalization.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.tukeys_kernel">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">tukeys_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#utils.tukeys_kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Tukeys tri-cube kernel function.</p>
+<section id="id120">
+<h2>Parameters<a class="headerlink" href="#id120" title="Link to this heading">¶</a></h2>
+<p>x : float.
+r : int or float.</p>
+<blockquote>
+<div><p>Defaults to 3.</p>
+</div></blockquote>
+</section>
+<section id="id121">
+<h2>Returns<a class="headerlink" href="#id121" title="Link to this heading">¶</a></h2>
+<p>out : float.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.weight_matrix">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">weight_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#utils.weight_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Weighting matrix based on kernel function.</p>
+<section id="id122">
+<h2>Parameters<a class="headerlink" href="#id122" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>n_points<span class="classifier">int.</span></dt><dd><p>Parameters that determine the size of the matrix.</p>
+</dd>
+<dt>tau<span class="classifier">int or float.</span></dt><dd><p>Hyper-parameter for weighting matrix.</p>
+</dd>
+<dt>r<span class="classifier">int or float.</span></dt><dd><p>Hyper-parameter for kernel funtion.</p>
+</dd>
+</dl>
+</section>
+<section id="id123">
+<h2>Returns<a class="headerlink" href="#id123" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>W<span class="classifier">ndarray of shape (Np,Np).</span></dt><dd><p>Weighting matrix.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="trca.html" class="btn btn-neutral float-left" title="trca module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Brynhildr Wu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

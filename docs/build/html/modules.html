@@ -1,0 +1,827 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>programs &mdash; SSVEP-ML 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=7c91f8fd"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="cca module" href="cca.html" />
+    <link rel="prev" title="Welcome to SSVEP-ML’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SSVEP-ML
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">programs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cca.html">cca module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html">dsp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html">transfer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html">trca module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">utils module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SSVEP-ML</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">programs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="programs">
+<h1>programs<a class="headerlink" href="#programs" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cca.html">cca module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.BasicCCA"><code class="docutils literal notranslate"><span class="pre">BasicCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.fit"><code class="docutils literal notranslate"><span class="pre">BasicCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.predict"><code class="docutils literal notranslate"><span class="pre">BasicCCA.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicCCA.transform"><code class="docutils literal notranslate"><span class="pre">BasicCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.BasicFBCCA"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.predict"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.BasicFBCCA.transform"><code class="docutils literal notranslate"><span class="pre">BasicFBCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.CCA"><code class="docutils literal notranslate"><span class="pre">CCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.fit"><code class="docutils literal notranslate"><span class="pre">CCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">CCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">CCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">CCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">CCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.CCA.transform"><code class="docutils literal notranslate"><span class="pre">CCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.ECCA"><code class="docutils literal notranslate"><span class="pre">ECCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.fit"><code class="docutils literal notranslate"><span class="pre">ECCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">ECCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">ECCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">ECCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">ECCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ECCA.transform"><code class="docutils literal notranslate"><span class="pre">ECCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_CCA"><code class="docutils literal notranslate"><span class="pre">FB_CCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_CCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_CCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_CCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_CCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_CCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_CCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_CCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_CCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_ECCA"><code class="docutils literal notranslate"><span class="pre">FB_ECCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ECCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_ECCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ECCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_ECCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ECCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_ECCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ECCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_ECCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_ITCCA"><code class="docutils literal notranslate"><span class="pre">FB_ITCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ITCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_ITCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ITCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_ITCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ITCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_ITCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_ITCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_ITCCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_MSCCA"><code class="docutils literal notranslate"><span class="pre">FB_MSCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MSCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MSCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MSCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MSCCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_MSETCCA1"><code class="docutils literal notranslate"><span class="pre">FB_MSETCCA1</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSETCCA1.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MSETCCA1.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSETCCA1.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MSETCCA1.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSETCCA1.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MSETCCA1.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSETCCA1.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MSETCCA1.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_MSI"><code class="docutils literal notranslate"><span class="pre">FB_MSI</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSI.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MSI.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSI.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MSI.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSI.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MSI.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MSI.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MSI.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.FB_MS_ECCA"><code class="docutils literal notranslate"><span class="pre">FB_MS_ECCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MS_ECCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_ECCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MS_ECCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_ECCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MS_ECCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_ECCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.FB_MS_ECCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_ECCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.ITCCA"><code class="docutils literal notranslate"><span class="pre">ITCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.fit"><code class="docutils literal notranslate"><span class="pre">ITCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">ITCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">ITCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">ITCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">ITCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.ITCCA.transform"><code class="docutils literal notranslate"><span class="pre">ITCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.MSCCA"><code class="docutils literal notranslate"><span class="pre">MSCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.fit"><code class="docutils literal notranslate"><span class="pre">MSCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MSCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MSCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">MSCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MSCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSCCA.transform"><code class="docutils literal notranslate"><span class="pre">MSCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.MSETCCA1"><code class="docutils literal notranslate"><span class="pre">MSETCCA1</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.fit"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.set_score_request"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSETCCA1.transform"><code class="docutils literal notranslate"><span class="pre">MSETCCA1.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.MSI"><code class="docutils literal notranslate"><span class="pre">MSI</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.fit"><code class="docutils literal notranslate"><span class="pre">MSI.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MSI.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MSI.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.set_score_request"><code class="docutils literal notranslate"><span class="pre">MSI.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MSI.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MSI.transform"><code class="docutils literal notranslate"><span class="pre">MSI.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.MS_ECCA"><code class="docutils literal notranslate"><span class="pre">MS_ECCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.fit"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.MS_ECCA.transform"><code class="docutils literal notranslate"><span class="pre">MS_ECCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.TDCCA"><code class="docutils literal notranslate"><span class="pre">TDCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.fit"><code class="docutils literal notranslate"><span class="pre">TDCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TDCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TDCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">TDCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TDCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cca.html#cca.TDCCA.transform"><code class="docutils literal notranslate"><span class="pre">TDCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.cca_feature"><code class="docutils literal notranslate"><span class="pre">cca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.cca_kernel"><code class="docutils literal notranslate"><span class="pre">cca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.ecca_feature"><code class="docutils literal notranslate"><span class="pre">ecca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.ecca_kernel"><code class="docutils literal notranslate"><span class="pre">ecca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_cca_mat"><code class="docutils literal notranslate"><span class="pre">generate_cca_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_mcc_mat"><code class="docutils literal notranslate"><span class="pre">generate_mcc_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_mec_mat"><code class="docutils literal notranslate"><span class="pre">generate_mec_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_mec_template"><code class="docutils literal notranslate"><span class="pre">generate_mec_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_msecca_mat"><code class="docutils literal notranslate"><span class="pre">generate_msecca_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_msecca_template"><code class="docutils literal notranslate"><span class="pre">generate_msecca_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.generate_tdcca_mat"><code class="docutils literal notranslate"><span class="pre">generate_tdcca_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.mcc_kernel"><code class="docutils literal notranslate"><span class="pre">mcc_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.mec_kernel"><code class="docutils literal notranslate"><span class="pre">mec_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.mscca_feature"><code class="docutils literal notranslate"><span class="pre">mscca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.mscca_kernel"><code class="docutils literal notranslate"><span class="pre">mscca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msecca_feature"><code class="docutils literal notranslate"><span class="pre">msecca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msecca_kernel"><code class="docutils literal notranslate"><span class="pre">msecca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msetcca1_feature"><code class="docutils literal notranslate"><span class="pre">msetcca1_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msetcca1_kernel"><code class="docutils literal notranslate"><span class="pre">msetcca1_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msi_feature"><code class="docutils literal notranslate"><span class="pre">msi_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.msi_kernel"><code class="docutils literal notranslate"><span class="pre">msi_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.solve_cca_func"><code class="docutils literal notranslate"><span class="pre">solve_cca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.solve_mcc_func"><code class="docutils literal notranslate"><span class="pre">solve_mcc_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.solve_mec_func"><code class="docutils literal notranslate"><span class="pre">solve_mec_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.solve_msecca_func"><code class="docutils literal notranslate"><span class="pre">solve_msecca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.solve_tdcca_func"><code class="docutils literal notranslate"><span class="pre">solve_tdcca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.symbol_correction"><code class="docutils literal notranslate"><span class="pre">symbol_correction()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.tdcca_feature"><code class="docutils literal notranslate"><span class="pre">tdcca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cca.html#cca.tdcca_kernel"><code class="docutils literal notranslate"><span class="pre">tdcca_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dsp.html">dsp module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.BasicDSP"><code class="docutils literal notranslate"><span class="pre">BasicDSP</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.fit"><code class="docutils literal notranslate"><span class="pre">BasicDSP.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.predict"><code class="docutils literal notranslate"><span class="pre">BasicDSP.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicDSP.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicDSP.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicDSP.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicDSP.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicDSP.transform"><code class="docutils literal notranslate"><span class="pre">BasicDSP.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP.predict"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.BasicFBDSP.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicFBDSP.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.DSP"><code class="docutils literal notranslate"><span class="pre">DSP</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.fit"><code class="docutils literal notranslate"><span class="pre">DSP.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.set_fit_request"><code class="docutils literal notranslate"><span class="pre">DSP.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.set_predict_request"><code class="docutils literal notranslate"><span class="pre">DSP.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.set_score_request"><code class="docutils literal notranslate"><span class="pre">DSP.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.set_transform_request"><code class="docutils literal notranslate"><span class="pre">DSP.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.DSP.transform"><code class="docutils literal notranslate"><span class="pre">DSP.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.FB_DSP"><code class="docutils literal notranslate"><span class="pre">FB_DSP</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_DSP.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_DSP.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_DSP.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_DSP.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_DSP.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_DSP.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_DSP.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_DSP.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.FB_TDCA"><code class="docutils literal notranslate"><span class="pre">FB_TDCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_TDCA.fit"><code class="docutils literal notranslate"><span class="pre">FB_TDCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_TDCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TDCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_TDCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TDCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_TDCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TDCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.FB_TDCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TDCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.TDCA"><code class="docutils literal notranslate"><span class="pre">TDCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.fit"><code class="docutils literal notranslate"><span class="pre">TDCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TDCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TDCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">TDCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TDCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dsp.html#dsp.TDCA.transform"><code class="docutils literal notranslate"><span class="pre">TDCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.dsp_feature"><code class="docutils literal notranslate"><span class="pre">dsp_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.dsp_kernel"><code class="docutils literal notranslate"><span class="pre">dsp_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.generate_dsp_mat"><code class="docutils literal notranslate"><span class="pre">generate_dsp_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.tdca_augmentation"><code class="docutils literal notranslate"><span class="pre">tdca_augmentation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="dsp.html#dsp.tdca_feature"><code class="docutils literal notranslate"><span class="pre">tdca_feature()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="transfer.html">transfer module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.ALPHA"><code class="docutils literal notranslate"><span class="pre">ALPHA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.fit"><code class="docutils literal notranslate"><span class="pre">ALPHA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.intra_source_training"><code class="docutils literal notranslate"><span class="pre">ALPHA.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.intra_target_training"><code class="docutils literal notranslate"><span class="pre">ALPHA.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">ALPHA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">ALPHA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.set_score_request"><code class="docutils literal notranslate"><span class="pre">ALPHA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">ALPHA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.subspace_pooling"><code class="docutils literal notranslate"><span class="pre">ALPHA.subspace_pooling()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.transfer_learning"><code class="docutils literal notranslate"><span class="pre">ALPHA.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ALPHA.transform"><code class="docutils literal notranslate"><span class="pre">ALPHA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.fit"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.intra_source_training"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.intra_target_training"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.transfer_learning"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.ASS_IISCCA.transform"><code class="docutils literal notranslate"><span class="pre">ASS_IISCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.BasicASS"><code class="docutils literal notranslate"><span class="pre">BasicASS</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicASS.evaluation"><code class="docutils literal notranslate"><span class="pre">BasicASS.evaluation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicASS.select_subjects"><code class="docutils literal notranslate"><span class="pre">BasicASS.select_subjects()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicASS.sort_subject_list"><code class="docutils literal notranslate"><span class="pre">BasicASS.sort_subject_list()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.fit"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.predict"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicFBTransfer.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTransfer.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.BasicTransfer"><code class="docutils literal notranslate"><span class="pre">BasicTransfer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.dist_calc"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.dist_calc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.fit"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.inter_source_training"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.inter_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.intra_source_training"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.intra_target_training"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.predict"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.target_augmentation"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.target_augmentation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.transfer_learning"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.transform"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.BasicTransfer.weight_calc"><code class="docutils literal notranslate"><span class="pre">BasicTransfer.weight_calc()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_ALPHA"><code class="docutils literal notranslate"><span class="pre">FB_ALPHA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ALPHA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_ALPHA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ALPHA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_ALPHA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ALPHA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_ALPHA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ALPHA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_ALPHA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_ASS_IISCCA"><code class="docutils literal notranslate"><span class="pre">FB_ASS_IISCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ASS_IISCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_ASS_IISCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ASS_IISCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_ASS_IISCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ASS_IISCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_ASS_IISCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_ASS_IISCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_ASS_IISCCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_IISMC"><code class="docutils literal notranslate"><span class="pre">FB_IISMC</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_IISMC.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_IISMC.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_IISMC.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_IISMC.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_IISMC.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_IISMC.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_IISMC.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_IISMC.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_LST_TRCA"><code class="docutils literal notranslate"><span class="pre">FB_LST_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_LST_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_LST_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_LST_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_LST_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_LST_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_LST_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_LST_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_LST_TRCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME.fit"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_MS_SAME.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_SAME.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_SAME"><code class="docutils literal notranslate"><span class="pre">FB_SAME</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SAME.fit"><code class="docutils literal notranslate"><span class="pre">FB_SAME.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SAME.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_SAME.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SAME.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_SAME.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SAME.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_SAME.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SAME.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_SAME.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_SDLST"><code class="docutils literal notranslate"><span class="pre">FB_SDLST</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SDLST.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_SDLST.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SDLST.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_SDLST.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SDLST.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_SDLST.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_SDLST.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_SDLST.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_STCCA"><code class="docutils literal notranslate"><span class="pre">FB_STCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_STCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_STCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_STCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_STCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_STCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_STCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_STCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_STCCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603.fit"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TBME_20243406603.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TBME_20243406603.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_TIM_20243374314"><code class="docutils literal notranslate"><span class="pre">FB_TIM_20243374314</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TIM_20243374314.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TIM_20243374314.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TIM_20243374314.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TIM_20243374314.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TIM_20243374314.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TIM_20243374314.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TIM_20243374314.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TIM_20243374314.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_TLCCA"><code class="docutils literal notranslate"><span class="pre">FB_TLCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TLCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TLCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TLCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TLCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TLCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TLCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TLCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TLCCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233250953"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233250953</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233250953.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233250953.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233250953.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233250953.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233250953.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233250953.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233250953.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233250953.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233305202"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233305202</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233305202.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233305202.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233305202.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233305202.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233305202.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233305202.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.FB_TNSRE_20233305202.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TNSRE_20233305202.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.IISMC"><code class="docutils literal notranslate"><span class="pre">IISMC</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.fit"><code class="docutils literal notranslate"><span class="pre">IISMC.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.intra_target_training"><code class="docutils literal notranslate"><span class="pre">IISMC.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.set_fit_request"><code class="docutils literal notranslate"><span class="pre">IISMC.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.set_predict_request"><code class="docutils literal notranslate"><span class="pre">IISMC.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.set_score_request"><code class="docutils literal notranslate"><span class="pre">IISMC.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.set_transform_request"><code class="docutils literal notranslate"><span class="pre">IISMC.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.transfer_learning"><code class="docutils literal notranslate"><span class="pre">IISMC.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.IISMC.transform"><code class="docutils literal notranslate"><span class="pre">IISMC.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.LST_TRCA"><code class="docutils literal notranslate"><span class="pre">LST_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.fit"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.intra_target_training"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.predict"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.transfer_learning"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.LST_TRCA.transform"><code class="docutils literal notranslate"><span class="pre">LST_TRCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.MS_SAME"><code class="docutils literal notranslate"><span class="pre">MS_SAME</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.fit"><code class="docutils literal notranslate"><span class="pre">MS_SAME.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MS_SAME.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MS_SAME.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.set_score_request"><code class="docutils literal notranslate"><span class="pre">MS_SAME.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MS_SAME.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.MS_SAME.target_augmentation"><code class="docutils literal notranslate"><span class="pre">MS_SAME.target_augmentation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.SAME"><code class="docutils literal notranslate"><span class="pre">SAME</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.fit"><code class="docutils literal notranslate"><span class="pre">SAME.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.set_fit_request"><code class="docutils literal notranslate"><span class="pre">SAME.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.set_predict_request"><code class="docutils literal notranslate"><span class="pre">SAME.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.set_score_request"><code class="docutils literal notranslate"><span class="pre">SAME.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.set_transform_request"><code class="docutils literal notranslate"><span class="pre">SAME.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SAME.target_augmentation"><code class="docutils literal notranslate"><span class="pre">SAME.target_augmentation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.SDLST"><code class="docutils literal notranslate"><span class="pre">SDLST</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.fit"><code class="docutils literal notranslate"><span class="pre">SDLST.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.intra_target_training"><code class="docutils literal notranslate"><span class="pre">SDLST.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.set_fit_request"><code class="docutils literal notranslate"><span class="pre">SDLST.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.set_predict_request"><code class="docutils literal notranslate"><span class="pre">SDLST.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.set_score_request"><code class="docutils literal notranslate"><span class="pre">SDLST.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.set_transform_request"><code class="docutils literal notranslate"><span class="pre">SDLST.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.transfer_learning"><code class="docutils literal notranslate"><span class="pre">SDLST.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.SDLST.transform"><code class="docutils literal notranslate"><span class="pre">SDLST.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.STCCA"><code class="docutils literal notranslate"><span class="pre">STCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.fit"><code class="docutils literal notranslate"><span class="pre">STCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.intra_source_training"><code class="docutils literal notranslate"><span class="pre">STCCA.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.intra_target_training"><code class="docutils literal notranslate"><span class="pre">STCCA.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">STCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">STCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">STCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">STCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.transfer_learning"><code class="docutils literal notranslate"><span class="pre">STCCA.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.transform"><code class="docutils literal notranslate"><span class="pre">STCCA.transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.STCCA.weight_calc"><code class="docutils literal notranslate"><span class="pre">STCCA.weight_calc()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.fit"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.intra_source_training"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.set_score_request"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TBME_20243406603.transform"><code class="docutils literal notranslate"><span class="pre">TBME_20243406603.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TDCCA_ASS"><code class="docutils literal notranslate"><span class="pre">TDCCA_ASS</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TDCCA_ASS.evaluation_1st"><code class="docutils literal notranslate"><span class="pre">TDCCA_ASS.evaluation_1st()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TDCCA_ASS.evaluation_2nd"><code class="docutils literal notranslate"><span class="pre">TDCCA_ASS.evaluation_2nd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TDCCA_ASS.select_subjects"><code class="docutils literal notranslate"><span class="pre">TDCCA_ASS.select_subjects()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.fit"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.intra_source_training"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.set_score_request"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.transfer_learning"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TIM_20243374314.transform"><code class="docutils literal notranslate"><span class="pre">TIM_20243374314.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TLCCA"><code class="docutils literal notranslate"><span class="pre">TLCCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.fit"><code class="docutils literal notranslate"><span class="pre">TLCCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.intra_source_training"><code class="docutils literal notranslate"><span class="pre">TLCCA.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TLCCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TLCCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">TLCCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TLCCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.transfer_learning"><code class="docutils literal notranslate"><span class="pre">TLCCA.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TLCCA.transform"><code class="docutils literal notranslate"><span class="pre">TLCCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.dist_calc"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.dist_calc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.fit"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.intra_source_training"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.intra_source_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.intra_target_training"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.intra_target_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.set_score_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.transfer_learning"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.transfer_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.transform"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233250953.weight_calc"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233250953.weight_calc()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233305202"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233305202</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233305202.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233305202.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233305202.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233305202.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233305202.set_score_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233305202.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transfer.html#transfer.TNSRE_20233305202.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TNSRE_20233305202.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.align_covariance"><code class="docutils literal notranslate"><span class="pre">align_covariance()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.align_spatial_pattern"><code class="docutils literal notranslate"><span class="pre">align_spatial_pattern()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.alpha_align_subspace"><code class="docutils literal notranslate"><span class="pre">alpha_align_subspace()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.alpha_feature"><code class="docutils literal notranslate"><span class="pre">alpha_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.alpha_multi_dims_feature"><code class="docutils literal notranslate"><span class="pre">alpha_multi_dims_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.alpha_source_decomposition"><code class="docutils literal notranslate"><span class="pre">alpha_source_decomposition()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.alpha_target_decomposition"><code class="docutils literal notranslate"><span class="pre">alpha_target_decomposition()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.common_conv_matrix"><code class="docutils literal notranslate"><span class="pre">common_conv_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.construct_prototype_filter"><code class="docutils literal notranslate"><span class="pre">construct_prototype_filter()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.fast_init_model"><code class="docutils literal notranslate"><span class="pre">fast_init_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.generate_tnsre_20233250953_mat"><code class="docutils literal notranslate"><span class="pre">generate_tnsre_20233250953_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.generate_tnsre_20233250953_template"><code class="docutils literal notranslate"><span class="pre">generate_tnsre_20233250953_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.iiscca_feature"><code class="docutils literal notranslate"><span class="pre">iiscca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.iismc_feature"><code class="docutils literal notranslate"><span class="pre">iismc_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.inter_subject_cca_kernel"><code class="docutils literal notranslate"><span class="pre">inter_subject_cca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.mssame_augmentation"><code class="docutils literal notranslate"><span class="pre">mssame_augmentation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.same_augmentation"><code class="docutils literal notranslate"><span class="pre">same_augmentation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.sdlst_align_dataset"><code class="docutils literal notranslate"><span class="pre">sdlst_align_dataset()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.sdlst_align_subject"><code class="docutils literal notranslate"><span class="pre">sdlst_align_subject()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.solve_tlcca_func"><code class="docutils literal notranslate"><span class="pre">solve_tlcca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.solve_tnsre_20233250953_func"><code class="docutils literal notranslate"><span class="pre">solve_tnsre_20233250953_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.standardize_data_size"><code class="docutils literal notranslate"><span class="pre">standardize_data_size()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.stcca_feature"><code class="docutils literal notranslate"><span class="pre">stcca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.stcca_kernel"><code class="docutils literal notranslate"><span class="pre">stcca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tbme_20243406603_feature"><code class="docutils literal notranslate"><span class="pre">tbme_20243406603_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tim_20243374314_feature"><code class="docutils literal notranslate"><span class="pre">tim_20243374314_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tim_20243374314_kernel"><code class="docutils literal notranslate"><span class="pre">tim_20243374314_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tlcca_conv_matrix"><code class="docutils literal notranslate"><span class="pre">tlcca_conv_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tlcca_feature"><code class="docutils literal notranslate"><span class="pre">tlcca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tlcca_kernel"><code class="docutils literal notranslate"><span class="pre">tlcca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tnsre_20233250953_feature"><code class="docutils literal notranslate"><span class="pre">tnsre_20233250953_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="transfer.html#transfer.tnsre_20233250953_kernel"><code class="docutils literal notranslate"><span class="pre">tnsre_20233250953_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trca.html">trca module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.BasicFBTRCA"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.predict"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicFBTRCA.transform"><code class="docutils literal notranslate"><span class="pre">BasicFBTRCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.BasicTRCA"><code class="docutils literal notranslate"><span class="pre">BasicTRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.fit"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.predict"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.BasicTRCA.transform"><code class="docutils literal notranslate"><span class="pre">BasicTRCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.FB_MS_TRCA"><code class="docutils literal notranslate"><span class="pre">FB_MS_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_MS_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_MS_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_MS_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_MS_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_MS_TRCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.FB_SC_TRCA"><code class="docutils literal notranslate"><span class="pre">FB_SC_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_SC_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_SC_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_SC_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_SC_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_SC_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_SC_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_SC_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_SC_TRCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.FB_TRCA"><code class="docutils literal notranslate"><span class="pre">FB_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.FB_TRCA_R"><code class="docutils literal notranslate"><span class="pre">FB_TRCA_R</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA_R.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA_R.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA_R.set_predict_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA_R.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA_R.set_score_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA_R.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.FB_TRCA_R.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FB_TRCA_R.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.MS_TRCA"><code class="docutils literal notranslate"><span class="pre">MS_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.MS_TRCA.fit"><code class="docutils literal notranslate"><span class="pre">MS_TRCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.MS_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">MS_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.MS_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">MS_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.MS_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">MS_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.MS_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">MS_TRCA.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.SC_TRCA"><code class="docutils literal notranslate"><span class="pre">SC_TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.fit"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.SC_TRCA.transform"><code class="docutils literal notranslate"><span class="pre">SC_TRCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.TRCA"><code class="docutils literal notranslate"><span class="pre">TRCA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.fit"><code class="docutils literal notranslate"><span class="pre">TRCA.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TRCA.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TRCA.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.set_score_request"><code class="docutils literal notranslate"><span class="pre">TRCA.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TRCA.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA.transform"><code class="docutils literal notranslate"><span class="pre">TRCA.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.TRCA_R"><code class="docutils literal notranslate"><span class="pre">TRCA_R</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA_R.fit"><code class="docutils literal notranslate"><span class="pre">TRCA_R.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA_R.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TRCA_R.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA_R.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TRCA_R.set_predict_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA_R.set_score_request"><code class="docutils literal notranslate"><span class="pre">TRCA_R.set_score_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trca.html#trca.TRCA_R.set_transform_request"><code class="docutils literal notranslate"><span class="pre">TRCA_R.set_transform_request()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.generate_sctrca_mat"><code class="docutils literal notranslate"><span class="pre">generate_sctrca_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.generate_sctrca_template"><code class="docutils literal notranslate"><span class="pre">generate_sctrca_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.generate_trca_mat"><code class="docutils literal notranslate"><span class="pre">generate_trca_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.generate_trca_template"><code class="docutils literal notranslate"><span class="pre">generate_trca_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.generate_trcar_mat"><code class="docutils literal notranslate"><span class="pre">generate_trcar_mat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.mstrca_kernel"><code class="docutils literal notranslate"><span class="pre">mstrca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.sctrca_feature"><code class="docutils literal notranslate"><span class="pre">sctrca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.sctrca_kernel"><code class="docutils literal notranslate"><span class="pre">sctrca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.solve_mstrca_func"><code class="docutils literal notranslate"><span class="pre">solve_mstrca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.solve_sctrca_func"><code class="docutils literal notranslate"><span class="pre">solve_sctrca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.solve_trca_func"><code class="docutils literal notranslate"><span class="pre">solve_trca_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.trca_feature"><code class="docutils literal notranslate"><span class="pre">trca_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.trca_kernel"><code class="docutils literal notranslate"><span class="pre">trca_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="trca.html#trca.trcar_kernel"><code class="docutils literal notranslate"><span class="pre">trcar_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">utils module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.FilterBank"><code class="docutils literal notranslate"><span class="pre">FilterBank</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#utils.FilterBank.fb_transform"><code class="docutils literal notranslate"><span class="pre">FilterBank.fb_transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#utils.FilterBank.fit"><code class="docutils literal notranslate"><span class="pre">FilterBank.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#utils.FilterBank.set_fit_request"><code class="docutils literal notranslate"><span class="pre">FilterBank.set_fit_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#utils.FilterBank.set_transform_request"><code class="docutils literal notranslate"><span class="pre">FilterBank.set_transform_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html#utils.FilterBank.transform"><code class="docutils literal notranslate"><span class="pre">FilterBank.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.Imn"><code class="docutils literal notranslate"><span class="pre">Imn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.acc_compute"><code class="docutils literal notranslate"><span class="pre">acc_compute()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.augmented_events"><code class="docutils literal notranslate"><span class="pre">augmented_events()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.centralization"><code class="docutils literal notranslate"><span class="pre">centralization()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.channel_normalization"><code class="docutils literal notranslate"><span class="pre">channel_normalization()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.combine_feature"><code class="docutils literal notranslate"><span class="pre">combine_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.correct_conv_matrix"><code class="docutils literal notranslate"><span class="pre">correct_conv_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.cosine_sim"><code class="docutils literal notranslate"><span class="pre">cosine_sim()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.create_conv_matrix"><code class="docutils literal notranslate"><span class="pre">create_conv_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.euclidean_alignment"><code class="docutils literal notranslate"><span class="pre">euclidean_alignment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.euclidean_dist"><code class="docutils literal notranslate"><span class="pre">euclidean_dist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.extract_periodic_impulse"><code class="docutils literal notranslate"><span class="pre">extract_periodic_impulse()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_corr_2d"><code class="docutils literal notranslate"><span class="pre">fast_corr_2d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_corr_3d"><code class="docutils literal notranslate"><span class="pre">fast_corr_3d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_corr_4d"><code class="docutils literal notranslate"><span class="pre">fast_corr_4d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_stan_2d"><code class="docutils literal notranslate"><span class="pre">fast_stan_2d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_stan_3d"><code class="docutils literal notranslate"><span class="pre">fast_stan_3d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_stan_4d"><code class="docutils literal notranslate"><span class="pre">fast_stan_4d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fast_stan_5d"><code class="docutils literal notranslate"><span class="pre">fast_stan_5d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.fisher_score"><code class="docutils literal notranslate"><span class="pre">fisher_score()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.generate_data_info"><code class="docutils literal notranslate"><span class="pre">generate_data_info()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.generate_filter_bank"><code class="docutils literal notranslate"><span class="pre">generate_filter_bank()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.generate_mean"><code class="docutils literal notranslate"><span class="pre">generate_mean()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.generate_source_response"><code class="docutils literal notranslate"><span class="pre">generate_source_response()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.generate_var"><code class="docutils literal notranslate"><span class="pre">generate_var()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.get_resample_sequence"><code class="docutils literal notranslate"><span class="pre">get_resample_sequence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.itr_compute"><code class="docutils literal notranslate"><span class="pre">itr_compute()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.label_align"><code class="docutils literal notranslate"><span class="pre">label_align()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.laplacian_matrix"><code class="docutils literal notranslate"><span class="pre">laplacian_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.mahalanobis_dist"><code class="docutils literal notranslate"><span class="pre">mahalanobis_dist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.minkowski_dist"><code class="docutils literal notranslate"><span class="pre">minkowski_dist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.nega_root_matrix"><code class="docutils literal notranslate"><span class="pre">nega_root_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.neighbor_edge"><code class="docutils literal notranslate"><span class="pre">neighbor_edge()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.neighbor_events"><code class="docutils literal notranslate"><span class="pre">neighbor_events()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.normalization"><code class="docutils literal notranslate"><span class="pre">normalization()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.normalize_eigenvectors"><code class="docutils literal notranslate"><span class="pre">normalize_eigenvectors()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.pearson_corr"><code class="docutils literal notranslate"><span class="pre">pearson_corr()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.pick_subspace"><code class="docutils literal notranslate"><span class="pre">pick_subspace()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.qr_projection"><code class="docutils literal notranslate"><span class="pre">qr_projection()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.reshape_dataset"><code class="docutils literal notranslate"><span class="pre">reshape_dataset()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.resize_conv_matrix"><code class="docutils literal notranslate"><span class="pre">resize_conv_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.root_matrix"><code class="docutils literal notranslate"><span class="pre">root_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.s_estimator"><code class="docutils literal notranslate"><span class="pre">s_estimator()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.selected_events"><code class="docutils literal notranslate"><span class="pre">selected_events()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.sign_sta"><code class="docutils literal notranslate"><span class="pre">sign_sta()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.sin_wave"><code class="docutils literal notranslate"><span class="pre">sin_wave()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.sine_template"><code class="docutils literal notranslate"><span class="pre">sine_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.snr_time"><code class="docutils literal notranslate"><span class="pre">snr_time()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.solve_coral"><code class="docutils literal notranslate"><span class="pre">solve_coral()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.solve_forward_propagation"><code class="docutils literal notranslate"><span class="pre">solve_forward_propagation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.solve_gep"><code class="docutils literal notranslate"><span class="pre">solve_gep()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.solve_mcpe"><code class="docutils literal notranslate"><span class="pre">solve_mcpe()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.spatial_filtering"><code class="docutils literal notranslate"><span class="pre">spatial_filtering()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.square_wave"><code class="docutils literal notranslate"><span class="pre">square_wave()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.standardization"><code class="docutils literal notranslate"><span class="pre">standardization()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.trial_normalization"><code class="docutils literal notranslate"><span class="pre">trial_normalization()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.tukeys_kernel"><code class="docutils literal notranslate"><span class="pre">tukeys_kernel()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#utils.weight_matrix"><code class="docutils literal notranslate"><span class="pre">weight_matrix()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to SSVEP-ML’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cca.html" class="btn btn-neutral float-right" title="cca module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Brynhildr Wu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
